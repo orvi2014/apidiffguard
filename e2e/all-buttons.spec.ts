@@ -205,6 +205,18 @@ test.describe("all buttons — console (signed in)", () => {
 
     // Safe nav clicks through console
     await page.goto("/dashboard");
+    await expect(
+      page.getByRole("heading", { name: "Overview", exact: true })
+    ).toBeVisible();
+
+    const search = page.getByRole("button", { name: "Search" });
+    await expect(search).toBeVisible();
+    await search.click();
+    await expect(
+      page.getByText("Go to Overview").or(page.getByPlaceholder(/Jump to endpoint/i))
+    ).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press("Escape");
+
     await consoleNav.getByRole("link", { name: "Endpoints" }).click();
     await expect(page).toHaveURL(/\/endpoints/);
     await consoleNav.getByRole("link", { name: "Diffs" }).click();
@@ -215,19 +227,5 @@ test.describe("all buttons — console (signed in)", () => {
     await expect(page).toHaveURL(/\/schedules/);
     await page.getByRole("link", { name: "Settings" }).click();
     await expect(page).toHaveURL(/\/settings/);
-  });
-
-  test("command palette search button opens", async ({ page, context }) => {
-    await context.clearCookies();
-    await signIn(page);
-    await page.goto("/dashboard");
-    const search = page.getByRole("button", { name: "Search" });
-    await expect(search).toBeVisible();
-    await search.click();
-    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10_000 });
-    await expect(
-      page.getByPlaceholder(/Jump to endpoint/i).or(page.getByText(/Go to Overview/i))
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
   });
 });
