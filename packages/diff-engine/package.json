@@ -1,0 +1,28 @@
+{
+  "name": "@apidiffguard/diff",
+  "version": "0.1.0",
+  "description": "JSON / API response diff engine used by APIDiffGuard — detect added, removed, and breaking field changes.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["json", "diff", "api", "openapi", "breaking-change", "schema-drift"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apidiffguard/diff"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

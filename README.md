@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# APIDiffGuard
 
-## Getting Started
+Catch breaking API changes before production.
 
-First, run the development server:
+Monitor API responses, detect schema drift, compare versions, and alert developers before integrations break.
+
+## Stack
+
+- Next.js 15 (App Router) · React 19 · TypeScript
+- Tailwind CSS · Framer Motion
+- Prisma · PostgreSQL
+- Designed for Supabase Auth, Resend, Upstash Redis, Trigger.dev, Vercel
+
+## Quick start
 
 ```bash
+npm install
+cp .env.example .env
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The console is populated with demo data so you can explore the Diff Viewer, endpoints, alerts, and schedules without wiring services.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Signature surface
 
-## Learn More
+Open the live diff:
 
-To learn more about Next.js, take a look at the following resources:
+[http://localhost:3000/diff/diff_users_latest](http://localhost:3000/diff/diff_users_latest)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Keyboard: `⌘K` command palette · `n` / `p` jump between changes.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Command        | Description              |
+|----------------|--------------------------|
+| `npm run dev`  | Start development server |
+| `npm run build`| Production build         |
+| `npm run start`| Start production server  |
+| `npm run lint` | ESLint                   |
+| `npm run test` | Unit tests (diff engine) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    (console)/     # IDE-style product shell
+    login|register # Auth screens
+    pricing|docs   # Marketing
+  components/
+    diff/          # DiffViewer, DiffTree, JSONViewer
+    domain/        # Badges, endpoints, activity
+    layout/        # AppShell, CommandPalette
+    marketing/     # Landing chrome + demo
+  lib/
+    diff-engine.ts # JSON compare + tree builder
+    mock-data.ts   # Demo workspace data
+prisma/
+  schema.prisma    # Full data model
+```
+
+## Database
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+Requires a PostgreSQL `DATABASE_URL` in `.env`.
+
+## Design
+
+Dark-first monochrome UI with a single blue accent (`#4F7FFF`). Layout borrows from IDE / DevTools patterns — sticky toolbars, inspector panes, timelines — not admin dashboard cards.

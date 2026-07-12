@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum HttpMethod {
+  GET
+  POST
+  PUT
+  PATCH
+  DELETE
+  HEAD
+  OPTIONS
+}
+
+enum AuthType {
+  NONE
+  BEARER
+  API_KEY
+  BASIC
+  OAUTH
+  CUSTOM
+}
+
+enum HealthStatus {
+  HEALTHY
+  WARNING
+  BREAKING
+  UNKNOWN
+  CHECKING
+}
+
+enum Severity {
+  INFO
+  WARNING
+  BREAKING
+}
+
+enum ScheduleFrequency {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum CheckStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
+enum AlertChannel {
+  EMAIL
+  SLACK
+  DISCORD
+  WEBHOOK
+}
+
+enum AlertStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRYING
+}
+
+enum DiffChangeType {
+  ADDED
+  REMOVED
+  CHANGED
+  TYPE_CHANGED
+  STATUS_CHANGED
+  HEADER_CHANGED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  githubId      String?   @unique
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  memberships   Membership[]
+  apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members     Membership[]
+  endpoints   Endpoint[]
+  alerts      AlertConfig[]
+  schedules   Schedule[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  activities  Activity[]
+}
+
+model Membership {
+  id          String     @id @default(cuid())
+  role        MemberRole @default(MEMBER)
+  invitedAt   DateTime   @default(now())
+  joinedAt    DateTime?
+  userId      String
+  workspaceId String
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model Endpoint {
+  id          String       @id @default(cuid())
+  name        String
+  url         String
+  method      HttpMethod   @default(GET)
+  headers     Json         @default("{}")
+  authType    AuthType     @default(NONE)
+  authConfig  Json         @default("{}")
+  environment String       @default("production")
+  tags        String[]     @default([])
+  description String?
+  health      HealthStatus @default(UNKNOWN)
+  timeoutMs   Int          @default(10000)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  workspaceId String
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  baselines   Baseline[]
+  checks      Check[]
+  diffs       Diff[]
+  ignoreRules IgnoreRule[]
+  schedules   Schedule[]
+
+  @@index([workspaceId])
+  @@index([health])
+}
+
+model Baseline {
+  id           String   @id @default(cuid())
+  version      Int
+  statusCode   Int
+  headers      Json
+  body         Json
+  responseTime Int
+  contentSize  Int
+  notes        String?
+  approved     Boolean  @default(false)
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  endpointId   String
+
+  endpoint Endpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  diffsAsBaseline Diff[] @relation("BaselineDiff")
+  diffsAsCurrent  Diff[] @relation("CurrentDiff")
+
+  @@unique([endpointId, version])
+  @@index([endpointId, isActive])
+}
+
+model Check {
+  id           String      @id @default(cuid())
+  status       CheckStatus @default(PENDING)
+  statusCode   Int?
+  headers      Json?
+  body         Json?
+  responseTime Int?
+  contentSize  Int?
+  error        String?
+  startedAt    DateTime    @default(now())
+  finishedAt   DateTime?
+  endpointId   String
+
+  endpoint Endpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  diffs    Diff[]
+
+  @@index([endpointId, startedAt])
+}
+
+model Diff {
+  id              String   @id @default(cuid())
+  summary         Json
+  changes         Json
+  breakingCount   Int      @default(0)
+  warningCount    Int      @default(0)
+  infoCount       Int      @default(0)
+  accepted        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  endpointId      String
+  baselineId      String?
+  currentId       String?
+  checkId         String?
+
+  endpoint Endpoint  @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  baseline Baseline? @relation("BaselineDiff", fields: [baselineId], references: [id])
+  current  Baseline? @relation("CurrentDiff", fields: [currentId], references: [id])
+  check    Check?    @relation(fields: [checkId], references: [id])
+
+  @@index([endpointId, createdAt])
+}
+
+model IgnoreRule {
+  id         String   @id @default(cuid())
+  path       String
+  reason     String?
+  createdAt  DateTime @default(now())
+  endpointId String
+
+  endpoint Endpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId])
+}
+
+model Schedule {
+  id          String            @id @default(cuid())
+  frequency   ScheduleFrequency @default(DAILY)
+  cron        String?
+  enabled     Boolean           @default(true)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  endpointId  String?
+  workspaceId String
+
+  endpoint  Endpoint? @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([nextRunAt])
+}
+
+model AlertConfig {
+  id          String       @id @default(cuid())
+  channel     AlertChannel
+  config      Json
+  minSeverity Severity     @default(WARNING)
+  enabled     Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  workspaceId String
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  history   AlertHistory[]
+
+  @@index([workspaceId])
+}
+
+model AlertHistory {
+  id            String      @id @default(cuid())
+  status        AlertStatus @default(PENDING)
+  severity      Severity
+  message       String
+  payload       Json?
+  error         String?
+  sentAt        DateTime?
+  createdAt     DateTime    @default(now())
+  alertConfigId String
+
+  alertConfig AlertConfig @relation(fields: [alertConfigId], references: [id], onDelete: Cascade)
+
+  @@index([alertConfigId, createdAt])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  keyHash     String
+  prefix      String
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  userId      String
+  workspaceId String
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([prefix])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  resource    String
+  resourceId  String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  userId      String?
+  workspaceId String
+
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String
+  title       String
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  workspaceId String
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String?
+  read      Boolean  @default(false)
+  href      String?
+  createdAt DateTime @default(now())
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}

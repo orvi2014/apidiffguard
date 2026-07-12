@@ -1,0 +1,158 @@
+import { redirect } from "next/navigation";
+import { SeverityBadge } from "@/components/domain/badges";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceContext } from "@/lib/workspace";
+import { cn, formatRelativeTime } from "@/lib/utils";
+
+export const metadata = { title: "Alerts" };
+
+const channelLabel: Record<string, string> = {
+  SLACK: "Slack",
+  DISCORD: "Discord",
+  EMAIL: "Email",
+  WEBHOOK: "Webhook",
+};
+
+const statusTone: Record<string, string> = {
+  SENT: "text-success",
+  FAILED: "text-danger",
+  PENDING: "text-muted",
+  RETRYING: "text-warning",
+};
+
+export default async function AlertsPage() {
+  const ctx = await getWorkspaceContext();
+  if (!ctx) redirect("/login");
+
+  const supabase = await createClient();
+  const { data: configs } = await supabase
+    .from("alert_configs")
+    .select("id, channel")
+    .eq("workspace_id", ctx.workspaceId);
+
+  const configIds = configs?.map((c) => c.id) ?? [];
+  const { data: history } = configIds.length
+    ? await supabase
+        .from("alert_history")
+        .select("*")
+        .in("alert_config_id", configIds)
+        .order("created_at", { ascending: false })
+        .limit(50)
+    : { data: [] as never[] };
+
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const sentToday =
+    history?.filter(
+      (h) =>
+        h.status === "SENT" &&
+        new Date(h.created_at).getTime() >= dayStart.getTime()
+    ).length ?? 0;
+  const failed =
+    history?.filter((h) => h.status === "FAILED").length ?? 0;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-border px-5 py-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Alerts</h1>
+            <p className="mt-1 text-sm text-muted">
+              Delivery history across Slack, Discord, email, and webhooks.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" disabled>
+              Test notification
+            </Button>
+            <Button size="sm" disabled>
+              Configure channels
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[
+            { label: "Channels", value: String(configs?.length ?? 0) },
+            { label: "Sent today", value: String(sentToday) },
+            {
+              label: "Failed",
+              value: String(failed),
+              tone: failed ? "text-danger" : undefined,
+            },
+            { label: "Min severity", value: "Warning" },
+          ].map((s) => (
+            <div key={s.label}>
+              <div
+                className={cn(
+                  "font-mono text-xl font-semibold tabular-nums",
+                  s.tone
+                )}
+              >
+                {s.value}
+              </div>
+              <div className="mt-0.5 text-[11px] uppercase tracking-wider text-muted">
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="hidden border-b border-border-subtle px-5 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:grid-cols-[100px_90px_1fr_100px_80px] sm:gap-4">
+        <span>Channel</span>
+        <span>Severity</span>
+        <span>Message</span>
+        <span>Status</span>
+        <span className="text-right">When</span>
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        {!history?.length ? (
+          <p className="px-5 py-12 text-center text-sm text-muted">
+            No alerts yet. Configure channels when you&apos;re ready to notify
+            on drift.
+          </p>
+        ) : (
+          history.map((alert) => {
+            const config = configs?.find((c) => c.id === alert.alert_config_id);
+            const channel = config?.channel ?? "WEBHOOK";
+            return (
+              <div
+                key={alert.id}
+                className="grid grid-cols-1 gap-1 border-b border-border-subtle px-5 py-3 sm:grid-cols-[100px_90px_1fr_100px_80px] sm:items-center sm:gap-4"
+              >
+                <span className="text-xs font-medium">
+                  {channelLabel[channel] ?? channel}
+                </span>
+                <SeverityBadge
+                  severity={
+                    (alert.severity as string)?.toLowerCase() as
+                      | "breaking"
+                      | "warning"
+                      | "info"
+                  }
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{alert.message}</p>
+                </div>
+                <span
+                  className={cn(
+                    "text-xs capitalize",
+                    statusTone[alert.status] ?? "text-muted"
+                  )}
+                >
+                  {String(alert.status).toLowerCase()}
+                </span>
+                <time className="text-right text-[11px] text-muted-foreground">
+                  {formatRelativeTime(alert.created_at)}
+                </time>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
