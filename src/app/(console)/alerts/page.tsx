@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { testAlertNotification } from "@/app/actions/alerts";
 import { SeverityBadge } from "@/components/domain/badges";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -21,16 +23,22 @@ const statusTone: Record<string, string> = {
   RETRYING: "text-warning",
 };
 
-export default async function AlertsPage() {
+export default async function AlertsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tested?: string; error?: string }>;
+}) {
+  const params = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
 
   const supabase = await createClient();
   const { data: configs } = await supabase
     .from("alert_configs")
-    .select("id, channel")
+    .select("id, channel, enabled")
     .eq("workspace_id", ctx.workspaceId);
 
+  const enabledCount = configs?.filter((c) => c.enabled).length ?? 0;
   const configIds = configs?.map((c) => c.id) ?? [];
   const { data: history } = configIds.length
     ? await supabase
@@ -49,12 +57,11 @@ export default async function AlertsPage() {
         h.status === "SENT" &&
         new Date(h.created_at).getTime() >= dayStart.getTime()
     ).length ?? 0;
-  const failed =
-    history?.filter((h) => h.status === "FAILED").length ?? 0;
+  const failed = history?.filter((h) => h.status === "FAILED").length ?? 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border px-5 py-5">
+      <div className="border-b border-border px-4 py-5 sm:px-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Alerts</h1>
@@ -62,15 +69,40 @@ export default async function AlertsPage() {
               Delivery history across Slack, Discord, email, and webhooks.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="secondary" disabled>
-              Test notification
-            </Button>
-            <Button size="sm" disabled>
-              Configure channels
+          <div className="flex flex-wrap gap-2">
+            <form action={testAlertNotification}>
+              <Button
+                type="submit"
+                size="sm"
+                variant="secondary"
+                disabled={enabledCount === 0}
+                className="min-h-9"
+              >
+                Test notification
+              </Button>
+            </form>
+            <Button asChild size="sm" className="min-h-9">
+              <Link href="/alerts/channels">Configure channels</Link>
             </Button>
           </div>
         </div>
+
+        {params.tested ? (
+          <p
+            role="status"
+            className="mt-4 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm"
+          >
+            Test notification recorded in history.
+          </p>
+        ) : null}
+        {params.error ? (
+          <p
+            role="alert"
+            className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+          >
+            Could not send test notification.
+          </p>
+        ) : null}
 
         <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
@@ -110,10 +142,15 @@ export default async function AlertsPage() {
 
       <div className="flex-1 overflow-auto">
         {!history?.length ? (
-          <p className="px-5 py-12 text-center text-sm text-muted">
-            No alerts yet. Configure channels when you&apos;re ready to notify
-            on drift.
-          </p>
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm text-muted">
+              No alerts yet. Configure channels when you&apos;re ready to notify
+              on drift.
+            </p>
+            <Button asChild size="sm" className="mt-4 min-h-9">
+              <Link href="/alerts/channels">Configure channels</Link>
+            </Button>
+          </div>
         ) : (
           history.map((alert) => {
             const config = configs?.find((c) => c.id === alert.alert_config_id);
@@ -121,7 +158,7 @@ export default async function AlertsPage() {
             return (
               <div
                 key={alert.id}
-                className="grid grid-cols-1 gap-1 border-b border-border-subtle px-5 py-3 sm:grid-cols-[100px_90px_1fr_100px_80px] sm:items-center sm:gap-4"
+                className="grid grid-cols-1 gap-1 border-b border-border-subtle px-4 py-3 sm:grid-cols-[100px_90px_1fr_100px_80px] sm:items-center sm:gap-4 sm:px-5"
               >
                 <span className="text-xs font-medium">
                   {channelLabel[channel] ?? channel}
