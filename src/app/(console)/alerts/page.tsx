@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { testAlertNotification } from "@/app/actions/alerts";
 import { SeverityBadge } from "@/components/domain/badges";
+import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
@@ -23,6 +24,12 @@ const statusTone: Record<string, string> = {
   RETRYING: "text-warning",
 };
 
+const severityRank: Record<string, number> = {
+  INFO: 0,
+  WARNING: 1,
+  BREAKING: 2,
+};
+
 export default async function AlertsPage({
   searchParams,
 }: {
@@ -35,7 +42,7 @@ export default async function AlertsPage({
   const supabase = await createClient();
   const { data: configs } = await supabase
     .from("alert_configs")
-    .select("id, channel, enabled")
+    .select("id, channel, enabled, min_severity")
     .eq("workspace_id", ctx.workspaceId);
 
   const enabledCount = configs?.filter((c) => c.enabled).length ?? 0;
@@ -59,8 +66,18 @@ export default async function AlertsPage({
     ).length ?? 0;
   const failed = history?.filter((h) => h.status === "FAILED").length ?? 0;
 
+  const minSeverity =
+    configs && configs.length
+      ? configs.reduce((lowest, c) => {
+          const current = String(c.min_severity ?? "WARNING").toUpperCase();
+          return (severityRank[current] ?? 1) < (severityRank[lowest] ?? 1)
+            ? current
+            : lowest;
+        }, "BREAKING")
+      : "—";
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col animate-in fade-in duration-300">
       <div className="border-b border-border px-4 py-5 sm:px-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -71,15 +88,15 @@ export default async function AlertsPage({
           </div>
           <div className="flex flex-wrap gap-2">
             <form action={testAlertNotification}>
-              <Button
-                type="submit"
+              <PendingSubmitButton
                 size="sm"
                 variant="secondary"
                 disabled={enabledCount === 0}
                 className="min-h-9"
+                pendingLabel="Sending…"
               >
                 Test notification
-              </Button>
+              </PendingSubmitButton>
             </form>
             <Button asChild size="sm" className="min-h-9">
               <Link href="/alerts/channels">Configure channels</Link>
@@ -90,17 +107,19 @@ export default async function AlertsPage({
         {params.tested ? (
           <p
             role="status"
-            className="mt-4 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm"
+            className="mt-4 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm animate-in fade-in slide-in-from-top-1 duration-300"
           >
-            Test notification recorded in history.
+            Test notification sent and recorded in history.
           </p>
         ) : null}
         {params.error ? (
           <p
             role="alert"
-            className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+            className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm animate-in fade-in slide-in-from-top-1 duration-300"
           >
-            Could not send test notification.
+            {params.error === "delivery-failed"
+              ? "Delivery failed. Check the channel destination and try again."
+              : "Could not send test notification."}
           </p>
         ) : null}
 
@@ -113,7 +132,13 @@ export default async function AlertsPage({
               value: String(failed),
               tone: failed ? "text-danger" : undefined,
             },
-            { label: "Min severity", value: "Warning" },
+            {
+              label: "Min severity",
+              value:
+                minSeverity === "—"
+                  ? "—"
+                  : minSeverity.charAt(0) + minSeverity.slice(1).toLowerCase(),
+            },
           ].map((s) => (
             <div key={s.label}>
               <div
@@ -158,7 +183,7 @@ export default async function AlertsPage({
             return (
               <div
                 key={alert.id}
-                className="grid grid-cols-1 gap-1 border-b border-border-subtle px-4 py-3 sm:grid-cols-[100px_90px_1fr_100px_80px] sm:items-center sm:gap-4 sm:px-5"
+                className="grid grid-cols-1 gap-1 border-b border-border-subtle px-4 py-3 transition-colors hover:bg-surface/40 sm:grid-cols-[100px_90px_1fr_100px_80px] sm:items-center sm:gap-4 sm:px-5"
               >
                 <span className="text-xs font-medium">
                   {channelLabel[channel] ?? channel}

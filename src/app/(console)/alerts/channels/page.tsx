@@ -1,42 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  createAlertChannel,
   deleteAlertChannel,
   toggleAlertChannel,
 } from "@/app/actions/alerts";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { AddChannelForm } from "@/components/alerts/add-channel-form";
+import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
 export const metadata = { title: "Alert channels" };
 
-const channelMeta: Record<
-  string,
-  { label: string; placeholder: string; hint: string }
-> = {
-  EMAIL: {
-    label: "Email",
-    placeholder: "alerts@yourcompany.com",
-    hint: "Destination email address",
-  },
-  SLACK: {
-    label: "Slack",
-    placeholder: "https://hooks.slack.com/services/…",
-    hint: "Incoming webhook URL",
-  },
-  DISCORD: {
-    label: "Discord",
-    placeholder: "https://discord.com/api/webhooks/…",
-    hint: "Webhook URL",
-  },
-  WEBHOOK: {
-    label: "Webhook",
-    placeholder: "https://example.com/hooks/apidiff",
-    hint: "HTTPS endpoint that accepts POST JSON",
-  },
+const channelMeta: Record<string, { label: string }> = {
+  EMAIL: { label: "Email" },
+  SLACK: { label: "Slack" },
+  DISCORD: { label: "Discord" },
+  WEBHOOK: { label: "Webhook" },
 };
 
 function targetFromConfig(channel: string, config: unknown): string {
@@ -69,7 +48,7 @@ export default async function AlertChannelsPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-5 sm:py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 animate-in fade-in duration-300 sm:px-5 sm:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs text-muted">
@@ -90,7 +69,7 @@ export default async function AlertChannelsPage({
       {params.created ? (
         <p
           role="status"
-          className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm"
+          className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm animate-in fade-in slide-in-from-top-1 duration-300"
         >
           Channel added.
         </p>
@@ -98,7 +77,7 @@ export default async function AlertChannelsPage({
       {params.deleted ? (
         <p
           role="status"
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm"
+          className="rounded-md border border-border bg-surface px-3 py-2 text-sm animate-in fade-in slide-in-from-top-1 duration-300"
         >
           Channel removed.
         </p>
@@ -106,12 +85,12 @@ export default async function AlertChannelsPage({
       {params.error ? (
         <p
           role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm animate-in fade-in slide-in-from-top-1 duration-300"
         >
           {params.error === "no-channel"
             ? "Add a channel before sending a test notification."
             : params.error === "invalid"
-              ? "Choose a channel and enter a valid destination."
+              ? "Choose a channel and enter a valid destination (HTTPS URL or email)."
               : "Could not save channel. Try again."}
         </p>
       ) : null}
@@ -123,55 +102,7 @@ export default async function AlertChannelsPage({
         <h2 id="add-channel-heading" className="text-sm font-medium">
           Add channel
         </h2>
-        <form action={createAlertChannel} className="mt-4 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="channel">Channel</Label>
-              <select
-                id="channel"
-                name="channel"
-                required
-                className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
-                defaultValue="SLACK"
-              >
-                {Object.entries(channelMeta).map(([value, meta]) => (
-                  <option key={value} value={value}>
-                    {meta.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="min_severity">Minimum severity</Label>
-              <select
-                id="min_severity"
-                name="min_severity"
-                className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
-                defaultValue="WARNING"
-              >
-                <option value="INFO">Info</option>
-                <option value="WARNING">Warning</option>
-                <option value="BREAKING">Breaking</option>
-              </select>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="target">Destination</Label>
-            <Input
-              id="target"
-              name="target"
-              required
-              placeholder="Webhook URL or email address"
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-muted">
-              Slack/Discord/Webhook use a URL. Email uses an address.
-            </p>
-          </div>
-          <Button type="submit" className="min-h-9">
-            Add channel
-          </Button>
-        </form>
+        <AddChannelForm />
       </section>
 
       <section aria-labelledby="channels-list-heading">
@@ -187,7 +118,7 @@ export default async function AlertChannelsPage({
             channels.map((row) => (
               <article
                 key={row.id}
-                className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-surface/60 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -219,15 +150,23 @@ export default async function AlertChannelsPage({
                       name="enabled"
                       value={row.enabled ? "true" : "false"}
                     />
-                    <Button type="submit" size="sm" variant="secondary">
+                    <PendingSubmitButton
+                      size="sm"
+                      variant="secondary"
+                      pendingLabel={row.enabled ? "Disabling…" : "Enabling…"}
+                    >
                       {row.enabled ? "Disable" : "Enable"}
-                    </Button>
+                    </PendingSubmitButton>
                   </form>
                   <form action={deleteAlertChannel}>
                     <input type="hidden" name="id" value={row.id} />
-                    <Button type="submit" size="sm" variant="ghost">
+                    <PendingSubmitButton
+                      size="sm"
+                      variant="ghost"
+                      pendingLabel="Removing…"
+                    >
                       Remove
-                    </Button>
+                    </PendingSubmitButton>
                   </form>
                 </div>
               </article>

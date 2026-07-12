@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { deliverAlert, type DeliverableChannel } from "@/lib/alerts/deliver";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
@@ -19,6 +20,18 @@ function isSeverity(value: string): value is AlertSeverity {
   return (SEVERITIES as readonly string[]).includes(value);
 }
 
+function isValidTarget(channel: AlertChannel, target: string): boolean {
+  if (channel === "EMAIL") {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target);
+  }
+  try {
+    const url = new URL(target);
+    return url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export async function createAlertChannel(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/alerts/channels");
@@ -27,7 +40,7 @@ export async function createAlertChannel(formData: FormData) {
   const target = String(formData.get("target") ?? "").trim();
   const minSeverity = String(formData.get("min_severity") ?? "WARNING").toUpperCase();
 
-  if (!isChannel(channel) || !target) {
+  if (!isChannel(channel) || !target || !isValidTarget(channel, target)) {
     redirect("/alerts/channels?error=invalid");
   }
   if (!isSeverity(minSeverity)) {
@@ -39,9 +52,7 @@ export async function createAlertChannel(formData: FormData) {
       ? { email: target }
       : channel === "WEBHOOK"
         ? { url: target }
-        : channel === "SLACK"
-          ? { webhookUrl: target }
-          : { webhookUrl: target };
+        : { webhookUrl: target };
 
   const supabase = await createClient();
   const { error } = await supabase.from("alert_configs").insert({
@@ -82,7 +93,6 @@ export async function toggleAlertChannel(formData: FormData) {
 
   revalidatePath("/alerts");
   revalidatePath("/alerts/channels");
-  redirect("/alerts/channels");
 }
 
 export async function deleteAlertChannel(formData: FormData) {
@@ -115,9 +125,10 @@ export async function testAlertNotification() {
   const supabase = await createClient();
   const { data: configs } = await supabase
     .from("alert_configs")
-    .select("id, enabled")
+    .select("id, channel, config, enabled")
     .eq("workspace_id", ctx.workspaceId)
     .eq("enabled", true)
+    .order("created_at", { ascending: true })
     .limit(1);
 
   const config = configs?.[0];
@@ -125,12 +136,22 @@ export async function testAlertNotification() {
     redirect("/alerts/channels?error=no-channel");
   }
 
+  const message = "Test notification from APIDiffGuard console";
+  const delivery = await deliverAlert({
+    channel: config.channel as DeliverableChannel,
+    config: (config.config ?? {}) as Record<string, unknown>,
+    message,
+    severity: "INFO",
+  });
+
   const { error } = await supabase.from("alert_history").insert({
     alert_config_id: config.id,
-    status: "SENT",
+    status: delivery.status,
     severity: "INFO",
-    message: "Test notification from APIDiffGuard console",
-    sent_at: new Date().toISOString(),
+    message,
+    payload: delivery.payload ?? null,
+    error: delivery.error ?? null,
+    sent_at: delivery.ok ? new Date().toISOString() : null,
   });
 
   if (error) {
@@ -138,5 +159,5 @@ export async function testAlertNotification() {
   }
 
   revalidatePath("/alerts");
-  redirect("/alerts?tested=1");
+  redirect(delivery.ok ? "/alerts?tested=1" : "/alerts?error=delivery-failed");
 }

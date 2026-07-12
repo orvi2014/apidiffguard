@@ -166,7 +166,8 @@ test.describe("all buttons — console (signed in)", () => {
     await assertVisible(page, "button", /Configure channels/i);
 
     await page.goto("/schedules");
-    await assertVisible(page, "button", /Add schedule/i);
+    await assertVisible(page, "link", /Add schedule/i);
+    await assertVisible(page, "button", /Create schedule|Add schedule/i);
 
     // Settings sections
     await page.goto("/settings");

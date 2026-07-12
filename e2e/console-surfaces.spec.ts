@@ -143,14 +143,36 @@ test.describe("console surfaces", () => {
   });
 
   test("schedules page controls", async ({ page }) => {
-    await signIn(page);
+    const creds = await signIn(page);
     await page.goto("/schedules");
 
     await expect(page.getByRole("heading", { name: "Schedules" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add schedule" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Add schedule" })).toBeVisible();
     await expect(
-      page.getByText(/No schedules yet|Frequency|Endpoint/i).first()
+      page.getByRole("heading", { name: "Add schedule" })
     ).toBeVisible();
+
+    if (creds.endpointName) {
+      await expect(page.getByLabel("Endpoint")).toBeVisible();
+      await expect(page.getByLabel("Frequency")).toBeVisible();
+      await page.getByLabel("Frequency").selectOption("DAILY");
+      await page.getByRole("button", { name: "Create schedule" }).click();
+      await expect(page.getByRole("status")).toContainText(/Schedule created/i, {
+        timeout: 30_000,
+      });
+      await expect(page.getByRole("button", { name: "Pause" }).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: "Remove" }).first()).toBeVisible();
+
+      // Cleanup so reruns stay tidy
+      await page.getByRole("button", { name: "Remove" }).first().click();
+      await expect(
+        page.getByText(/Schedule removed|No schedules yet/i).first()
+      ).toBeVisible({ timeout: 30_000 });
+    } else {
+      await expect(
+        page.getByText(/No schedules yet|Create an endpoint first/i).first()
+      ).toBeVisible();
+    }
   });
 
   test("diffs surface loads", async ({ page }) => {
