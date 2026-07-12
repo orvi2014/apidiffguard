@@ -75,15 +75,16 @@ export function MarketingFooter() {
               ["Documentation", "/docs"],
               ["CLI", "/docs/cli"],
               ["JSON Diff", "/tools/json-diff"],
-              ["Open source", "https://github.com/apidiffguard/diff"],
+              ["GitHub", "https://github.com/orvi2014/apidiffguard"],
             ],
           },
           {
             title: "Company",
             links: [
-              ["Login", "/login"],
-              ["Register", "/register"],
-              ["Dashboard", "/dashboard"],
+              ["Changelog", "/changelog"],
+              ["Privacy", "/privacy"],
+              ["Terms", "/terms"],
+              ["Sign in", "/login"],
             ],
           },
         ].map((col) => (
@@ -107,9 +108,20 @@ export function MarketingFooter() {
         ))}
       </div>
       <div className="border-t border-border-subtle">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 text-xs text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} APIDiffGuard</span>
-          <span className="font-mono">v0.1.0</span>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link href="/llms.txt" className="hover:text-foreground">
+              llms.txt
+            </Link>
+            <span className="font-mono">v0.1.0</span>
+          </div>
         </div>
       </div>
     </footer>

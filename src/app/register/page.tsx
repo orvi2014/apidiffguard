@@ -1,7 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { RegisterForm } from "@/components/auth/register-form";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Create account" };
+export const metadata: Metadata = buildMetadata({
+  title: "Create account — Start free API monitoring",
+  description:
+    "Create an APIDiffGuard workspace. Free for 3 endpoints. Monitor API responses and catch breaking changes.",
+  path: "/register",
+  noIndex: true,
+});
 
 export default function RegisterPage() {
   return (

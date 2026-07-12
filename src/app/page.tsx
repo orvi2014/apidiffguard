@@ -17,10 +17,36 @@ import { BlurFade } from "@/components/ui/blur-fade";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Button } from "@/components/ui/button";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildMetadata, faqJsonLd } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = buildMetadata({
+  title: "API Breaking Change Detection & Schema Drift Monitoring",
+  description:
+    "Catch breaking API changes before production. Monitor responses, detect JSON schema drift, and gate CI with the same engine as our free JSON Diff tool.",
+  path: "/",
+});
+
+const homeFaqs = [
+  {
+    q: "What is APIDiffGuard?",
+    a: "APIDiffGuard monitors API responses against baselines, detects schema drift and breaking JSON changes, and helps teams catch contract breaks before production.",
+  },
+  {
+    q: "Is there a free JSON Diff tool?",
+    a: "Yes. The free JSON Diff, Formatter, and Validator tools work in the browser without an account. Hosted monitoring is available when you need schedules and alerts.",
+  },
+  {
+    q: "Can I self-host?",
+    a: "Yes. The project is open-core under MIT. You can self-host, or use APIDiffGuard Cloud so you do not operate auth, databases, and schedules yourself.",
+  },
+];
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen">
+      <JsonLd data={faqJsonLd(homeFaqs)} />
       <MarketingHeader />
 
       <main>
@@ -41,13 +67,13 @@ export default function LandingPage() {
             </BlurFade>
             <BlurFade delay={0.1}>
               <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-[1.08] lg:text-6xl">
-                Catching API breaking changes before production.
+                Catch breaking API changes before production.
               </h1>
             </BlurFade>
             <BlurFade delay={0.15}>
               <p className="mt-5 max-w-xl text-base text-muted leading-relaxed sm:text-lg">
-                Monitor API responses, detect schema drift, compare versions, and
-                alert your team before integrations break.
+                Monitor API responses, detect schema drift, compare JSON
+                contracts, and alert your team before integrations break.
               </p>
             </BlurFade>
             <BlurFade delay={0.2} className="mt-8 flex flex-wrap items-center gap-3">
@@ -235,6 +261,24 @@ export default function LandingPage() {
                 Open console
               </Button>
             </Link>
+          </div>
+        </section>
+
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-3xl px-5 py-20">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Frequently asked questions
+            </h2>
+            <dl className="mt-8 divide-y divide-border border-y border-border">
+              {homeFaqs.map((faq) => (
+                <div key={faq.q} className="py-5">
+                  <dt className="text-sm font-medium text-foreground">{faq.q}</dt>
+                  <dd className="mt-2 text-sm text-muted leading-relaxed">
+                    {faq.a}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </section>
 

@@ -1,7 +1,17 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
+import type { Metadata } from "next";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
 import { Button } from "@/components/ui/button";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildMetadata, faqJsonLd } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Pricing — Free API Monitoring & Paid Schedules",
+  description:
+    "Start free with 3 endpoints. Upgrade for scheduled API checks, Slack alerts, and team workspaces. No credit card to try APIDiffGuard.",
+  path: "/pricing",
+});
 
 const plans = [
   {
@@ -85,16 +95,15 @@ const faqs = [
   },
 ];
 
-export const metadata = {
-  title: "Pricing",
-};
-
 export default function PricingPage() {
   return (
     <div className="min-h-screen">
+      <JsonLd data={faqJsonLd(faqs)} />
       <MarketingHeader />
       <main className="mx-auto max-w-6xl px-5 py-20">
-        <h1 className="text-4xl font-semibold tracking-tight">Pricing</h1>
+        <h1 className="text-4xl font-semibold tracking-tight">
+          Pricing for API monitoring
+        </h1>
         <p className="mt-3 max-w-lg text-muted">
           Start free. Scale when monitoring becomes part of how you ship.
         </p>

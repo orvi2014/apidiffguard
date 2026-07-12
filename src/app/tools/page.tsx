@@ -3,12 +3,14 @@ import Link from "next/link";
 import { Braces, FileJson, GitCompare } from "lucide-react";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
 import { ProductCta } from "@/components/tools/product-cta";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Free JSON Tools — Diff, Format, Validate",
+export const metadata: Metadata = buildMetadata({
+  title: "Free JSON Tools — Diff, Format, Validate Online",
   description:
     "Free online JSON diff, formatter, and validator. Compare JSON side by side, pretty-print, and validate syntax — then monitor API drift with APIDiffGuard.",
-};
+  path: "/tools",
+});
 
 const tools = [
   {

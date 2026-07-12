@@ -1,14 +1,25 @@
 import type { MetadataRoute } from "next";
-
-const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://apidiffguard.com";
+import { SITE_URL } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: ["/dashboard", "/endpoints", "/diff", "/alerts", "/schedules", "/settings"],
-    },
-    sitemap: `${base}/sitemap.xml`,
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/dashboard",
+          "/endpoints",
+          "/diff",
+          "/alerts",
+          "/schedules",
+          "/settings",
+          "/api/",
+          "/auth/",
+        ],
+      },
+    ],
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }
