@@ -20,6 +20,12 @@
 # fumadocs
 .source
 
+# playwright / e2e secrets
+/e2e-artifacts/
+/playwright-report/
+/test-results/
+/blob-report/
+
 # production
 /build
 

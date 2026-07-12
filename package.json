@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test src/lib/diff-engine.test.ts src/lib/openapi.test.ts src/lib/safe-url.test.ts",
+    "test:e2e": "playwright test",
     "postinstall": "fumadocs-mdx",
     "db:generate": "prisma generate",
     "db:push": "prisma db push"
@@ -57,6 +58,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.43",
     "@types/react": "^19",
