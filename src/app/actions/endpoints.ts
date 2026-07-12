@@ -83,8 +83,15 @@ export async function importEndpoints(
   const ctx = await getWorkspaceContext();
   if (!ctx) return { error: "Unauthorized", count: 0 };
 
+  if (!Array.isArray(endpoints) || endpoints.length === 0) {
+    return { error: "No endpoints to import.", count: 0 };
+  }
+  if (endpoints.length > 200) {
+    return { error: "Import is limited to 200 endpoints per batch.", count: 0 };
+  }
+
   const supabase = await createClient();
-  const rows = endpoints.map((ep) => ({
+  const rows = endpoints.slice(0, 200).map((ep) => ({
     name: ep.name,
     url: ep.url,
     method: mapMethod(ep.method),

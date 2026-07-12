@@ -8,6 +8,12 @@ import {
   pickServerForDocsHost,
   type ParsedOpenAPISpec,
 } from "@/lib/openapi";
+import {
+  MAX_FETCH_BYTES,
+  parseAndAssertPublicUrl,
+  readResponseTextLimited,
+  safeFetch,
+} from "@/lib/safe-url";
 
 const FETCH_HEADERS = {
   Accept:
@@ -15,12 +21,12 @@ const FETCH_HEADERS = {
   "User-Agent": "APIDiffGuard/0.1 (+https://apidiffguard.com)",
 };
 
-async function fetchText(url: string, timeoutMs = 60000): Promise<string> {
-  const response = await fetch(url, {
+async function fetchText(url: string, timeoutMs = 20000): Promise<string> {
+  parseAndAssertPublicUrl(url);
+  const response = await safeFetch(url, {
     headers: FETCH_HEADERS,
-    signal: AbortSignal.timeout(timeoutMs),
-    redirect: "follow",
-    cache: "no-store",
+    timeoutMs,
+    method: "GET",
   });
 
   if (!response.ok) {
@@ -29,7 +35,7 @@ async function fetchText(url: string, timeoutMs = 60000): Promise<string> {
     );
   }
 
-  const text = await response.text();
+  const text = await readResponseTextLimited(response, MAX_FETCH_BYTES);
   if (!text.trim()) {
     throw new OpenAPIParseError(`Fetched document was empty: ${url}`);
   }
@@ -55,18 +61,19 @@ export async function loadOpenAPISpecFromUrl(
   sourceUrl: string;
   resolvedFrom?: string;
 }> {
-  const pageUrl = rawUrl.trim();
+  const pageUrl = parseAndAssertPublicUrl(rawUrl).toString();
   let content = await fetchText(pageUrl);
   let sourceUrl = pageUrl;
   let resolvedFrom: string | undefined;
 
   if (looksLikeHtml(content)) {
-    const candidates = findSwaggerUiFollowUpUrls(content, pageUrl);
+    const candidates = findSwaggerUiFollowUpUrls(content, pageUrl).slice(0, 8);
     let loaded = false;
     let lastError = "";
 
     for (const candidate of candidates) {
       try {
+        parseAndAssertPublicUrl(candidate);
         const next = await fetchText(candidate);
         if (looksLikeHtml(next)) continue;
         if (!isLikelyOpenApiPayload(next)) continue;

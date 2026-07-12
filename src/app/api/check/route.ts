@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
 import { runHttpCheck } from "@/lib/http-check";
+import { readJsonBody, requireApiUser } from "@/lib/api-guard";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  const auth = await requireApiUser(request);
+  if ("error" in auth && auth.error) return auth.error;
+
   try {
-    const body = (await request.json()) as {
+    const parsed = await readJsonBody<{
       url?: string;
       method?: string;
       headers?: Record<string, string>;
       timeoutMs?: number;
-    };
+    }>(request, 32_000);
+    if ("error" in parsed) return parsed.error;
 
+    const body = parsed.data;
     if (!body.url?.trim()) {
       return NextResponse.json({ error: "URL is required." }, { status: 400 });
     }

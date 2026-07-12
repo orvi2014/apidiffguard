@@ -1,75 +1,58 @@
 # APIDiffGuard
 
-Catch breaking API changes before production.
+Catch breaking API changes before your clients do.
 
 Monitor API responses, detect schema drift, compare versions, and alert developers before integrations break.
 
+**Live:** [apidiffguard.vercel.app](https://apidiffguard.vercel.app) · **Repo:** [github.com/orvi2014/apidiffguard](https://github.com/orvi2014/apidiffguard)
+
 ## Stack
 
-- Next.js 15 (App Router) · React 19 · TypeScript
-- Tailwind CSS · Framer Motion
-- Prisma · PostgreSQL
-- Designed for Supabase Auth, Resend, Upstash Redis, Trigger.dev, Vercel
+- Next.js (App Router) · React 19 · TypeScript
+- Tailwind CSS · shadcn/ui · Motion
+- Supabase Auth + Postgres + RLS
+- Vercel
 
 ## Quick start
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env.local
+# Fill NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The console is populated with demo data so you can explore the Diff Viewer, endpoints, alerts, and schedules without wiring services.
+Apply DB migrations with the Supabase CLI against your project:
 
-### Signature surface
+```bash
+npx supabase db push
+```
 
-Open the live diff:
+## Free tools (no login)
 
-[http://localhost:3000/diff/diff_users_latest](http://localhost:3000/diff/diff_users_latest)
-
-Keyboard: `⌘K` command palette · `n` / `p` jump between changes.
+- [/tools/json-diff](/tools/json-diff)
+- [/tools/json-formatter](/tools/json-formatter)
+- [/tools/json-validator](/tools/json-validator)
 
 ## Scripts
 
-| Command        | Description              |
-|----------------|--------------------------|
-| `npm run dev`  | Start development server |
-| `npm run build`| Production build         |
-| `npm run start`| Start production server  |
-| `npm run lint` | ESLint                   |
-| `npm run test` | Unit tests (diff engine) |
+| Command         | Description                |
+|-----------------|----------------------------|
+| `npm run dev`   | Development server         |
+| `npm run build` | Production build           |
+| `npm run start` | Start production server    |
+| `npm run lint`  | ESLint                     |
+| `npm run test`  | Unit tests                 |
 
-## Project structure
+## Security notes
 
-```
-src/
-  app/
-    (console)/     # IDE-style product shell
-    login|register # Auth screens
-    pricing|docs   # Marketing
-  components/
-    diff/          # DiffViewer, DiffTree, JSONViewer
-    domain/        # Badges, endpoints, activity
-    layout/        # AppShell, CommandPalette
-    marketing/     # Landing chrome + demo
-  lib/
-    diff-engine.ts # JSON compare + tree builder
-    mock-data.ts   # Demo workspace data
-prisma/
-  schema.prisma    # Full data model
-```
+- Outbound URL fetches (checks / OpenAPI import) block private hosts, re-validate redirects, and cap response size.
+- `/api/*` fetch routes require an authenticated session and are rate-limited.
+- Auth `next` redirects are restricted to same-origin relative paths.
+- Membership self-join is blocked in RLS; workspace creation goes through `create_workspace()` or the signup trigger.
 
-## Database
+## License
 
-```bash
-npx prisma generate
-npx prisma db push
-```
-
-Requires a PostgreSQL `DATABASE_URL` in `.env`.
-
-## Design
-
-Dark-first monochrome UI with a single blue accent (`#4F7FFF`). Layout borrows from IDE / DevTools patterns — sticky toolbars, inspector panes, timelines — not admin dashboard cards.
+MIT — see `packages/diff-engine` for the reusable diff package; app code in this repo is MIT unless noted otherwise.

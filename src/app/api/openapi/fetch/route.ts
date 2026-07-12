@@ -1,40 +1,24 @@
 import { NextResponse } from "next/server";
 import { OpenAPIParseError } from "@/lib/openapi";
 import { loadOpenAPISpecFromUrl } from "@/lib/openapi-fetch";
+import { parseAndAssertPublicUrl } from "@/lib/safe-url";
+import { readJsonBody, requireApiUser } from "@/lib/api-guard";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
-
-function isBlockedHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  if (
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "0.0.0.0" ||
-    host === "::1" ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal")
-  ) {
-    return true;
-  }
-
-  if (/^10\./.test(host)) return true;
-  if (/^192\.168\./.test(host)) return true;
-  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
-  if (/^169\.254\./.test(host)) return true;
-
-  return false;
-}
-
 export async function POST(request: Request) {
+  const auth = await requireApiUser(request);
+  if ("error" in auth && auth.error) return auth.error;
+
   try {
-    const body = (await request.json()) as {
+    const parsed = await readJsonBody<{
       url?: string;
       serverUrl?: string;
-    };
+    }>(request, 16_000);
+    if ("error" in parsed) return parsed.error;
 
+    const body = parsed.data;
     const rawUrl = body.url?.trim();
     if (!rawUrl) {
       return NextResponse.json(
@@ -43,28 +27,17 @@ export async function POST(request: Request) {
       );
     }
 
-    let parsed: URL;
     try {
-      parsed = new URL(rawUrl);
-    } catch {
-      return NextResponse.json({ error: "Invalid URL." }, { status: 400 });
-    }
-
-    if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
+      parseAndAssertPublicUrl(rawUrl);
+      if (body.serverUrl) parseAndAssertPublicUrl(body.serverUrl);
+    } catch (err) {
       return NextResponse.json(
-        { error: "Only http and https URLs are allowed." },
+        { error: err instanceof Error ? err.message : "Invalid URL." },
         { status: 400 }
       );
     }
 
-    if (isBlockedHost(parsed.hostname)) {
-      return NextResponse.json(
-        { error: "That host cannot be fetched from the server." },
-        { status: 400 }
-      );
-    }
-
-    const result = await loadOpenAPISpecFromUrl(parsed.toString(), {
+    const result = await loadOpenAPISpecFromUrl(rawUrl, {
       serverUrl: body.serverUrl,
     });
 

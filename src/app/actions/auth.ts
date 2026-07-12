@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeNextPath } from "@/lib/safe-url";
 
 export type AuthResult = { error?: string; success?: boolean };
 
@@ -47,8 +48,7 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message };
 
-  const next = String(formData.get("next") ?? "/dashboard");
-  redirect(next.startsWith("/") ? next : "/dashboard");
+  redirect(safeNextPath(String(formData.get("next") ?? "/dashboard")));
 }
 
 export async function signOut() {

@@ -17,26 +17,32 @@ export default async function EndpointDetailPage({
   const supabase = await createClient();
   const { data: row } = await supabase
     .from("endpoints")
-    .select("*")
+    .select(
+      "id, name, url, method, environment, tags, description, health, auth_type, last_checked_at, response_time, baseline_version, breaking_count, warning_count"
+    )
     .eq("id", id)
     .eq("workspace_id", ctx.workspaceId)
     .maybeSingle();
 
   if (!row) notFound();
 
-  const { data: baselineRows } = await supabase
-    .from("baselines")
-    .select("*")
-    .eq("endpoint_id", id)
-    .order("version", { ascending: false });
-
-  const { data: latestDiff } = await supabase
-    .from("diffs")
-    .select("id")
-    .eq("endpoint_id", id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: baselineRows }, { data: latestDiff }] = await Promise.all([
+    supabase
+      .from("baselines")
+      .select(
+        "id, version, status_code, headers, body, response_time, content_size, notes, approved, is_active, created_at, endpoint_id"
+      )
+      .eq("endpoint_id", id)
+      .order("version", { ascending: false })
+      .limit(50),
+    supabase
+      .from("diffs")
+      .select("id")
+      .eq("endpoint_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   const baselines: Baseline[] =
     baselineRows?.map((b) => ({

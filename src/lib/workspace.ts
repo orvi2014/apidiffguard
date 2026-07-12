@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type WorkspaceContext = {
@@ -21,35 +22,38 @@ export async function requireUser() {
   return { supabase, user };
 }
 
-export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
-  const { supabase, user } = await requireUser().catch(() => ({
-    supabase: null,
-    user: null,
-  }));
-  if (!supabase || !user) return null;
+/** Deduped per React request — layout + pages share one workspace lookup. */
+export const getWorkspaceContext = cache(
+  async (): Promise<WorkspaceContext | null> => {
+    const { supabase, user } = await requireUser().catch(() => ({
+      supabase: null,
+      user: null,
+    }));
+    if (!supabase || !user) return null;
 
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("role, workspace_id, workspaces(id, name, slug)")
-    .eq("user_id", user.id)
-    .order("joined_at", { ascending: true, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("role, workspace_id, workspaces(id, name, slug)")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: true, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
 
-  if (!membership) return null;
+    if (!membership) return null;
 
-  const workspace = Array.isArray(membership.workspaces)
-    ? membership.workspaces[0]
-    : membership.workspaces;
+    const workspace = Array.isArray(membership.workspaces)
+      ? membership.workspaces[0]
+      : membership.workspaces;
 
-  if (!workspace) return null;
+    if (!workspace) return null;
 
-  return {
-    userId: user.id,
-    email: user.email ?? "",
-    workspaceId: workspace.id,
-    workspaceName: workspace.name,
-    workspaceSlug: workspace.slug,
-    role: membership.role,
-  };
-}
+    return {
+      userId: user.id,
+      email: user.email ?? "",
+      workspaceId: workspace.id,
+      workspaceName: workspace.name,
+      workspaceSlug: workspace.slug,
+      role: membership.role,
+    };
+  }
+);

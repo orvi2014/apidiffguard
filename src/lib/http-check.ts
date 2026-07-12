@@ -1,24 +1,12 @@
-const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
-const BLOCKED_METHODS = new Set(["TRACE", "CONNECT"]);
+import {
+  MAX_FETCH_BYTES,
+  parseAndAssertPublicUrl,
+  readResponseTextLimited,
+  safeFetch,
+  sanitizeOutboundHeaders,
+} from "@/lib/safe-url";
 
-function isBlockedHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  if (
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "0.0.0.0" ||
-    host === "::1" ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal")
-  ) {
-    return true;
-  }
-  if (/^10\./.test(host)) return true;
-  if (/^192\.168\./.test(host)) return true;
-  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
-  if (/^169\.254\./.test(host)) return true;
-  return false;
-}
+const BLOCKED_METHODS = new Set(["TRACE", "CONNECT"]);
 
 function parseBody(text: string, contentType: string | null): unknown {
   const trimmed = text.trim();
@@ -53,51 +41,16 @@ export async function runHttpCheck(input: {
   headers?: Record<string, string>;
   timeoutMs?: number;
 }): Promise<HttpCheckResult> {
-  const rawUrl = input.url?.trim();
-  if (!rawUrl) {
-    return {
-      statusCode: 0,
-      headers: {},
-      body: null,
-      responseTime: 0,
-      contentSize: 0,
-      error: "URL is required.",
-    };
-  }
-
-  let parsed: URL;
   try {
-    parsed = new URL(rawUrl);
-  } catch {
+    parseAndAssertPublicUrl(input.url ?? "");
+  } catch (err) {
     return {
       statusCode: 0,
       headers: {},
       body: null,
       responseTime: 0,
       contentSize: 0,
-      error: "Invalid URL.",
-    };
-  }
-
-  if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
-    return {
-      statusCode: 0,
-      headers: {},
-      body: null,
-      responseTime: 0,
-      contentSize: 0,
-      error: "Only http/https URLs are allowed.",
-    };
-  }
-
-  if (isBlockedHost(parsed.hostname)) {
-    return {
-      statusCode: 0,
-      headers: {},
-      body: null,
-      responseTime: 0,
-      contentSize: 0,
-      error: "That host cannot be requested from the server.",
+      error: err instanceof Error ? err.message : "Invalid URL.",
     };
   }
 
@@ -114,36 +67,22 @@ export async function runHttpCheck(input: {
   }
 
   const timeoutMs = Math.min(Math.max(input.timeoutMs ?? 15000, 1000), 30000);
-  const headers = new Headers();
+  const headers = sanitizeOutboundHeaders(input.headers);
   headers.set(
     "User-Agent",
     "APIDiffGuard/0.1 (+https://apidiffguard.com; check)"
   );
-  headers.set("Accept", "application/json, text/plain, */*");
-
-  if (input.headers) {
-    for (const [key, value] of Object.entries(input.headers)) {
-      const lower = key.toLowerCase();
-      if (
-        lower === "host" ||
-        lower === "content-length" ||
-        lower.startsWith("proxy-")
-      ) {
-        continue;
-      }
-      headers.set(key, value);
-    }
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json, text/plain, */*");
   }
 
   const started = Date.now();
   let response: Response;
   try {
-    response = await fetch(parsed.toString(), {
+    response = await safeFetch(input.url.trim(), {
       method,
       headers,
-      redirect: "follow",
-      cache: "no-store",
-      signal: AbortSignal.timeout(timeoutMs),
+      timeoutMs,
     });
   } catch (err) {
     return {
@@ -157,7 +96,20 @@ export async function runHttpCheck(input: {
   }
 
   const responseTime = Date.now() - started;
-  const text = await response.text();
+  let text: string;
+  try {
+    text = await readResponseTextLimited(response, MAX_FETCH_BYTES);
+  } catch (err) {
+    return {
+      statusCode: response.status,
+      headers: {},
+      body: null,
+      responseTime,
+      contentSize: 0,
+      error: err instanceof Error ? err.message : "Response too large.",
+    };
+  }
+
   const contentSize = new TextEncoder().encode(text).length;
   const responseHeaders: Record<string, string> = {};
   response.headers.forEach((value, key) => {

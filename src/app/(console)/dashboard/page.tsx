@@ -26,9 +26,12 @@ export default async function DashboardPage() {
 
   const { data: endpointRows } = await supabase
     .from("endpoints")
-    .select("*")
+    .select(
+      "id, name, url, method, environment, tags, description, health, auth_type, last_checked_at, response_time, baseline_version, breaking_count, warning_count"
+    )
     .eq("workspace_id", ctx.workspaceId)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(50);
 
   const endpoints = (endpointRows as DbEndpoint[] | null)?.map(mapEndpoint) ?? [];
   const endpointIds = endpoints.map((e) => e.id);
@@ -39,7 +42,7 @@ export default async function DashboardPage() {
     await Promise.all([
       supabase
         .from("activities")
-        .select("*")
+        .select("id, type, title, description, created_at, metadata")
         .eq("workspace_id", ctx.workspaceId)
         .order("created_at", { ascending: false })
         .limit(12),

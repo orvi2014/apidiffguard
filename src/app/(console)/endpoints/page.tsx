@@ -18,9 +18,12 @@ export default async function EndpointsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("endpoints")
-    .select("*")
+    .select(
+      "id, name, url, method, environment, tags, description, health, auth_type, last_checked_at, response_time, baseline_version, breaking_count, warning_count"
+    )
     .eq("workspace_id", ctx.workspaceId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   const endpoints = (data as DbEndpoint[] | null)?.map(mapEndpoint) ?? [];
   const breaking = endpoints.filter((e) => e.health === "breaking").length;
