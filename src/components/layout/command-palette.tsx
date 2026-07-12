@@ -41,35 +41,33 @@ const actionCommands = [
 
 export function CommandPalette({
   endpoints = [],
+  open,
+  onOpenChange,
 }: {
   endpoints?: PaletteEndpoint[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = React.useState(false);
   const router = useRouter();
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
+        onOpenChange(!open);
       }
     };
-    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    window.addEventListener("apidiff:open-command-palette", onOpen);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("apidiff:open-command-palette", onOpen);
-    };
-  }, []);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onOpenChange]);
 
   const run = (href: string) => {
-    setOpen(false);
+    onOpenChange(false);
     router.push(href);
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
+    <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput placeholder="Jump to endpoint, run action…" />
       <CommandList>
         <CommandEmpty>No results</CommandEmpty>
@@ -102,14 +100,14 @@ export function CommandPalette({
           <>
             <CommandSeparator />
             <CommandGroup heading="Endpoints">
-              {endpoints.map((e) => (
+              {endpoints.map((ep) => (
                 <CommandItem
-                  key={e.id}
-                  value={e.name}
-                  onSelect={() => run(`/endpoints/${e.id}`)}
+                  key={ep.id}
+                  value={ep.name}
+                  onSelect={() => run(`/endpoints/${ep.id}`)}
                 >
                   <Webhook />
-                  <span>{e.name}</span>
+                  <span>{ep.name}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -120,14 +118,16 @@ export function CommandPalette({
   );
 }
 
-export function useCommandPaletteHotkeyHint() {
+export function CommandPaletteTrigger({
+  onOpen,
+}: {
+  onOpen: () => void;
+}) {
   return (
     <button
       type="button"
       aria-label="Search"
-      onClick={() => {
-        window.dispatchEvent(new Event("apidiff:open-command-palette"));
-      }}
+      onClick={onOpen}
       className="hidden items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-[#3f3f46] hover:text-foreground sm:inline-flex cursor-pointer"
     >
       <Search className="size-3.5" aria-hidden />

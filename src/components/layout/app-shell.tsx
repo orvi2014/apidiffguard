@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CommandPalette,
-  useCommandPaletteHotkeyHint,
+  CommandPaletteTrigger,
 } from "@/components/layout/command-palette";
 import { signOut } from "@/app/actions/auth";
 
@@ -42,7 +43,7 @@ export function AppShell({
   endpoints: Array<{ id: string; name: string }>;
 }) {
   const pathname = usePathname();
-  const search = useCommandPaletteHotkeyHint();
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
@@ -89,7 +90,7 @@ export function AppShell({
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {search}
+          <CommandPaletteTrigger onOpen={() => setPaletteOpen(true)} />
           <Link
             href="/endpoints/new"
             className="hidden h-8 items-center rounded-md border border-border bg-surface-elevated px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-[#1f1f23] md:inline-flex"
@@ -141,7 +142,11 @@ export function AppShell({
         </span>
       </footer>
 
-      <CommandPalette endpoints={endpoints} />
+      <CommandPalette
+        endpoints={endpoints}
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+      />
     </div>
   );
 }
