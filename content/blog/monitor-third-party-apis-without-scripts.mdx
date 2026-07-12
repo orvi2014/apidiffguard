@@ -1,0 +1,27 @@
+---
+title: Monitoring third-party APIs without writing custom scripts
+description: Stop maintaining a pile of ad-hoc monitors. Capture a baseline, schedule a check, and alert on real drift.
+date: "2026-07-12"
+readingMinutes: 5
+---
+
+Every agency and platform team has the same graveyard: a Notion page of curl commands, a cron job on someone’s laptop, a PagerDuty alert that never got wired. Custom scripts work until the author changes jobs.
+
+Monitoring a third-party API should feel like checking a status page — except the “status” is whether the *shape* of the response still matches what your clients expect.
+
+## Replace the script with a baseline
+
+A baseline is a versioned snapshot: status code, headers you care about, and body. A check is a fresh fetch compared against that snapshot. The output is a diff, not a vague “failed.”
+
+## When free tools are enough
+
+Investigating a one-time mystery? Use [JSON Diff](/tools/json-diff), [Formatter](/tools/json-formatter), or [Validator](/tools/json-validator). No account required.
+
+## When you need a product
+
+- More than a handful of endpoints
+- Multiple environments (staging vs production)
+- Teammates who should see history without SSH
+- Alerts when you’re not watching the terminal
+
+That’s the gap APIDiffGuard fills: same diff engine, hosted baselines, schedules, and a console built for reviewing changes like code.

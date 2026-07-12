@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import { RootProvider } from "fumadocs-ui/provider/next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -36,12 +37,20 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn("dark h-full antialiased", sans.variable, mono.variable)}
+      suppressHydrationWarning
     >
-      <body className="min-h-full bg-background font-sans text-foreground">
-        <TooltipProvider>
-          {children}
-          <Toaster richColors theme="dark" position="bottom-right" />
-        </TooltipProvider>
+      <body className="flex min-h-screen flex-col bg-background font-sans text-foreground">
+        <RootProvider
+          theme={{
+            enabled: false,
+            defaultTheme: "dark",
+          }}
+        >
+          <TooltipProvider>
+            {children}
+            <Toaster richColors theme="dark" position="bottom-right" />
+          </TooltipProvider>
+        </RootProvider>
       </body>
     </html>
   );

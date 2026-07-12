@@ -1,0 +1,13 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "---Guides---",
+    "quickstart",
+    "concepts",
+    "openapi-import",
+    "---Reference---",
+    "cli",
+    "api"
+  ]
+}

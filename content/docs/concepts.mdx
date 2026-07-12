@@ -1,0 +1,36 @@
+---
+title: Concepts
+description: Baselines, diffs, severity levels, ignore rules, and schedules.
+---
+
+## Baseline
+
+A **baseline** is a versioned snapshot of a healthy response:
+
+- HTTP status code
+- Response headers you care about
+- JSON (or text) body
+
+Only one baseline is **active** per endpoint. New captures bump the version and deactivate the previous active baseline.
+
+## Check
+
+A **check** fetches the endpoint again and stores the live response. Checks can be triggered from the console, CLI, API, or a schedule.
+
+## Diff
+
+A **diff** compares the active baseline body (and status) to a check result. Changes are classified by severity:
+
+| Severity | Examples |
+| --- | --- |
+| **Breaking** | Field removed, type changed, status class change |
+| **Warning** | Field added, enum growth (configurable) |
+| **Info** | Value-only churn on non-ignored paths |
+
+## Ignore rules
+
+Volatile paths (`request_id`, timestamps, cursors) should be ignored so alerts fire on contract changes — not every unique request.
+
+## Schedules
+
+Schedules run checks on an interval (for example hourly). Use them for third-party APIs that change when you are not deploying.

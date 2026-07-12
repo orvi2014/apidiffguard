@@ -1,0 +1,30 @@
+---
+title: Overview
+description: Monitor APIs, review diffs, and wire checks into CI with APIDiffGuard.
+---
+
+APIDiffGuard watches your endpoints, captures baselines, and flags breaking response changes before they hit production.
+
+## What you can do
+
+- Capture a known-good response as a **baseline**
+- Run **checks** on a schedule or from CI
+- Review **diffs** with severity (breaking / warning / info)
+- Import endpoints from **OpenAPI** / Swagger UI
+- Alert the team when contracts drift
+
+## Start here
+
+| Guide | Purpose |
+| --- | --- |
+| [Quickstart](/docs/quickstart) | Workspace → endpoint → baseline → check |
+| [Concepts](/docs/concepts) | Baselines, diffs, severity, ignore rules |
+| [OpenAPI import](/docs/openapi-import) | Bulk import from JSON, YAML, or URL |
+| [CLI](/docs/cli) | `apidiff check --fail-on breaking` |
+| [REST API](/docs/api) | Programmatic checks with API keys |
+
+```bash
+# Capture baseline then check
+npx apidiff baseline --endpoint ep_users
+npx apidiff check --endpoint ep_users --fail-on breaking
+```

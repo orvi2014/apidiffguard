@@ -1,0 +1,30 @@
+---
+title: REST API
+description: Authenticate with an API key and run checks programmatically.
+---
+
+Authenticate with an API key header. Base URL:
+
+```
+https://api.apidiffguard.com/v1
+```
+
+## Endpoints
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/endpoints` | Create an endpoint |
+| `POST` | `/endpoints/:id/baseline` | Capture baseline |
+| `POST` | `/endpoints/:id/check` | Run check |
+| `GET` | `/endpoints/:id/diffs` | List diffs |
+| `POST` | `/webhooks` | Register inbound webhook |
+
+## Example
+
+```bash
+curl -X POST https://api.apidiffguard.com/v1/endpoints/ep_users/check \
+  -H "Authorization: Bearer adg_live_…" \
+  -H "Content-Type: application/json"
+```
+
+Create keys under **Settings → Tokens** in the console.

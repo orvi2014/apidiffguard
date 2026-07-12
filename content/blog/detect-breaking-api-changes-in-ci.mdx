@@ -1,0 +1,35 @@
+---
+title: How to detect breaking API changes in CI/CD
+description: Gate deploys when a response field disappears or changes type — without writing a custom curl script for every endpoint.
+date: "2026-07-12"
+readingMinutes: 7
+---
+
+Most CI pipelines test *your* code. Few of them notice when a dependency’s JSON shape quietly changes — a renamed field in a payments API, a pagination default that jumps from 20 to 25, a null that used to be a string.
+
+Those breaks show up in production dashboards, not unit tests. The fix is not another one-off curl script. It’s treating the live response as a contract you can gate on.
+
+## A minimal CI pattern
+
+1. Capture a known-good response as a baseline (checked into the repo or stored by a monitor).
+2. On every PR / deploy, fetch the same endpoint.
+3. Diff the bodies. Fail the job on breaking changes (removed fields, type changes).
+
+```bash
+# Conceptual gate
+npx apidiff check --fail-on breaking
+```
+
+Under the hood that’s a JSON compare with severity rules — the same engine behind our free [JSON Diff tool](/tools/json-diff) and the open-source `@apidiffguard/diff` package.
+
+## What counts as breaking?
+
+- Field removed
+- Type changed (string → number, object → null)
+- HTTP status class change (200 → 4xx/5xx)
+
+Value churn on volatile fields (`request_id`, timestamps) should be ignored — otherwise every check is noise.
+
+## Where hosted monitoring helps
+
+CI catches changes you trigger. Scheduled monitoring catches changes *someone else* shipped overnight. If your product depends on Stripe, Shopify, or a partner API, you want both.

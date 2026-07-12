@@ -1,0 +1,30 @@
+---
+title: CLI
+description: Run the same diff engine from your terminal and CI.
+---
+
+Install globally:
+
+```bash
+npm i -g @apidiffguard/cli
+```
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `apidiff login` | Authenticate with a browser or API token |
+| `apidiff add` | Register an endpoint from URL + method |
+| `apidiff baseline` | Capture and optionally approve a baseline |
+| `apidiff check` | Run a check against the active baseline |
+| `apidiff diff` | Print the latest diff summary to stdout |
+| `apidiff monitor` | Daemon mode for local continuous checks |
+| `apidiff import` | Import endpoints from an OpenAPI document |
+
+## CI example
+
+```bash
+npx apidiff check --endpoint ep_users --fail-on breaking
+```
+
+Exit non-zero when breaking changes are detected so the pipeline stops the deploy.

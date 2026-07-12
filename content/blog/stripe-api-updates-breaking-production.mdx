@@ -1,0 +1,29 @@
+---
+title: Prevent Stripe API updates from breaking production
+description: Third-party APIs change. Here’s a practical way to notice Stripe (and other) response drift before customers do.
+date: "2026-07-12"
+readingMinutes: 6
+---
+
+Stripe (and every mature API vendor) iterates carefully — but “carefully” still means fields get deprecated, enums grow, and nested objects rearrange. Your integration might not notice until a webhook handler throws or a mobile client crashes on a missing key.
+
+Waiting for Stripe’s changelog email is not a monitoring strategy. You need a baseline of the responses *your* account actually receives.
+
+## What to baseline
+
+- Customer / subscription retrieve payloads you parse in production
+- Webhook event bodies for the events you handle
+- List endpoints with the query params your app uses
+
+## A practical workflow
+
+1. Import or register the endpoints you care about.
+2. Capture a baseline while things are healthy.
+3. Schedule checks (hourly is enough for most SaaS integrations).
+4. Alert on breaking diffs to Slack before customers open tickets.
+
+If you’re still exploring, start with a one-off compare in the [JSON Diff tool](/tools/json-diff) using a saved response from last month versus today.
+
+## Ignore noise, keep signal
+
+Stripe responses include request IDs and timestamps. Ignore those paths so alerts fire on contract changes — not every unique request.

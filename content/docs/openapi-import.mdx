@@ -1,0 +1,24 @@
+---
+title: OpenAPI import
+description: Upload JSON/YAML or paste a docs URL to import endpoints in bulk.
+---
+
+## From a file
+
+1. Go to **Endpoints → Import**
+2. Paste OpenAPI 3 / Swagger 2 JSON or YAML
+3. Review the extracted operations
+4. Import the ones you want to monitor
+
+## From a URL
+
+Paste a URL to:
+
+- Raw `openapi.json` / `openapi.yaml`
+- Swagger UI HTML (APIDiffGuard resolves the embedded spec)
+
+Private network hosts are blocked. Requests require an authenticated session.
+
+## After import
+
+Capture a baseline for critical paths first, then enable schedules. You do not need to monitor every operation on day one.

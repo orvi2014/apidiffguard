@@ -20,7 +20,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/apidiffguard/diff"
+    "url": "git+https://github.com/orvi2014/apidiffguard.git",
+    "directory": "packages/diff-engine"
+  },
+  "homepage": "https://github.com/orvi2014/apidiffguard/tree/main/packages/diff-engine",
+  "bugs": {
+    "url": "https://github.com/orvi2014/apidiffguard/issues"
   },
   "devDependencies": {
     "typescript": "^5"
