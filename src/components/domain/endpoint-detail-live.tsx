@@ -155,9 +155,10 @@ export function EndpointDetailLive({
                 variant="ghost"
                 className="text-danger"
                 disabled={busy !== null}
+                aria-label="Delete endpoint"
                 onClick={() => void onDelete()}
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-3.5" aria-hidden />
               </Button>
             </div>
           </div>
