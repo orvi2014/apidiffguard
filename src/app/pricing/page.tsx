@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import type { Metadata } from "next";
+import { updateWorkspacePlan } from "@/app/actions/settings";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
+import { PLANS, type PlanId } from "@/lib/plans";
 import { buildMetadata, faqJsonLd } from "@/lib/seo";
+import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceContext } from "@/lib/workspace";
 
 export const metadata: Metadata = buildMetadata({
   title: "Pricing — Free API Monitoring & Paid Schedules",
@@ -12,69 +16,6 @@ export const metadata: Metadata = buildMetadata({
     "Start free with 3 endpoints. Upgrade for scheduled API checks, Slack alerts, and team workspaces. No credit card to try APIDiffGuard.",
   path: "/pricing",
 });
-
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "For trying the diff engine on a handful of endpoints.",
-    features: ["3 endpoints", "Manual checks", "Baseline history", "Email alerts"],
-    cta: "Start free",
-    href: "/register",
-    highlighted: false,
-  },
-  {
-    name: "Starter",
-    price: "$19",
-    period: "/month",
-    description: "Scheduled monitoring for small teams and side projects.",
-    features: [
-      "20 endpoints",
-      "Scheduled checks",
-      "Slack + email",
-      "Ignore rules",
-      "7-day alert history",
-    ],
-    cta: "Start Starter",
-    href: "/register",
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "$49",
-    period: "/month",
-    description: "The plan most teams stay on once CI is wired up.",
-    features: [
-      "100 endpoints",
-      "Unlimited baselines",
-      "OpenAPI import",
-      "CLI access",
-      "Priority alerts",
-      "Webhook channel",
-    ],
-    cta: "Start Pro",
-    href: "/register",
-    highlighted: true,
-  },
-  {
-    name: "Team",
-    price: "Custom",
-    period: "",
-    description: "Multi-workspace orgs with audit and role controls.",
-    features: [
-      "Unlimited endpoints",
-      "Multiple workspaces",
-      "RBAC",
-      "Audit logs",
-      "SSO (soon)",
-      "Dedicated support",
-    ],
-    cta: "Talk to us",
-    href: "mailto:hello@apidiffguard.com",
-    highlighted: false,
-  },
-];
 
 const faqs = [
   {
@@ -95,31 +36,50 @@ const faqs = [
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const ctx = user ? await getWorkspaceContext() : null;
+  const currentPlan = ctx?.plan ?? null;
+
   return (
     <div className="min-h-screen">
       <JsonLd data={faqJsonLd(faqs)} />
       <MarketingHeader />
-      <main className="mx-auto max-w-6xl px-5 py-20">
-        <h1 className="text-4xl font-semibold tracking-tight">
+      <main id="main" className="mx-auto max-w-6xl px-4 py-12 sm:px-5 sm:py-20">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Pricing for API monitoring
         </h1>
-        <p className="mt-3 max-w-lg text-muted">
+        <p className="mt-3 max-w-lg text-sm text-muted sm:text-base">
           Start free. Scale when monitoring becomes part of how you ship.
+          {currentPlan ? (
+            <>
+              {" "}
+              Signed in as {ctx?.email} · current plan{" "}
+              <strong className="font-medium text-foreground">
+                {currentPlan}
+              </strong>
+              .
+            </>
+          ) : null}
         </p>
 
-        <div className="mt-14 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`flex flex-col bg-background p-6 ${
-                plan.highlighted ? "bg-surface ring-1 ring-inset ring-accent/40" : ""
+        <div className="mt-10 grid gap-3 sm:mt-14 sm:grid-cols-2 lg:grid-cols-4 lg:gap-px lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-border">
+          {PLANS.map((plan) => (
+            <article
+              key={plan.id}
+              className={`flex flex-col rounded-lg border border-border bg-background p-5 sm:p-6 lg:rounded-none lg:border-0 ${
+                plan.highlighted
+                  ? "bg-surface ring-1 ring-inset ring-accent/40 lg:ring-0 lg:shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--accent),transparent_60%)]"
+                  : ""
               }`}
             >
               <div className="text-sm font-medium text-muted">{plan.name}</div>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-semibold tracking-tight">
-                  {plan.price}
+                  {plan.priceLabel}
                 </span>
                 <span className="text-sm text-muted">{plan.period}</span>
               </div>
@@ -129,25 +89,31 @@ export default function PricingPage() {
               <ul className="mt-6 flex-1 space-y-2.5">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
-                    <Check className="mt-0.5 size-3.5 shrink-0 text-accent" />
+                    <Check
+                      className="mt-0.5 size-3.5 shrink-0 text-accent"
+                      aria-hidden
+                    />
                     {f}
                   </li>
                 ))}
               </ul>
-              <Link href={plan.href} className="mt-8 block">
-                <Button
-                  className="w-full"
-                  variant={plan.highlighted ? "default" : "secondary"}
-                >
-                  {plan.cta}
-                </Button>
-              </Link>
-            </div>
+              <div className="mt-8">
+                <PlanCta
+                  planId={plan.id}
+                  highlighted={!!plan.highlighted}
+                  contactOnly={!!plan.contactOnly}
+                  signedIn={!!user}
+                  currentPlan={currentPlan}
+                />
+              </div>
+            </article>
           ))}
         </div>
 
-        <section className="mt-24 max-w-2xl">
-          <h2 className="text-2xl font-semibold tracking-tight">FAQ</h2>
+        <section className="mt-16 max-w-2xl sm:mt-24" aria-labelledby="pricing-faq">
+          <h2 id="pricing-faq" className="text-2xl font-semibold tracking-tight">
+            FAQ
+          </h2>
           <dl className="mt-8 divide-y divide-border border-y border-border">
             {faqs.map((faq) => (
               <div key={faq.q} className="py-5">
@@ -163,4 +129,61 @@ export default function PricingPage() {
       <MarketingFooter />
     </div>
   );
+}
+
+function PlanCta({
+  planId,
+  highlighted,
+  contactOnly,
+  signedIn,
+  currentPlan,
+}: {
+  planId: PlanId;
+  highlighted: boolean;
+  contactOnly: boolean;
+  signedIn: boolean;
+  currentPlan: PlanId | null;
+}) {
+  const variant = highlighted ? "default" : "secondary";
+
+  if (contactOnly) {
+    return (
+      <Button asChild variant={variant} className="w-full min-h-10">
+        <a href="mailto:hello@apidiffguard.com?subject=APIDiffGuard%20Team%20plan">
+          Talk to us
+        </a>
+      </Button>
+    );
+  }
+
+  if (signedIn && currentPlan === planId) {
+    return (
+      <Button className="w-full min-h-10" variant="secondary" disabled>
+        Current plan
+      </Button>
+    );
+  }
+
+  if (signedIn) {
+    return (
+      <form action={updateWorkspacePlan}>
+        <input type="hidden" name="plan" value={planId} />
+        <Button type="submit" className="w-full min-h-10" variant={variant}>
+          {planId === "free" ? "Switch to Free" : `Upgrade to ${label(planId)}`}
+        </Button>
+      </form>
+    );
+  }
+
+  return (
+    <Button asChild variant={variant} className="w-full min-h-10">
+      <Link href={`/register?plan=${planId}&next=/settings/billing`}>
+        {planId === "free" ? "Start free" : `Start ${label(planId)}`}
+      </Link>
+    </Button>
+  );
+}
+
+function label(id: PlanId) {
+  return id.charAt(0).toUpperCase() + id.slice(1);
 }

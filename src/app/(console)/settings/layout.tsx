@@ -1,13 +1,4 @@
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-
-const sections = [
-  { href: "/settings", label: "General", exact: true },
-  { href: "/settings/workspace", label: "Workspace" },
-  { href: "/settings/billing", label: "Billing" },
-  { href: "/settings/tokens", label: "API tokens" },
-  { href: "/settings/profile", label: "Profile" },
-];
+import { SettingsNav } from "@/components/settings/settings-nav";
 
 export default function SettingsLayout({
   children,
@@ -15,36 +6,12 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 py-8 md:flex-row">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-5 sm:py-8 md:flex-row md:gap-8">
       <aside className="w-full shrink-0 md:w-44">
         <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
-        <nav className="mt-4 flex gap-1 overflow-x-auto md:flex-col">
-          {sections.map((s) => (
-            <SettingsLink key={s.href} {...s} />
-          ))}
-        </nav>
+        <SettingsNav />
       </aside>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
-  );
-}
-
-function SettingsLink({
-  href,
-  label,
-}: {
-  href: string;
-  label: string;
-  exact?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "rounded-md px-2.5 py-1.5 text-sm text-muted whitespace-nowrap transition-colors hover:bg-surface hover:text-foreground"
-      )}
-    >
-      {label}
-    </Link>
   );
 }

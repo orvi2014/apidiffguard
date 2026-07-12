@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { normalizePlan, type PlanId } from "@/lib/plans";
 
 export type WorkspaceContext = {
   userId: string;
@@ -8,6 +9,7 @@ export type WorkspaceContext = {
   workspaceName: string;
   workspaceSlug: string;
   role: string;
+  plan: PlanId;
 };
 
 export async function requireUser() {
@@ -33,7 +35,7 @@ export const getWorkspaceContext = cache(
 
     const { data: membership } = await supabase
       .from("memberships")
-      .select("role, workspace_id, workspaces(id, name, slug)")
+      .select("role, workspace_id, workspaces(id, name, slug, plan)")
       .eq("user_id", user.id)
       .order("joined_at", { ascending: true, nullsFirst: false })
       .limit(1)
@@ -54,6 +56,9 @@ export const getWorkspaceContext = cache(
       workspaceName: workspace.name,
       workspaceSlug: workspace.slug,
       role: membership.role,
+      plan: normalizePlan(
+        (workspace as { plan?: string | null }).plan ?? "free"
+      ),
     };
   }
 );

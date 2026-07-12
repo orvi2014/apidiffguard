@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPlanId } from "@/lib/plans";
 
 function hasSupabaseAuthCookie(request: NextRequest): boolean {
   return request.cookies
@@ -66,7 +67,19 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    const plan = request.nextUrl.searchParams.get("plan");
+    const next = request.nextUrl.searchParams.get("next");
+    if (isPlanId(plan)) {
+      url.pathname = "/settings/billing";
+      url.search = "";
+      url.searchParams.set("upgrade", plan);
+    } else if (next?.startsWith("/") && !next.startsWith("//")) {
+      url.pathname = next;
+      url.search = "";
+    } else {
+      url.pathname = "/dashboard";
+      url.search = "";
+    }
     return NextResponse.redirect(url);
   }
 

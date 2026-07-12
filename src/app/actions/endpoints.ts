@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { planEndpointLimit } from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { compareJson, summarizeChanges } from "@/lib/diff-engine";
 import { runHttpCheck } from "@/lib/http-check";
@@ -40,6 +41,19 @@ export async function createEndpoint(formData: FormData) {
 
   if (!name || !url) {
     return { error: "Name and URL are required." };
+  }
+
+  const limit = planEndpointLimit(ctx.plan);
+  if (limit != null) {
+    const { count } = await supabase
+      .from("endpoints")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", ctx.workspaceId);
+    if ((count ?? 0) >= limit) {
+      return {
+        error: `Your ${ctx.plan} plan allows ${limit} endpoints. Upgrade in Settings → Billing to add more.`,
+      };
+    }
   }
 
   const { data, error } = await supabase
@@ -91,7 +105,24 @@ export async function importEndpoints(
   }
 
   const supabase = await createClient();
-  const rows = endpoints.slice(0, 200).map((ep) => ({
+  let toImport = endpoints;
+  const limit = planEndpointLimit(ctx.plan);
+  if (limit != null) {
+    const { count } = await supabase
+      .from("endpoints")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", ctx.workspaceId);
+    const remaining = Math.max(0, limit - (count ?? 0));
+    if (remaining === 0) {
+      return {
+        error: `Your ${ctx.plan} plan allows ${limit} endpoints. Upgrade in Settings → Billing to import more.`,
+        count: 0,
+      };
+    }
+    toImport = endpoints.slice(0, remaining);
+  }
+
+  const rows = toImport.slice(0, 200).map((ep) => ({
     name: ep.name,
     url: ep.url,
     method: mapMethod(ep.method),

@@ -57,7 +57,10 @@ export function AppShell({
           <span className="hidden sm:inline">APIDiffGuard</span>
         </Link>
 
-        <nav className="flex items-center gap-0.5 overflow-x-auto">
+        <nav
+          className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-label="Console"
+        >
           {nav.map((item) => {
             const active =
               pathname === item.href ||
@@ -70,14 +73,15 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors cursor-pointer",
+                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors cursor-pointer sm:h-8",
                   active
                     ? "bg-surface-elevated text-foreground"
                     : "text-muted hover:text-foreground hover:bg-surface-elevated/60"
                 )}
               >
-                <Icon className="size-3.5 opacity-70" />
+                <Icon className="size-3.5 opacity-70" aria-hidden />
                 {item.label}
               </Link>
             );
