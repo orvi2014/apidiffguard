@@ -221,11 +221,13 @@ test.describe("all buttons — console (signed in)", () => {
     await context.clearCookies();
     await signIn(page);
     await page.goto("/dashboard");
-    await expect(page.getByRole("button", { name: "Search" })).toBeVisible();
-    await page.keyboard.press("Meta+k");
+    const search = page.getByRole("button", { name: "Search" });
+    await expect(search).toBeVisible();
+    await search.click();
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10_000 });
     await expect(
-      page.getByPlaceholder(/Jump to endpoint/i)
-    ).toBeVisible({ timeout: 10_000 });
+      page.getByPlaceholder(/Jump to endpoint/i).or(page.getByText(/Go to Overview/i))
+    ).toBeVisible();
     await page.keyboard.press("Escape");
   });
 });

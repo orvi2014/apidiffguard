@@ -54,8 +54,13 @@ export function CommandPalette({
         setOpen((v) => !v);
       }
     };
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("apidiff:open-command-palette", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("apidiff:open-command-palette", onOpen);
+    };
   }, []);
 
   const run = (href: string) => {
@@ -121,9 +126,7 @@ export function useCommandPaletteHotkeyHint() {
       type="button"
       aria-label="Search"
       onClick={() => {
-        window.dispatchEvent(
-          new KeyboardEvent("keydown", { key: "k", metaKey: true })
-        );
+        window.dispatchEvent(new Event("apidiff:open-command-palette"));
       }}
       className="hidden items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-[#3f3f46] hover:text-foreground sm:inline-flex cursor-pointer"
     >
