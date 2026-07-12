@@ -90,6 +90,14 @@ export function organizationJsonLd() {
     logo: absoluteUrl("/icon"),
     sameAs: ["https://github.com/orvi2014/apidiffguard"],
     description: DEFAULT_DESCRIPTION,
+    knowsAbout: [
+      "API monitoring",
+      "schema drift",
+      "breaking API changes",
+      "JSON diff",
+      "OpenAPI",
+      "API contract testing",
+    ],
   };
 }
 
@@ -185,5 +193,50 @@ export function articleJsonLd(input: {
     },
     mainEntityOfPage: absoluteUrl(input.path),
     image: [absoluteUrl("/opengraph-image")],
+  };
+}
+
+export function definedTermJsonLd(terms: { name: string; description: string; path?: string }[]) {
+  return terms.map((term) => ({
+    "@context": "https://schema.org",
+    "@type": "DefinedTerm",
+    name: term.name,
+    description: term.description,
+    inDefinedTermSet: absoluteUrl("/about"),
+    ...(term.path ? { url: absoluteUrl(term.path) } : {}),
+  }));
+}
+
+export function howToJsonLd(input: {
+  name: string;
+  description: string;
+  steps: { name: string; text: string }[];
+  path: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: input.name,
+    description: input.description,
+    url: absoluteUrl(input.path),
+    step: input.steps.map((step, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: step.name,
+      text: step.text,
+    })),
+  };
+}
+
+export function webPageSpeakableJsonLd(path: string, cssSelectors: string[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: SITE_NAME,
+    url: absoluteUrl(path),
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: cssSelectors,
+    },
   };
 }

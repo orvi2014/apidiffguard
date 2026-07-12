@@ -8,6 +8,7 @@ import {
   breadcrumbJsonLd,
   buildMetadata,
   faqJsonLd,
+  webPageSpeakableJsonLd,
 } from "@/lib/seo";
 
 const faqs = [
@@ -43,6 +44,7 @@ export default function JsonDiffPage() {
             { name: "Tools", path: "/tools" },
             { name: "JSON Diff", path: "/tools/json-diff" },
           ]),
+          webPageSpeakableJsonLd("/tools/json-diff", [".aeo-answer", "h1"]),
         ]}
       />
       <MarketingHeader />
@@ -57,9 +59,10 @@ export default function JsonDiffPage() {
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
           Free JSON Diff Online
         </h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground leading-relaxed">
-          Compare two JSON documents online. Spot added, removed, and changed
-          fields — the same engine APIDiffGuard uses for API response drift.
+        <p className="aeo-answer mt-3 max-w-2xl text-muted-foreground leading-relaxed">
+          A free online JSON Diff compares two JSON documents side by side and
+          highlights added, removed, and changed fields with severity. APIDiffGuard
+          uses the same engine for live API baselines and breaking-change checks.
         </p>
 
         <div className="mt-10">

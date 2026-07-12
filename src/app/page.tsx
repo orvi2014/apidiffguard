@@ -18,7 +18,8 @@ import { ShineBorder } from "@/components/ui/shine-border";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
-import { buildMetadata, faqJsonLd } from "@/lib/seo";
+import { AnswerBlock } from "@/components/seo/answer-block";
+import { buildMetadata, faqJsonLd, webPageSpeakableJsonLd } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = buildMetadata({
@@ -35,7 +36,7 @@ const homeFaqs = [
   },
   {
     q: "Is there a free JSON Diff tool?",
-    a: "Yes. The free JSON Diff, Formatter, and Validator tools work in the browser without an account. Hosted monitoring is available when you need schedules and alerts.",
+    a: "Yes. The free JSON Diff, Formatter, and Validator tools work in the browser without an account. Monitoring live APIs over time is what APIDiffGuard productizes.",
   },
   {
     q: "Can I self-host?",
@@ -46,7 +47,12 @@ const homeFaqs = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen">
-      <JsonLd data={faqJsonLd(homeFaqs)} />
+      <JsonLd
+        data={[
+          faqJsonLd(homeFaqs),
+          webPageSpeakableJsonLd("/", [".aeo-answer", "h1"]),
+        ]}
+      />
       <MarketingHeader />
 
       <main>
@@ -71,9 +77,11 @@ export default function LandingPage() {
               </h1>
             </BlurFade>
             <BlurFade delay={0.15}>
-              <p className="mt-5 max-w-xl text-base text-muted leading-relaxed sm:text-lg">
-                Monitor API responses, detect schema drift, compare JSON
-                contracts, and alert your team before integrations break.
+              <p className="aeo-answer mt-5 max-w-xl text-base text-muted leading-relaxed sm:text-lg">
+                APIDiffGuard monitors live API responses against versioned
+                baselines, detects JSON schema drift and breaking field changes,
+                and helps teams catch contract breaks before production — with
+                free JSON Diff tools in the browser.
               </p>
             </BlurFade>
             <BlurFade delay={0.2} className="mt-8 flex flex-wrap items-center gap-3">
@@ -261,6 +269,19 @@ export default function LandingPage() {
                 Open console
               </Button>
             </Link>
+          </div>
+        </section>
+
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-3xl space-y-12 px-5 py-20">
+            <AnswerBlock
+              question="What is schema drift in APIs?"
+              answer="Schema drift is when a live API response changes shape over time — fields disappear, types change, or status classes flip — without your clients being ready. APIDiffGuard detects that by comparing each check to a stored baseline and classifying changes by severity."
+            />
+            <AnswerBlock
+              question="How do you detect breaking API changes in CI?"
+              answer="Capture a known-good response as a baseline, re-fetch the same endpoint in CI, and fail the job when the JSON diff reports breaking severity such as removed fields or type changes. APIDiffGuard uses the same engine in the console and in the free JSON Diff tool."
+            />
           </div>
         </section>
 

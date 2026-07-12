@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
   }[] = [
     { path: "", priority: 1, changeFrequency: "weekly" },
+    { path: "/about", priority: 0.95, changeFrequency: "monthly" },
     { path: "/pricing", priority: 0.9, changeFrequency: "monthly" },
     { path: "/tools", priority: 0.95, changeFrequency: "weekly" },
     { path: "/tools/json-diff", priority: 0.95, changeFrequency: "weekly" },

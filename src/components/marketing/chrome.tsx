@@ -15,6 +15,9 @@ export function MarketingHeader() {
           <Link href="/#features" className="hover:text-foreground transition-colors">
             Product
           </Link>
+          <Link href="/about" className="hover:text-foreground transition-colors">
+            About
+          </Link>
           <Link href="/tools" className="hover:text-foreground transition-colors">
             Tools
           </Link>
@@ -81,10 +84,10 @@ export function MarketingFooter() {
           {
             title: "Company",
             links: [
+              ["About", "/about"],
               ["Changelog", "/changelog"],
               ["Privacy", "/privacy"],
               ["Terms", "/terms"],
-              ["Sign in", "/login"],
             ],
           },
         ].map((col) => (
@@ -119,6 +122,9 @@ export function MarketingFooter() {
             </Link>
             <Link href="/llms.txt" className="hover:text-foreground">
               llms.txt
+            </Link>
+            <Link href="/llms-full.txt" className="hover:text-foreground">
+              llms-full.txt
             </Link>
             <span className="font-mono">v0.1.0</span>
           </div>
