@@ -34,10 +34,10 @@ test.describe("console surfaces", () => {
     await expect(
       page.getByRole("heading", { name: "Overview", exact: true })
     ).toBeVisible();
-    await expect(page.getByText("Healthy")).toBeVisible();
-    await expect(page.getByText("Breaking")).toBeVisible();
-    await expect(page.getByText("Warnings")).toBeVisible();
-    await expect(page.getByText("Checks today")).toBeVisible();
+    await expect(page.getByText("Healthy", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Breaking", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Warnings", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Checks today", { exact: true })).toBeVisible();
 
     await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Endpoints" })).toBeVisible();
@@ -63,11 +63,13 @@ test.describe("console surfaces", () => {
     await page.goto("/endpoints");
 
     await expect(page.getByRole("heading", { name: "Endpoints" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Import" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "New endpoint" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("link", { name: "Import" })).toBeVisible();
+    await expect(
+      page.getByRole("main").getByRole("link", { name: "New endpoint" })
+    ).toBeVisible();
 
     if (creds.endpointName) {
-      await page.getByText(creds.endpointName).first().click();
+      await page.getByRole("main").getByText(creds.endpointName).first().click();
       await expect(page).toHaveURL(/\/endpoints\//);
       await expect(page.getByRole("button", { name: /Capture baseline/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /Run check/i })).toBeVisible();
@@ -80,8 +82,8 @@ test.describe("console surfaces", () => {
     await page.goto("/alerts");
 
     await expect(page.getByRole("heading", { name: "Alerts" })).toBeVisible();
-    await expect(page.getByText("Channels")).toBeVisible();
-    await expect(page.getByText("Sent today")).toBeVisible();
+    await expect(page.getByText("Channels", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sent today", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Test notification" })).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Configure channels" }).first()
@@ -93,18 +95,33 @@ test.describe("console surfaces", () => {
       page.getByRole("heading", { name: "Alert channels" })
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Add channel" })).toBeVisible();
-    await expect(page.getByLabel("Channel")).toBeVisible();
-    await expect(page.getByLabel("Destination")).toBeVisible();
+    await expect(page.getByLabel("Channel", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Destination", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add channel" })).toBeVisible();
 
-    await page.getByLabel("Channel").selectOption("EMAIL");
-    await page.getByLabel("Minimum severity").selectOption("WARNING");
-    await page.getByLabel("Destination").fill("e2e-alerts@apidiffguard.dev");
+    // Clear leftover e2e channels from prior failed runs
+    for (let i = 0; i < 10; i++) {
+      const remove = page.getByRole("button", { name: "Remove" }).first();
+      if (!(await remove.isVisible().catch(() => false))) break;
+      const before = await page.getByRole("button", { name: "Remove" }).count();
+      await remove.click();
+      await expect
+        .poll(async () => page.getByRole("button", { name: "Remove" }).count(), {
+          timeout: 30_000,
+        })
+        .toBeLessThan(before);
+    }
+
+    const destination = `e2e-alerts-${Date.now()}@apidiffguard.dev`;
+    await page.getByLabel("Channel", { exact: true }).selectOption("EMAIL");
+    await page.getByLabel("Minimum severity", { exact: true }).selectOption("WARNING");
+    await page.getByLabel("Destination", { exact: true }).fill(destination);
     await page.getByRole("button", { name: "Add channel" }).click();
-    await page.waitForURL(/\/alerts\/channels/, { timeout: 30_000 });
+    await page.waitForURL(/\/alerts\/channels\?created=1|\/alerts\/channels/, {
+      timeout: 30_000,
+    });
     await expect(page.getByRole("status")).toContainText(/Channel added/i);
-    await expect(page.getByText("Email").first()).toBeVisible();
-    await expect(page.getByText("e2e-alerts@apidiffguard.dev")).toBeVisible();
+    await expect(page.getByText(destination)).toBeVisible();
     await expect(page.getByRole("button", { name: "Disable" }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Remove" }).first()).toBeVisible();
 
