@@ -203,20 +203,7 @@ test.describe("all buttons — console (signed in)", () => {
     await assertVisible(page, "link", "Dashboard");
     await expect(page.getByRole("link", { name: /Start Pro/i })).toHaveCount(0);
 
-    // Safe nav clicks through console
-    await page.goto("/dashboard");
-    await expect(
-      page.getByRole("heading", { name: "Overview", exact: true })
-    ).toBeVisible();
-
-    const search = page.getByRole("button", { name: "Search" });
-    await expect(search).toBeVisible();
-    await search.click();
-    await expect(
-      page.getByText("Go to Overview").or(page.getByPlaceholder(/Jump to endpoint/i))
-    ).toBeVisible({ timeout: 10_000 });
-    await page.keyboard.press("Escape");
-
+    // Safe nav clicks through console (Search asserted earlier after login)
     await consoleNav.getByRole("link", { name: "Endpoints" }).click();
     await expect(page).toHaveURL(/\/endpoints/);
     await consoleNav.getByRole("link", { name: "Diffs" }).click();
