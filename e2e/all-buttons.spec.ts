@@ -203,14 +203,19 @@ test.describe("all buttons — console (signed in)", () => {
     await assertVisible(page, "link", "Dashboard");
     await expect(page.getByRole("link", { name: /Start Pro/i })).toHaveCount(0);
 
-    // Safe nav clicks through console (Search asserted earlier after login)
-    await consoleNav.getByRole("link", { name: "Endpoints" }).click();
+    // Back to console for nav clicks
+    await page.goto("/dashboard");
+    await expect(
+      page.getByRole("heading", { name: "Overview", exact: true })
+    ).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Console" });
+    await nav.getByRole("link", { name: "Endpoints" }).click();
     await expect(page).toHaveURL(/\/endpoints/);
-    await consoleNav.getByRole("link", { name: "Diffs" }).click();
+    await nav.getByRole("link", { name: "Diffs" }).click();
     await expect(page).toHaveURL(/\/diff/);
-    await consoleNav.getByRole("link", { name: "Alerts" }).click();
+    await nav.getByRole("link", { name: "Alerts" }).click();
     await expect(page).toHaveURL(/\/alerts/);
-    await consoleNav.getByRole("link", { name: "Schedules" }).click();
+    await nav.getByRole("link", { name: "Schedules" }).click();
     await expect(page).toHaveURL(/\/schedules/);
     await page.getByRole("link", { name: "Settings" }).click();
     await expect(page).toHaveURL(/\/settings/);
