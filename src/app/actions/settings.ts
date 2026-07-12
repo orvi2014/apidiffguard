@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPlan, isPlanId } from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
 
 export async function updateProfile(formData: FormData) {
@@ -44,34 +43,4 @@ export async function updateWorkspace(formData: FormData) {
   revalidatePath("/settings/workspace");
   revalidatePath("/dashboard");
   revalidatePath("/", "layout");
-}
-
-export async function updateWorkspacePlan(formData: FormData) {
-  const ctx = await getWorkspaceContext();
-  if (!ctx) redirect("/login?next=/settings/billing");
-
-  const plan = String(formData.get("plan") ?? "").trim().toLowerCase();
-  if (!isPlanId(plan) || getPlan(plan).contactOnly) {
-    redirect("/settings/billing?error=invalid-plan");
-  }
-
-  if (ctx.role !== "OWNER" && ctx.role !== "ADMIN") {
-    redirect("/settings/billing?error=forbidden");
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("workspaces")
-    .update({ plan })
-    .eq("id", ctx.workspaceId);
-
-  if (error) {
-    redirect("/settings/billing?error=update-failed");
-  }
-
-  revalidatePath("/settings/billing");
-  revalidatePath("/pricing");
-  revalidatePath("/dashboard");
-  revalidatePath("/", "layout");
-  redirect(`/settings/billing?upgraded=${plan}`);
 }

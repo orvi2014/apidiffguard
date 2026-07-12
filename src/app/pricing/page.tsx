@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import type { Metadata } from "next";
-import { updateWorkspacePlan } from "@/app/actions/settings";
+import { CheckoutButton, PortalButton } from "@/components/billing/stripe-actions";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
-import { PLANS, type PlanId } from "@/lib/plans";
+import { isPaidPlan, PLANS, type PlanId } from "@/lib/plans";
+import { isStripeConfigured } from "@/lib/stripe/server";
 import { buildMetadata, faqJsonLd } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
@@ -43,6 +44,8 @@ export default async function PricingPage() {
   } = await supabase.auth.getUser();
   const ctx = user ? await getWorkspaceContext() : null;
   const currentPlan = ctx?.plan ?? null;
+  const stripeReady = isStripeConfigured();
+  const hasCustomer = Boolean(ctx?.stripeCustomerId);
 
   return (
     <div className="min-h-screen">
@@ -104,6 +107,8 @@ export default async function PricingPage() {
                   contactOnly={!!plan.contactOnly}
                   signedIn={!!user}
                   currentPlan={currentPlan}
+                  stripeReady={stripeReady}
+                  hasCustomer={hasCustomer}
                 />
               </div>
             </article>
@@ -137,12 +142,16 @@ function PlanCta({
   contactOnly,
   signedIn,
   currentPlan,
+  stripeReady,
+  hasCustomer,
 }: {
   planId: PlanId;
   highlighted: boolean;
   contactOnly: boolean;
   signedIn: boolean;
   currentPlan: PlanId | null;
+  stripeReady: boolean;
+  hasCustomer: boolean;
 }) {
   const variant = highlighted ? "default" : "secondary";
 
@@ -164,14 +173,31 @@ function PlanCta({
     );
   }
 
-  if (signedIn) {
+  if (signedIn && planId === "free") {
     return (
-      <form action={updateWorkspacePlan}>
-        <input type="hidden" name="plan" value={planId} />
-        <Button type="submit" className="w-full min-h-10" variant={variant}>
-          {planId === "free" ? "Switch to Free" : `Upgrade to ${label(planId)}`}
+      <PortalButton
+        className="w-full [&_button]:min-h-10 [&_button]:w-full"
+        variant="secondary"
+        label="Manage in billing"
+        disabled={!stripeReady || !hasCustomer}
+      />
+    );
+  }
+
+  if (signedIn && isPaidPlan(planId)) {
+    if (!stripeReady) {
+      return (
+        <Button asChild variant={variant} className="w-full min-h-10">
+          <Link href="/settings/billing">Open billing</Link>
         </Button>
-      </form>
+      );
+    }
+    return (
+      <CheckoutButton
+        plan={planId}
+        label={`Upgrade to ${label(planId)}`}
+        variant={variant}
+      />
     );
   }
 

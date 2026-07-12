@@ -10,6 +10,7 @@ export type WorkspaceContext = {
   workspaceSlug: string;
   role: string;
   plan: PlanId;
+  stripeCustomerId: string | null;
 };
 
 export async function requireUser() {
@@ -35,7 +36,9 @@ export const getWorkspaceContext = cache(
 
     const { data: membership } = await supabase
       .from("memberships")
-      .select("role, workspace_id, workspaces(id, name, slug, plan)")
+      .select(
+        "role, workspace_id, workspaces(id, name, slug, plan, stripe_customer_id)"
+      )
       .eq("user_id", user.id)
       .order("joined_at", { ascending: true, nullsFirst: false })
       .limit(1)
@@ -49,16 +52,23 @@ export const getWorkspaceContext = cache(
 
     if (!workspace) return null;
 
+    const ws = workspace as {
+      id: string;
+      name: string;
+      slug: string;
+      plan?: string | null;
+      stripe_customer_id?: string | null;
+    };
+
     return {
       userId: user.id,
       email: user.email ?? "",
-      workspaceId: workspace.id,
-      workspaceName: workspace.name,
-      workspaceSlug: workspace.slug,
+      workspaceId: ws.id,
+      workspaceName: ws.name,
+      workspaceSlug: ws.slug,
       role: membership.role,
-      plan: normalizePlan(
-        (workspace as { plan?: string | null }).plan ?? "free"
-      ),
+      plan: normalizePlan(ws.plan ?? "free"),
+      stripeCustomerId: ws.stripe_customer_id ?? null,
     };
   }
 );

@@ -107,6 +107,7 @@ model Workspace {
   name      String
   slug      String   @unique
   plan      String   @default("free")
+  stripeCustomerId String?  @map("stripe_customer_id")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

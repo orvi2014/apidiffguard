@@ -89,3 +89,9 @@ export function getPlan(id: PlanId): PlanDefinition {
 export function planEndpointLimit(id: PlanId): number | null {
   return getPlan(id).endpointLimit;
 }
+
+export type PaidPlanId = Exclude<PlanId, "free" | "team">;
+
+export function isPaidPlan(value: string): value is PaidPlanId {
+  return value === "starter" || value === "pro";
+}

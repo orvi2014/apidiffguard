@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { updateWorkspacePlan } from "@/app/actions/settings";
+import {
+  CheckoutButton,
+  PortalButton,
+} from "@/components/billing/stripe-actions";
 import { Button } from "@/components/ui/button";
-import { getPlan, PLANS, type PlanId } from "@/lib/plans";
+import { getPlan, isPaidPlan, PLANS, type PlanId } from "@/lib/plans";
+import { isStripeConfigured } from "@/lib/stripe/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { createClient } from "@/lib/supabase/server";
 
@@ -11,7 +15,12 @@ export const metadata = { title: "Billing" };
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ upgraded?: string; error?: string; upgrade?: string }>;
+  searchParams: Promise<{
+    upgraded?: string;
+    error?: string;
+    upgrade?: string;
+    checkout?: string;
+  }>;
 }) {
   const params = await searchParams;
   const ctx = await getWorkspaceContext();
@@ -30,6 +39,7 @@ export default async function BillingPage({
     limit == null ? `${endpoints} / ∞` : `${endpoints} / ${limit}`;
 
   const canManage = ctx.role === "OWNER" || ctx.role === "ADMIN";
+  const stripeReady = isStripeConfigured();
   const highlightUpgrade = params.upgrade as PlanId | undefined;
 
   return (
@@ -42,13 +52,31 @@ export default async function BillingPage({
         </p>
       </div>
 
+      {params.checkout === "success" ? (
+        <p
+          role="status"
+          className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-foreground"
+        >
+          Payment received. Your plan will update in a few seconds once Stripe
+          confirms the subscription.
+        </p>
+      ) : null}
+
+      {params.checkout === "cancelled" ? (
+        <p
+          role="status"
+          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted"
+        >
+          Checkout cancelled. No changes were made.
+        </p>
+      ) : null}
+
       {params.upgraded ? (
         <p
           role="status"
           className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-foreground"
         >
-          Plan updated to {getPlan(params.upgraded as PlanId).name}. Baselines
-          and checks keep working on the new limits.
+          Plan updated to {getPlan(params.upgraded as PlanId).name}.
         </p>
       ) : null}
 
@@ -62,6 +90,16 @@ export default async function BillingPage({
             : params.error === "invalid-plan"
               ? "That plan is not available for self-serve upgrade."
               : "Could not update the plan. Try again."}
+        </p>
+      ) : null}
+
+      {!stripeReady ? (
+        <p
+          role="status"
+          className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted"
+        >
+          Stripe billing is not configured yet. Paid upgrades will unlock once
+          Stripe keys are set.
         </p>
       ) : null}
 
@@ -104,9 +142,12 @@ export default async function BillingPage({
               Change plan
             </Button>
           </a>
-          <Button variant="ghost" size="sm" disabled title="Stripe billing coming soon">
-            Manage payment
-          </Button>
+          {canManage ? (
+            <PortalButton
+              disabled={!stripeReady || !ctx.stripeCustomerId}
+              label="Manage payment"
+            />
+          ) : null}
         </div>
       </section>
 
@@ -143,8 +184,8 @@ export default async function BillingPage({
           Choose a plan
         </h3>
         <p className="mt-1 text-sm text-muted">
-          Self-serve plans update your workspace immediately. Team plans need a
-          conversation.
+          Paid plans check out with Stripe. Manage or cancel anytime in the
+          customer portal. Team plans need a conversation.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {PLANS.map((p) => {
@@ -177,15 +218,26 @@ export default async function BillingPage({
                 </div>
                 <ul className="mt-3 flex-1 space-y-1.5">
                   {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-muted">
-                      <Check className="mt-0.5 size-3 shrink-0 text-accent" aria-hidden />
+                    <li
+                      key={f}
+                      className="flex items-start gap-2 text-xs text-muted"
+                    >
+                      <Check
+                        className="mt-0.5 size-3 shrink-0 text-accent"
+                        aria-hidden
+                      />
                       {f}
                     </li>
                   ))}
                 </ul>
                 <div className="mt-4">
                   {p.contactOnly ? (
-                    <Button asChild variant="secondary" size="sm" className="w-full">
+                    <Button
+                      asChild
+                      variant="secondary"
+                      size="sm"
+                      className="w-full"
+                    >
                       <a href="mailto:hello@apidiffguard.com?subject=APIDiffGuard%20Team%20plan">
                         Talk to us
                       </a>
@@ -194,23 +246,26 @@ export default async function BillingPage({
                     <Button size="sm" className="w-full" disabled>
                       Current plan
                     </Button>
-                  ) : canManage ? (
-                    <form action={updateWorkspacePlan}>
-                      <input type="hidden" name="plan" value={p.id} />
-                      <Button
-                        type="submit"
-                        size="sm"
-                        className="w-full min-h-9"
-                        variant={p.highlighted ? "default" : "secondary"}
-                      >
-                        {planRank(p.id) > planRank(ctx.plan)
-                          ? `Upgrade to ${p.name}`
-                          : `Switch to ${p.name}`}
-                      </Button>
-                    </form>
-                  ) : (
+                  ) : !canManage ? (
                     <Button size="sm" className="w-full" disabled>
                       Ask an admin
+                    </Button>
+                  ) : p.id === "free" ? (
+                    <PortalButton
+                      className="w-full [&_button]:w-full"
+                      variant="secondary"
+                      label="Downgrade via portal"
+                      disabled={!stripeReady || !ctx.stripeCustomerId}
+                    />
+                  ) : isPaidPlan(p.id) && stripeReady ? (
+                    <CheckoutButton
+                      plan={p.id}
+                      label={`Upgrade to ${p.name}`}
+                      variant={p.highlighted ? "default" : "secondary"}
+                    />
+                  ) : (
+                    <Button size="sm" className="w-full" disabled>
+                      Stripe not configured
                     </Button>
                   )}
                 </div>
@@ -220,7 +275,10 @@ export default async function BillingPage({
         </div>
         <p className="mt-4 text-xs text-muted">
           Looking for public pricing copy?{" "}
-          <Link href="/pricing" className="underline underline-offset-2 hover:text-foreground">
+          <Link
+            href="/pricing"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
             View pricing page
           </Link>
           .
@@ -228,9 +286,4 @@ export default async function BillingPage({
       </section>
     </div>
   );
-}
-
-function planRank(id: PlanId): number {
-  const order: PlanId[] = ["free", "starter", "pro", "team"];
-  return order.indexOf(id);
 }
