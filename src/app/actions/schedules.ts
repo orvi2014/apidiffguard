@@ -13,25 +13,6 @@ function isFrequency(value: string): value is Frequency {
   return (FREQUENCIES as readonly string[]).includes(value);
 }
 
-function computeNextRunAt(frequency: Frequency, from = new Date()): string {
-  const next = new Date(from);
-  switch (frequency) {
-    case "HOURLY":
-      next.setHours(next.getHours() + 1);
-      break;
-    case "DAILY":
-      next.setDate(next.getDate() + 1);
-      break;
-    case "WEEKLY":
-      next.setDate(next.getDate() + 7);
-      break;
-    case "MONTHLY":
-      next.setMonth(next.getMonth() + 1);
-      break;
-  }
-  return next.toISOString();
-}
-
 export async function createSchedule(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/schedules");
@@ -148,5 +129,3 @@ export async function deleteSchedule(formData: FormData) {
   revalidatePath("/dashboard");
   redirect("/schedules?deleted=1");
 }
-
-export { computeNextRunAt };
