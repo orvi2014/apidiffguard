@@ -4,4 +4,4 @@ alter table public.workspaces
 
 create unique index if not exists workspaces_stripe_customer_id_key
   on public.workspaces (stripe_customer_id)
-  where stripe_customer_id is not null;
+  where stripe_customer_id is not null;;

@@ -12,7 +12,6 @@ create type public.schedule_frequency as enum ('HOURLY', 'DAILY', 'WEEKLY', 'MON
 create type public.check_status as enum ('PENDING', 'RUNNING', 'SUCCESS', 'FAILED', 'TIMEOUT');
 create type public.alert_channel as enum ('EMAIL', 'SLACK', 'DISCORD', 'WEBHOOK');
 create type public.alert_status as enum ('PENDING', 'SENT', 'FAILED', 'RETRYING');
-
 -- Profiles (1:1 with auth.users)
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
@@ -22,7 +21,6 @@ create table public.profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create table public.workspaces (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -31,7 +29,6 @@ create table public.workspaces (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create table public.memberships (
   id uuid primary key default gen_random_uuid(),
   role public.member_role not null default 'MEMBER',
@@ -41,10 +38,8 @@ create table public.memberships (
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   unique (user_id, workspace_id)
 );
-
 create index memberships_workspace_id_idx on public.memberships (workspace_id);
 create index memberships_user_id_idx on public.memberships (user_id);
-
 create table public.endpoints (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -67,10 +62,8 @@ create table public.endpoints (
   updated_at timestamptz not null default now(),
   workspace_id uuid not null references public.workspaces (id) on delete cascade
 );
-
 create index endpoints_workspace_id_idx on public.endpoints (workspace_id);
 create index endpoints_health_idx on public.endpoints (health);
-
 create table public.baselines (
   id uuid primary key default gen_random_uuid(),
   version integer not null,
@@ -86,9 +79,7 @@ create table public.baselines (
   endpoint_id uuid not null references public.endpoints (id) on delete cascade,
   unique (endpoint_id, version)
 );
-
 create index baselines_endpoint_active_idx on public.baselines (endpoint_id, is_active);
-
 create table public.checks (
   id uuid primary key default gen_random_uuid(),
   status public.check_status not null default 'PENDING',
@@ -102,9 +93,7 @@ create table public.checks (
   finished_at timestamptz,
   endpoint_id uuid not null references public.endpoints (id) on delete cascade
 );
-
 create index checks_endpoint_started_idx on public.checks (endpoint_id, started_at desc);
-
 create table public.diffs (
   id uuid primary key default gen_random_uuid(),
   summary jsonb not null default '{}'::jsonb,
@@ -118,9 +107,7 @@ create table public.diffs (
   baseline_id uuid references public.baselines (id) on delete set null,
   check_id uuid references public.checks (id) on delete set null
 );
-
 create index diffs_endpoint_created_idx on public.diffs (endpoint_id, created_at desc);
-
 create table public.ignore_rules (
   id uuid primary key default gen_random_uuid(),
   path text not null,
@@ -128,9 +115,7 @@ create table public.ignore_rules (
   created_at timestamptz not null default now(),
   endpoint_id uuid not null references public.endpoints (id) on delete cascade
 );
-
 create index ignore_rules_endpoint_id_idx on public.ignore_rules (endpoint_id);
-
 create table public.schedules (
   id uuid primary key default gen_random_uuid(),
   frequency public.schedule_frequency not null default 'DAILY',
@@ -143,10 +128,8 @@ create table public.schedules (
   endpoint_id uuid references public.endpoints (id) on delete cascade,
   workspace_id uuid not null references public.workspaces (id) on delete cascade
 );
-
 create index schedules_workspace_id_idx on public.schedules (workspace_id);
 create index schedules_next_run_at_idx on public.schedules (next_run_at);
-
 create table public.alert_configs (
   id uuid primary key default gen_random_uuid(),
   channel public.alert_channel not null,
@@ -157,9 +140,7 @@ create table public.alert_configs (
   updated_at timestamptz not null default now(),
   workspace_id uuid not null references public.workspaces (id) on delete cascade
 );
-
 create index alert_configs_workspace_id_idx on public.alert_configs (workspace_id);
-
 create table public.alert_history (
   id uuid primary key default gen_random_uuid(),
   status public.alert_status not null default 'PENDING',
@@ -171,9 +152,7 @@ create table public.alert_history (
   created_at timestamptz not null default now(),
   alert_config_id uuid not null references public.alert_configs (id) on delete cascade
 );
-
 create index alert_history_config_created_idx on public.alert_history (alert_config_id, created_at desc);
-
 create table public.api_keys (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -185,10 +164,8 @@ create table public.api_keys (
   user_id uuid not null references public.profiles (id) on delete cascade,
   workspace_id uuid not null references public.workspaces (id) on delete cascade
 );
-
 create index api_keys_workspace_id_idx on public.api_keys (workspace_id);
 create index api_keys_prefix_idx on public.api_keys (prefix);
-
 create table public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   action text not null,
@@ -199,9 +176,7 @@ create table public.audit_logs (
   user_id uuid references public.profiles (id) on delete set null,
   workspace_id uuid not null references public.workspaces (id) on delete cascade
 );
-
 create index audit_logs_workspace_created_idx on public.audit_logs (workspace_id, created_at desc);
-
 create table public.activities (
   id uuid primary key default gen_random_uuid(),
   type text not null,
@@ -211,9 +186,7 @@ create table public.activities (
   created_at timestamptz not null default now(),
   workspace_id uuid not null references public.workspaces (id) on delete cascade
 );
-
 create index activities_workspace_created_idx on public.activities (workspace_id, created_at desc);
-
 create table public.notifications (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -223,12 +196,9 @@ create table public.notifications (
   created_at timestamptz not null default now(),
   user_id uuid not null references public.profiles (id) on delete cascade
 );
-
 create index notifications_user_read_created_idx on public.notifications (user_id, read, created_at desc);
-
 -- Helpers for RLS (security definer in private schema)
 create schema if not exists private;
-
 create or replace function private.is_workspace_member(ws_id uuid)
 returns boolean
 language sql
@@ -243,7 +213,6 @@ as $$
       and m.user_id = auth.uid()
   );
 $$;
-
 create or replace function private.workspace_role(ws_id uuid)
 returns public.member_role
 language sql
@@ -257,7 +226,6 @@ as $$
     and m.user_id = auth.uid()
   limit 1;
 $$;
-
 create or replace function private.can_edit_workspace(ws_id uuid)
 returns boolean
 language sql
@@ -273,14 +241,12 @@ as $$
       and m.role in ('OWNER', 'ADMIN', 'MEMBER')
   );
 $$;
-
 revoke all on function private.is_workspace_member(uuid) from public;
 revoke all on function private.workspace_role(uuid) from public;
 revoke all on function private.can_edit_workspace(uuid) from public;
 grant execute on function private.is_workspace_member(uuid) to authenticated;
 grant execute on function private.workspace_role(uuid) to authenticated;
 grant execute on function private.can_edit_workspace(uuid) to authenticated;
-
 -- Auto-create profile + default workspace on signup
 create or replace function public.handle_new_user()
 returns trigger
@@ -332,11 +298,9 @@ begin
   return new;
 end;
 $$;
-
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
-
 -- updated_at helper
 create or replace function public.set_updated_at()
 returns trigger
@@ -347,7 +311,6 @@ begin
   return new;
 end;
 $$;
-
 create trigger profiles_updated_at before update on public.profiles
   for each row execute function public.set_updated_at();
 create trigger workspaces_updated_at before update on public.workspaces
@@ -358,7 +321,6 @@ create trigger schedules_updated_at before update on public.schedules
   for each row execute function public.set_updated_at();
 create trigger alert_configs_updated_at before update on public.alert_configs
   for each row execute function public.set_updated_at();
-
 -- Enable RLS
 alter table public.profiles enable row level security;
 alter table public.workspaces enable row level security;
@@ -375,75 +337,62 @@ alter table public.api_keys enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.activities enable row level security;
 alter table public.notifications enable row level security;
-
 -- Profiles policies
 create policy "Users can view own profile"
   on public.profiles for select
   to authenticated
   using (id = auth.uid());
-
 create policy "Users can update own profile"
   on public.profiles for update
   to authenticated
   using (id = auth.uid())
   with check (id = auth.uid());
-
 -- Workspaces
 create policy "Members can view workspaces"
   on public.workspaces for select
   to authenticated
   using (private.is_workspace_member(id));
-
 create policy "Editors can update workspaces"
   on public.workspaces for update
   to authenticated
   using (private.can_edit_workspace(id))
   with check (private.can_edit_workspace(id));
-
 create policy "Authenticated users can create workspaces"
   on public.workspaces for insert
   to authenticated
   with check (true);
-
 -- Memberships
 create policy "Members can view memberships"
   on public.memberships for select
   to authenticated
   using (private.is_workspace_member(workspace_id));
-
 create policy "Owners and admins can manage memberships"
   on public.memberships for all
   to authenticated
   using (private.workspace_role(workspace_id) in ('OWNER', 'ADMIN'))
   with check (private.workspace_role(workspace_id) in ('OWNER', 'ADMIN'));
-
 create policy "Users can insert themselves as owner on create"
   on public.memberships for insert
   to authenticated
   with check (user_id = auth.uid());
-
 -- Endpoints
 create policy "Members can view endpoints"
   on public.endpoints for select
   to authenticated
   using (private.is_workspace_member(workspace_id));
-
 create policy "Editors can insert endpoints"
   on public.endpoints for insert
   to authenticated
   with check (private.can_edit_workspace(workspace_id));
-
 create policy "Editors can update endpoints"
   on public.endpoints for update
   to authenticated
   using (private.can_edit_workspace(workspace_id))
   with check (private.can_edit_workspace(workspace_id));
-
 create policy "Editors can delete endpoints"
   on public.endpoints for delete
   to authenticated
   using (private.can_edit_workspace(workspace_id));
-
 -- Child tables via endpoint workspace
 create policy "Members can view baselines"
   on public.baselines for select to authenticated
@@ -453,7 +402,6 @@ create policy "Members can view baselines"
       where e.id = endpoint_id and private.is_workspace_member(e.workspace_id)
     )
   );
-
 create policy "Editors can manage baselines"
   on public.baselines for all to authenticated
   using (
@@ -468,7 +416,6 @@ create policy "Editors can manage baselines"
       where e.id = endpoint_id and private.can_edit_workspace(e.workspace_id)
     )
   );
-
 create policy "Members can view checks"
   on public.checks for select to authenticated
   using (
@@ -477,7 +424,6 @@ create policy "Members can view checks"
       where e.id = endpoint_id and private.is_workspace_member(e.workspace_id)
     )
   );
-
 create policy "Editors can manage checks"
   on public.checks for all to authenticated
   using (
@@ -492,7 +438,6 @@ create policy "Editors can manage checks"
       where e.id = endpoint_id and private.can_edit_workspace(e.workspace_id)
     )
   );
-
 create policy "Members can view diffs"
   on public.diffs for select to authenticated
   using (
@@ -501,7 +446,6 @@ create policy "Members can view diffs"
       where e.id = endpoint_id and private.is_workspace_member(e.workspace_id)
     )
   );
-
 create policy "Editors can manage diffs"
   on public.diffs for all to authenticated
   using (
@@ -516,7 +460,6 @@ create policy "Editors can manage diffs"
       where e.id = endpoint_id and private.can_edit_workspace(e.workspace_id)
     )
   );
-
 create policy "Members can view ignore_rules"
   on public.ignore_rules for select to authenticated
   using (
@@ -525,7 +468,6 @@ create policy "Members can view ignore_rules"
       where e.id = endpoint_id and private.is_workspace_member(e.workspace_id)
     )
   );
-
 create policy "Editors can manage ignore_rules"
   on public.ignore_rules for all to authenticated
   using (
@@ -540,25 +482,20 @@ create policy "Editors can manage ignore_rules"
       where e.id = endpoint_id and private.can_edit_workspace(e.workspace_id)
     )
   );
-
 create policy "Members can view schedules"
   on public.schedules for select to authenticated
   using (private.is_workspace_member(workspace_id));
-
 create policy "Editors can manage schedules"
   on public.schedules for all to authenticated
   using (private.can_edit_workspace(workspace_id))
   with check (private.can_edit_workspace(workspace_id));
-
 create policy "Members can view alert_configs"
   on public.alert_configs for select to authenticated
   using (private.is_workspace_member(workspace_id));
-
 create policy "Editors can manage alert_configs"
   on public.alert_configs for all to authenticated
   using (private.can_edit_workspace(workspace_id))
   with check (private.can_edit_workspace(workspace_id));
-
 create policy "Members can view alert_history"
   on public.alert_history for select to authenticated
   using (
@@ -567,7 +504,6 @@ create policy "Members can view alert_history"
       where c.id = alert_config_id and private.is_workspace_member(c.workspace_id)
     )
   );
-
 create policy "Editors can manage alert_history"
   on public.alert_history for all to authenticated
   using (
@@ -582,41 +518,32 @@ create policy "Editors can manage alert_history"
       where c.id = alert_config_id and private.can_edit_workspace(c.workspace_id)
     )
   );
-
 create policy "Members can view api_keys"
   on public.api_keys for select to authenticated
   using (private.is_workspace_member(workspace_id));
-
 create policy "Editors can manage api_keys"
   on public.api_keys for all to authenticated
   using (private.can_edit_workspace(workspace_id))
   with check (private.can_edit_workspace(workspace_id) and user_id = auth.uid());
-
 create policy "Members can view audit_logs"
   on public.audit_logs for select to authenticated
   using (private.is_workspace_member(workspace_id));
-
 create policy "Editors can insert audit_logs"
   on public.audit_logs for insert to authenticated
   with check (private.can_edit_workspace(workspace_id));
-
 create policy "Members can view activities"
   on public.activities for select to authenticated
   using (private.is_workspace_member(workspace_id));
-
 create policy "Editors can insert activities"
   on public.activities for insert to authenticated
   with check (private.can_edit_workspace(workspace_id));
-
 create policy "Users can view own notifications"
   on public.notifications for select to authenticated
   using (user_id = auth.uid());
-
 create policy "Users can update own notifications"
   on public.notifications for update to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
-
 create policy "Users can insert own notifications"
   on public.notifications for insert to authenticated
   with check (user_id = auth.uid());

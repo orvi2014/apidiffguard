@@ -4,9 +4,6 @@
 drop policy if exists "Users can insert themselves as owner on create"
   on public.memberships;
 
--- Only owners/admins may insert memberships (covers invites).
--- Signup trigger bypasses RLS as SECURITY DEFINER.
-
 create or replace function public.create_workspace(workspace_name text)
 returns public.workspaces
 language plpgsql
@@ -61,7 +58,6 @@ $$;
 revoke all on function public.create_workspace(text) from public;
 grant execute on function public.create_workspace(text) to authenticated;
 
--- Hide key hashes from general membership reads
 drop policy if exists "Members can view api_keys" on public.api_keys;
 create policy "Members can view api_keys"
   on public.api_keys for select
@@ -71,7 +67,6 @@ create policy "Members can view api_keys"
     and private.workspace_role(workspace_id) in ('OWNER', 'ADMIN')
   );
 
--- Hot-path indexes
 create index if not exists endpoints_workspace_updated_idx
   on public.endpoints (workspace_id, updated_at desc);
 
@@ -82,4 +77,4 @@ create index if not exists checks_endpoint_started_idx
   on public.checks (endpoint_id, started_at desc);
 
 create index if not exists memberships_user_joined_idx
-  on public.memberships (user_id, joined_at);
+  on public.memberships (user_id, joined_at);;
