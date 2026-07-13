@@ -38,7 +38,7 @@ export default async function SchedulesPage({
   ]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col animate-in fade-in duration-300">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-border px-5 py-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

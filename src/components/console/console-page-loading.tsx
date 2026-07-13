@@ -9,7 +9,7 @@ export function ConsolePageLoading({
 }) {
   return (
     <div
-      className="flex h-full min-h-0 flex-col animate-in fade-in duration-200"
+      className="flex h-full min-h-0 flex-col"
       aria-busy="true"
       aria-label="Loading"
     >
@@ -52,7 +52,7 @@ export function ConsolePageLoading({
 export function ConsoleFormLoading() {
   return (
     <div
-      className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 animate-in fade-in duration-200 sm:px-5 sm:py-8"
+      className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-5 sm:py-8"
       aria-busy="true"
       aria-label="Loading"
     >

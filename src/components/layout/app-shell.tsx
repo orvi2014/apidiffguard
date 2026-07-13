@@ -17,6 +17,7 @@ import {
   CommandPalette,
   CommandPaletteTrigger,
 } from "@/components/layout/command-palette";
+import { ConsoleNavLink } from "@/components/layout/console-nav-link";
 import { signOut } from "@/app/actions/auth";
 
 const nav = [
@@ -32,14 +33,14 @@ export function AppShell({
   workspaceName,
   workspaceSlug,
   email,
-  checksToday,
+  checksTodaySlot,
   endpoints,
 }: {
   children: React.ReactNode;
   workspaceName: string;
   workspaceSlug: string;
   email: string;
-  checksToday: number;
+  checksTodaySlot: React.ReactNode;
   endpoints: Array<{ id: string; name: string }>;
 }) {
   const pathname = usePathname();
@@ -50,6 +51,7 @@ export function AppShell({
       <header className="z-30 flex h-12 shrink-0 items-center gap-1 border-b border-border bg-surface px-2 sm:px-3">
         <Link
           href="/dashboard"
+          prefetch
           className="mr-2 flex items-center gap-2 px-2 py-1.5 text-sm font-semibold tracking-tight"
         >
           <span className="flex size-5 items-center justify-center rounded-[4px] bg-accent text-[10px] font-bold text-white">
@@ -62,43 +64,28 @@ export function AppShell({
           className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="Console"
         >
-          {nav.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== "/dashboard" &&
-                item.href !== "/diff/latest" &&
-                pathname.startsWith(item.href)) ||
-              (item.href.includes("/diff/") && pathname.startsWith("/diff"));
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors cursor-pointer sm:h-8",
-                  active
-                    ? "bg-surface-elevated text-foreground"
-                    : "text-muted hover:text-foreground hover:bg-surface-elevated/60"
-                )}
-              >
-                <Icon className="size-3.5 opacity-70" aria-hidden />
-                {item.label}
-              </Link>
-            );
-          })}
+          {nav.map((item) => (
+            <ConsoleNavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+            />
+          ))}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
           <CommandPaletteTrigger onOpen={() => setPaletteOpen(true)} />
           <Link
             href="/endpoints/new"
+            prefetch
             className="hidden h-8 items-center rounded-md border border-border bg-surface-elevated px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-[#1f1f23] md:inline-flex"
           >
             New endpoint
           </Link>
           <Link
             href="/settings"
+            prefetch
             className={cn(
               "inline-flex size-8 items-center justify-center rounded-md transition-colors cursor-pointer",
               pathname.startsWith("/settings")
@@ -137,9 +124,7 @@ export function AppShell({
         </span>
         <span className="text-border">|</span>
         <span>Workspace · {workspaceSlug}</span>
-        <span className="ml-auto font-mono tabular-nums">
-          {checksToday} checks today
-        </span>
+        {checksTodaySlot}
       </footer>
 
       <CommandPalette

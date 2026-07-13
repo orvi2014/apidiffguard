@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
+import { ChecksTodayCount } from "@/components/layout/console-chrome-data";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,24 +21,25 @@ export default async function ConsoleLayout({
     .order("name")
     .limit(40);
 
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
-  const ids = endpoints?.map((e) => e.id) ?? [];
-  const { count: checksToday } = ids.length
-    ? await supabase
-        .from("checks")
-        .select("id", { count: "exact", head: true })
-        .in("endpoint_id", ids)
-        .gte("started_at", dayStart.toISOString())
-    : { count: 0 };
-
   return (
     <AppShell
       workspaceName={ctx.workspaceName}
       workspaceSlug={ctx.workspaceSlug}
       email={ctx.email}
-      checksToday={checksToday ?? 0}
       endpoints={endpoints ?? []}
+      checksTodaySlot={
+        <Suspense
+          fallback={
+            <span className="ml-auto font-mono tabular-nums text-muted/70">
+              … checks today
+            </span>
+          }
+        >
+          <ChecksTodayCount
+            endpointIds={(endpoints ?? []).map((e) => e.id)}
+          />
+        </Suspense>
+      }
     >
       {children}
     </AppShell>

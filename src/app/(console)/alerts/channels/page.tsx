@@ -48,7 +48,7 @@ export default async function AlertChannelsPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 animate-in fade-in duration-300 sm:px-5 sm:py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-5 sm:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs text-muted">

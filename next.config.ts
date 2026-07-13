@@ -19,6 +19,13 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  experimental: {
+    // Keep recently visited console RSC payloads warm for snappier back/forward nav.
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
   async headers() {
     return [
       {
