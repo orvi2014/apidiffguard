@@ -33,6 +33,7 @@ export function JsonTextarea({
 }) {
   const [copied, setCopied] = React.useState(false);
   const size = sizeBytes ?? byteLength(value);
+  const textareaId = React.useId();
 
   const copy = async () => {
     await navigator.clipboard.writeText(value);
@@ -44,7 +45,10 @@ export function JsonTextarea({
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-baseline gap-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <label
+            htmlFor={textareaId}
+            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+          >
             {label}
           </label>
           <span
@@ -88,6 +92,7 @@ export function JsonTextarea({
         </div>
       </div>
       <textarea
+        id={textareaId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}

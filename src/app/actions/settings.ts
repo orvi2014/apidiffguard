@@ -10,13 +10,21 @@ export async function updateProfile(formData: FormData) {
   if (!ctx) redirect("/login");
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
+  if (!name) {
+    redirect("/settings/profile?error=name");
+  }
 
   const supabase = await createClient();
-  await supabase.from("profiles").update({ name }).eq("id", ctx.userId);
+  const { error } = await supabase
+    .from("profiles")
+    .update({ name })
+    .eq("id", ctx.userId);
+
+  if (error) redirect("/settings/profile?error=save");
 
   revalidatePath("/settings/profile");
   revalidatePath("/dashboard");
+  redirect("/settings/profile?saved=1");
 }
 
 export async function updateWorkspace(formData: FormData) {
@@ -30,7 +38,9 @@ export async function updateWorkspace(formData: FormData) {
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  if (!name || !slug) return;
+  if (!name || !slug) {
+    redirect("/settings/workspace?error=required");
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -38,9 +48,10 @@ export async function updateWorkspace(formData: FormData) {
     .update({ name, slug })
     .eq("id", ctx.workspaceId);
 
-  if (error) return;
+  if (error) redirect("/settings/workspace?error=save");
 
   revalidatePath("/settings/workspace");
   revalidatePath("/dashboard");
   revalidatePath("/", "layout");
+  redirect("/settings/workspace?saved=1");
 }

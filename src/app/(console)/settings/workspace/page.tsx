@@ -8,7 +8,12 @@ import { updateWorkspace } from "@/app/actions/settings";
 
 export const metadata = { title: "Workspace" };
 
-export default async function WorkspaceSettingsPage() {
+export default async function WorkspaceSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
+  const params = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
 
@@ -26,6 +31,25 @@ export default async function WorkspaceSettingsPage() {
           Name, members, and invitations.
         </p>
       </div>
+
+      {params.saved ? (
+        <p
+          role="status"
+          className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm"
+        >
+          Workspace updated.
+        </p>
+      ) : null}
+      {params.error ? (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+        >
+          {params.error === "required"
+            ? "Name and slug are required."
+            : "Could not update workspace. The slug may already be taken."}
+        </p>
+      ) : null}
 
       <form action={updateWorkspace} className="space-y-4">
         <div className="space-y-1.5">

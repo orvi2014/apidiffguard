@@ -27,6 +27,179 @@ function mapAuth(auth: string) {
     : "NONE") as (typeof allowed)[number];
 }
 
+function authHeadersFromEndpoint(endpoint: {
+  auth_type?: string | null;
+  auth_config?: unknown;
+  headers?: unknown;
+}): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (endpoint.headers && typeof endpoint.headers === "object") {
+    for (const [k, v] of Object.entries(
+      endpoint.headers as Record<string, unknown>
+    )) {
+      if (typeof v === "string" && v) out[k] = v;
+    }
+  }
+  const config =
+    endpoint.auth_config && typeof endpoint.auth_config === "object"
+      ? (endpoint.auth_config as Record<string, string>)
+      : {};
+  const type = String(endpoint.auth_type ?? "NONE").toUpperCase();
+  if (type === "BEARER" || type === "OAUTH") {
+    if (config.token) out.Authorization = `Bearer ${config.token}`;
+  } else if (type === "API_KEY") {
+    const header = config.header || "X-API-Key";
+    if (config.key) out[header] = config.key;
+  } else if (type === "BASIC") {
+    const user = config.username ?? "";
+    const pass = config.password ?? "";
+    if (user) {
+      out.Authorization = `Basic ${Buffer.from(`${user}:${pass}`).toString("base64")}`;
+    }
+  } else if (type === "CUSTOM") {
+    if (config.header && config.value) out[config.header] = config.value;
+  }
+  return out;
+}
+
+function buildAuthConfig(
+  authType: ReturnType<typeof mapAuth>,
+  formData: FormData,
+): Record<string, string> {
+  switch (authType) {
+    case "BEARER":
+      return { token: String(formData.get("auth_token") ?? "").trim() };
+    case "API_KEY":
+      return {
+        header: String(formData.get("auth_header") ?? "X-API-Key").trim() || "X-API-Key",
+        key: String(formData.get("auth_key") ?? "").trim(),
+      };
+    case "BASIC":
+      return {
+        username: String(formData.get("auth_username") ?? "").trim(),
+        password: String(formData.get("auth_password") ?? "").trim(),
+      };
+    case "OAUTH":
+      return { token: String(formData.get("auth_token") ?? "").trim() };
+    case "CUSTOM":
+      return {
+        header: String(formData.get("auth_header") ?? "").trim(),
+        value: String(formData.get("auth_value") ?? "").trim(),
+      };
+    default:
+      return {};
+  }
+}
+
+function authConfigValid(
+  authType: ReturnType<typeof mapAuth>,
+  config: Record<string, string>,
+) {
+  switch (authType) {
+    case "BEARER":
+    case "OAUTH":
+      return Boolean(config.token);
+    case "API_KEY":
+      return Boolean(config.key);
+    case "BASIC":
+      return Boolean(config.username);
+    case "CUSTOM":
+      return Boolean(config.header && config.value);
+    default:
+      return true;
+  }
+}
+
+export async function acceptDiffAsBaseline(diffId: string) {
+  const ctx = await getWorkspaceContext();
+  if (!ctx) redirect("/login");
+
+  const supabase = await createClient();
+  const { data: diff } = await supabase
+    .from("diffs")
+    .select("id, endpoint_id, check_id, endpoints!inner(workspace_id)")
+    .eq("id", diffId)
+    .single();
+
+  if (!diff) return { error: "Diff not found." };
+  const endpoint = Array.isArray(diff.endpoints)
+    ? diff.endpoints[0]
+    : diff.endpoints;
+  if (!endpoint || endpoint.workspace_id !== ctx.workspaceId) {
+    return { error: "Diff not found." };
+  }
+  if (!diff.check_id) return { error: "Check for this diff was not found." };
+
+  const { data: check } = await supabase
+    .from("checks")
+    .select("body, status_code, headers, response_time, content_size")
+    .eq("id", diff.check_id)
+    .single();
+
+  if (!check) return { error: "Check for this diff was not found." };
+
+  const { data: latest } = await supabase
+    .from("baselines")
+    .select("version")
+    .eq("endpoint_id", diff.endpoint_id)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const version = (latest?.version ?? 0) + 1;
+
+  await supabase
+    .from("baselines")
+    .update({ is_active: false })
+    .eq("endpoint_id", diff.endpoint_id)
+    .eq("is_active", true);
+
+  const { error: baselineError } = await supabase.from("baselines").insert({
+    endpoint_id: diff.endpoint_id,
+    version,
+    body: check.body,
+    status_code: check.status_code,
+    headers: check.headers ?? {},
+    response_time: check.response_time ?? 0,
+    content_size: check.content_size ?? 0,
+    notes: "Accepted from diff",
+    approved: true,
+    is_active: true,
+  });
+
+  if (baselineError) return { error: baselineError.message };
+
+  await supabase
+    .from("diffs")
+    .update({ accepted: true })
+    .eq("id", diffId);
+
+  await supabase
+    .from("endpoints")
+    .update({
+      health: "HEALTHY",
+      baseline_version: version,
+      last_checked_at: new Date().toISOString(),
+      breaking_count: 0,
+      warning_count: 0,
+    })
+    .eq("id", diff.endpoint_id);
+
+  await supabase.from("activities").insert({
+    type: "baseline_accepted",
+    title: "Baseline accepted",
+    description: "Diff response promoted to active baseline",
+    workspace_id: ctx.workspaceId,
+    endpoint_id: diff.endpoint_id,
+  });
+
+  revalidatePath(`/diff/${diffId}`);
+  revalidatePath(`/endpoints/${diff.endpoint_id}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/diffs");
+  return { ok: true as const };
+}
+
 export async function createEndpoint(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
@@ -38,9 +211,13 @@ export async function createEndpoint(formData: FormData) {
   const environment = String(formData.get("env") ?? "production").trim();
   const authType = mapAuth(String(formData.get("auth") ?? "none"));
   const description = String(formData.get("desc") ?? "").trim() || null;
+  const authConfig = buildAuthConfig(authType, formData);
 
   if (!name || !url) {
     return { error: "Name and URL are required." };
+  }
+  if (authType !== "NONE" && !authConfigValid(authType, authConfig)) {
+    return { error: "Fill in the auth credentials for the selected type." };
   }
 
   const limit = planEndpointLimit(ctx.plan);
@@ -64,6 +241,7 @@ export async function createEndpoint(formData: FormData) {
       method,
       environment,
       auth_type: authType,
+      auth_config: authConfig,
       description,
       workspace_id: ctx.workspaceId,
     })
@@ -193,6 +371,7 @@ export async function captureBaselineAction(endpointId: string) {
     url: endpoint.url,
     method: endpoint.method,
     timeoutMs: endpoint.timeout_ms,
+    headers: authHeadersFromEndpoint(endpoint),
   });
 
   if (result.error && result.statusCode === 0) {
@@ -303,6 +482,7 @@ export async function runCheckAction(endpointId: string) {
     url: endpoint.url,
     method: endpoint.method,
     timeoutMs: endpoint.timeout_ms,
+    headers: authHeadersFromEndpoint(endpoint),
   });
 
   if (result.error && result.statusCode === 0) {

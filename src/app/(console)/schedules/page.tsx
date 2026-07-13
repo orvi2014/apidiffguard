@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { deleteSchedule, toggleSchedule } from "@/app/actions/schedules";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
+import { ConfirmSubmitButton } from "@/components/form/confirm-submit-button";
 import { AddScheduleForm } from "@/components/schedules/add-schedule-form";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -106,11 +107,20 @@ export default async function SchedulesPage({
 
       <div className="flex-1 overflow-auto">
         {!schedules?.length ? (
-          <p className="px-5 py-12 text-center text-sm text-muted">
-            {endpoints?.length
-              ? "No schedules yet. Add one above to queue recurring checks."
-              : "No schedules yet. Create an endpoint first, then schedule checks here."}
-          </p>
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm text-muted">
+              {endpoints?.length
+                ? "No schedules yet. Add one above to queue recurring checks."
+                : "No schedules yet. Create an endpoint first, then schedule checks here."}
+            </p>
+            {!endpoints?.length ? (
+              <div className="mt-4 flex justify-center">
+                <Button asChild size="sm">
+                  <Link href="/endpoints/new">New endpoint</Link>
+                </Button>
+              </div>
+            ) : null}
+          </div>
         ) : (
           schedules.map((s) => {
             const ep = Array.isArray(s.endpoints) ? s.endpoints[0] : s.endpoints;
@@ -169,13 +179,14 @@ export default async function SchedulesPage({
                   </form>
                   <form action={deleteSchedule}>
                     <input type="hidden" name="id" value={s.id} />
-                    <PendingSubmitButton
+                    <ConfirmSubmitButton
                       size="sm"
                       variant="ghost"
                       pendingLabel="Removing…"
+                      confirmMessage="Remove this schedule?"
                     >
                       Remove
-                    </PendingSubmitButton>
+                    </ConfirmSubmitButton>
                   </form>
                 </div>
               </div>

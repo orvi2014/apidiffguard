@@ -50,9 +50,10 @@ export function ConsoleNavLink({
   const active =
     pathname === href ||
     (href !== "/dashboard" &&
-      href !== "/diff/latest" &&
+      href !== "/diffs" &&
       pathname.startsWith(href)) ||
-    (href.includes("/diff/") && pathname.startsWith("/diff"));
+    (href === "/diffs" &&
+      (pathname.startsWith("/diffs") || pathname.startsWith("/diff")));
 
   return (
     <Link

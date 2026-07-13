@@ -145,6 +145,13 @@ export default async function BillingPage({
           {canManage ? (
             <PortalButton
               disabled={!stripeReady || !ctx.stripeCustomerId}
+              disabledReason={
+                !stripeReady
+                  ? "Stripe is not configured for this deployment yet."
+                  : !ctx.stripeCustomerId
+                    ? "No Stripe customer yet — upgrade once to manage payment."
+                    : undefined
+              }
               label="Manage payment"
             />
           ) : null}
@@ -165,13 +172,17 @@ export default async function BillingPage({
             </div>
           </div>
           <div>
-            <div className="font-mono text-lg font-semibold tabular-nums">—</div>
+            <div className="font-mono text-lg font-semibold tabular-nums text-muted">
+              Not tracked yet
+            </div>
             <div className="text-[11px] uppercase tracking-wider text-muted">
               Checks
             </div>
           </div>
           <div>
-            <div className="font-mono text-lg font-semibold tabular-nums">—</div>
+            <div className="font-mono text-lg font-semibold tabular-nums text-muted">
+              Not tracked yet
+            </div>
             <div className="text-[11px] uppercase tracking-wider text-muted">
               Alerts
             </div>
@@ -256,6 +267,13 @@ export default async function BillingPage({
                       variant="secondary"
                       label="Downgrade via portal"
                       disabled={!stripeReady || !ctx.stripeCustomerId}
+                      disabledReason={
+                        !stripeReady
+                          ? "Stripe is not configured for this deployment yet."
+                          : !ctx.stripeCustomerId
+                            ? "No Stripe customer yet — upgrade once to manage billing."
+                            : undefined
+                      }
                     />
                   ) : isPaidPlan(p.id) && stripeReady ? (
                     <CheckoutButton

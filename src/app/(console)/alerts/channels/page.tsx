@@ -6,6 +6,7 @@ import {
 } from "@/app/actions/alerts";
 import { AddChannelForm } from "@/components/alerts/add-channel-form";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
+import { ConfirmSubmitButton } from "@/components/form/confirm-submit-button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
@@ -160,13 +161,14 @@ export default async function AlertChannelsPage({
                   </form>
                   <form action={deleteAlertChannel}>
                     <input type="hidden" name="id" value={row.id} />
-                    <PendingSubmitButton
+                    <ConfirmSubmitButton
                       size="sm"
                       variant="ghost"
                       pendingLabel="Removing…"
+                      confirmMessage="Remove this alert channel?"
                     >
                       Remove
-                    </PendingSubmitButton>
+                    </ConfirmSubmitButton>
                   </form>
                 </div>
               </article>

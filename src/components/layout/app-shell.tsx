@@ -10,6 +10,8 @@ import {
   GitCompare,
   LayoutDashboard,
   LogOut,
+  Plus,
+  Search,
   Settings,
   Webhook,
 } from "lucide-react";
@@ -27,7 +29,7 @@ const CommandPalette = dynamic(
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/endpoints", label: "Endpoints", icon: Webhook },
-  { href: "/diff/latest", label: "Diffs", icon: GitCompare },
+  { href: "/diffs", label: "Diffs", icon: GitCompare },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/schedules", label: "Schedules", icon: CalendarClock },
 ];
@@ -77,7 +79,23 @@ export function AppShell({
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-elevated hover:text-foreground sm:hidden"
+            aria-label="Search"
+          >
+            <Search className="size-4" />
+          </button>
           <CommandPaletteTrigger onOpen={() => setPaletteOpen(true)} />
+          <Link
+            href="/endpoints/new"
+            prefetch
+            className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface-elevated text-foreground transition-colors hover:bg-[#1f1f23] md:hidden"
+            aria-label="New endpoint"
+          >
+            <Plus className="size-4" />
+          </Link>
           <Link
             href="/endpoints/new"
             prefetch
@@ -122,7 +140,7 @@ export function AppShell({
       <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-border bg-surface px-3 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1.5">
           <span className="size-1.5 rounded-full bg-success" />
-          Connected
+          Signed in
         </span>
         <span className="text-border">|</span>
         <span>Workspace · {workspaceSlug}</span>

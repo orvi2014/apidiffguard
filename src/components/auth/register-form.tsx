@@ -84,13 +84,21 @@ export function RegisterForm() {
             type="password"
             minLength={8}
             required
+            aria-describedby="password-hint"
           />
+          <p id="password-hint" className="text-[11px] text-muted">
+            At least 8 characters.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="workspace">Workspace name</Label>
           <Input id="workspace" name="workspace" placeholder="Acme" />
         </div>
-        {error ? <p className="text-xs text-danger">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-xs text-danger">
+            {error}
+          </p>
+        ) : null}
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Creating…" : "Create account"}
         </Button>

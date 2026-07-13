@@ -8,7 +8,12 @@ import { updateProfile } from "@/app/actions/settings";
 
 export const metadata = { title: "Profile" };
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; error?: string }>;
+}) {
+  const params = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
 
@@ -27,6 +32,24 @@ export default async function ProfilePage() {
           Your personal account details.
         </p>
       </div>
+      {params.saved ? (
+        <p
+          role="status"
+          className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm"
+        >
+          Profile saved.
+        </p>
+      ) : null}
+      {params.error ? (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+        >
+          {params.error === "name"
+            ? "Name is required."
+            : "Could not save profile. Try again."}
+        </p>
+      ) : null}
       <form action={updateProfile} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="name">Name</Label>

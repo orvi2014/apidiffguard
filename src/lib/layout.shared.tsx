@@ -36,7 +36,7 @@ export function baseOptions(): BaseLayoutProps {
       {
         type: "button",
         text: "Open console",
-        url: "/dashboard",
+        url: "/login?next=/dashboard",
         secondary: false,
       },
     ],

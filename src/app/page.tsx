@@ -64,7 +64,7 @@ export default function LandingPage() {
       />
       <MarketingHeader />
 
-      <main>
+      <main id="main">
         <section className="relative overflow-hidden border-b border-border">
           <div
             aria-hidden
@@ -211,38 +211,39 @@ export default function LandingPage() {
         <section className="border-b border-border">
           <div className="mx-auto max-w-6xl px-5 py-24">
             <h2 className="text-3xl font-semibold tracking-tight">
-              Trusted by teams who ship APIs.
+              Built for teams that ship APIs.
             </h2>
+            <p className="mt-3 max-w-2xl text-sm text-muted leading-relaxed">
+              APIDiffGuard is early — we are dogfooding it on our own APIs and
+              iterating from that feedback. Want to share a use case?{" "}
+              <a
+                href="mailto:hello@apidiffguard.com"
+                className="text-foreground underline-offset-4 hover:underline"
+              >
+                hello@apidiffguard.com
+              </a>
+            </p>
             <div className="mt-12 grid gap-8 md:grid-cols-3">
               {[
                 {
-                  quote:
-                    "We caught a renamed field in staging before mobile clients crashed. The side-by-side diff made the review trivial.",
-                  name: "Priya N.",
-                  role: "Staff Engineer, payments platform",
+                  title: "Baseline → check → diff",
+                  body: "Capture a known-good response, re-fetch on a schedule or in CI, and review every field change with severity.",
                 },
                 {
-                  quote:
-                    "Replaced a pile of ad-hoc curl scripts. Baselines plus Slack alerts are the only monitoring we actually look at.",
-                  name: "Marcus T.",
-                  role: "Platform lead, B2B SaaS",
+                  title: "Alert when it matters",
+                  body: "Route breaking changes to Slack, Discord, email, or a webhook instead of burying them in log noise.",
                 },
                 {
-                  quote:
-                    "Agency life means dozens of client APIs. OpenAPI import and ignore rules saved us hours every sprint.",
-                  name: "Elena R.",
-                  role: "Integration engineer",
+                  title: "Same engine as free tools",
+                  body: "The browser JSON Diff, Formatter, and Validator use the same comparison engine as the monitored console.",
                 },
-              ].map((t) => (
-                <blockquote key={t.name} className="space-y-4">
+              ].map((item) => (
+                <div key={item.title} className="space-y-3">
+                  <h3 className="text-sm font-medium">{item.title}</h3>
                   <p className="text-sm leading-relaxed text-muted">
-                    “{t.quote}”
+                    {item.body}
                   </p>
-                  <footer>
-                    <div className="text-sm font-medium">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">{t.role}</div>
-                  </footer>
-                </blockquote>
+                </div>
               ))}
             </div>
           </div>
@@ -262,7 +263,7 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
-            <Link href="/dashboard">
+            <Link href="/login?next=/dashboard">
               <Button variant="secondary" className="gap-2">
                 <Webhook className="size-4" />
                 Open console

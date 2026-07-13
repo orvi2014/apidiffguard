@@ -64,11 +64,13 @@ export function PortalButton({
   label = "Manage payment",
   variant = "ghost",
   disabled = false,
+  disabledReason,
   className,
 }: {
   label?: string;
   variant?: "default" | "secondary" | "ghost";
   disabled?: boolean;
+  disabledReason?: string;
   className?: string;
 }) {
   const [loading, setLoading] = useState(false);
@@ -92,6 +94,12 @@ export function PortalButton({
     }
   }
 
+  const reason =
+    disabledReason ??
+    (!disabled
+      ? undefined
+      : "Billing portal needs Stripe configured and an existing customer.");
+
   return (
     <div className={className}>
       <Button
@@ -100,10 +108,14 @@ export function PortalButton({
         variant={variant}
         disabled={disabled || loading}
         aria-busy={loading}
+        title={disabled ? reason : undefined}
         onClick={openPortal}
       >
         {loading ? "Opening…" : label}
       </Button>
+      {disabled && reason ? (
+        <p className="mt-2 text-xs text-muted">{reason}</p>
+      ) : null}
       {error ? (
         <p role="alert" className="mt-2 text-xs text-destructive">
           {error}

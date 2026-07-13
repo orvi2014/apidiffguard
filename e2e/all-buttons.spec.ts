@@ -175,7 +175,7 @@ test.describe("all buttons — console (signed in)", () => {
     for (const label of ["General", "Workspace", "Billing", "API tokens", "Profile"]) {
       await expect(settingsNav.getByRole("link", { name: label })).toBeVisible();
     }
-    await assertVisible(page, "button", /Save changes/i);
+    await expect(page.getByText(/Coming soon/i)).toBeVisible();
 
     await page.goto("/settings/profile");
     await assertVisible(page, "button", /Save profile/i);
@@ -184,8 +184,8 @@ test.describe("all buttons — console (signed in)", () => {
     await assertVisible(page, "button", /Update workspace/i);
 
     await page.goto("/settings/tokens");
-    await assertVisible(page, "button", /Create token/i);
-    await expect(page.getByRole("button", { name: /Revoke/i }).first()).toBeVisible();
+    await expect(page.getByText(/not available yet/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Create token/i })).toHaveCount(0);
 
     await page.goto("/settings/billing");
     await assertVisible(page, "link", "Change plan");
@@ -213,7 +213,7 @@ test.describe("all buttons — console (signed in)", () => {
     await nav.getByRole("link", { name: "Endpoints" }).click();
     await expect(page).toHaveURL(/\/endpoints/);
     await nav.getByRole("link", { name: "Diffs" }).click();
-    await expect(page).toHaveURL(/\/diff/);
+    await expect(page).toHaveURL(/\/diffs/);
     await nav.getByRole("link", { name: "Alerts" }).click();
     await expect(page).toHaveURL(/\/alerts/);
     await nav.getByRole("link", { name: "Schedules" }).click();

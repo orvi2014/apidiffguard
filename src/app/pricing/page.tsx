@@ -180,6 +180,13 @@ function PlanCta({
         variant="secondary"
         label="Manage in billing"
         disabled={!stripeReady || !hasCustomer}
+        disabledReason={
+          !stripeReady
+            ? "Stripe is not configured for this deployment yet."
+            : !hasCustomer
+              ? "No Stripe customer yet — upgrade once to manage billing."
+              : undefined
+        }
       />
     );
   }

@@ -90,7 +90,9 @@ export function LoginForm() {
           <Input id="password" name="password" type="password" required />
         </div>
         {error ? (
-          <p className="text-xs text-danger">{error}</p>
+          <p role="alert" className="text-xs text-danger">
+            {error}
+          </p>
         ) : null}
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Signing in…" : "Sign in"}

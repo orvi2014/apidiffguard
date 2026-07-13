@@ -24,7 +24,7 @@ export function EndpointRow({
           <span className="truncate text-sm font-medium text-foreground group-hover:text-accent transition-colors">
             {endpoint.name}
           </span>
-          <HealthBadge status={endpoint.health} className="hidden sm:inline-flex" />
+          <HealthBadge status={endpoint.health} />
         </div>
         <div className="truncate font-mono text-[11px] text-muted">
           {endpoint.url}

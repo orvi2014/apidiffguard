@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
@@ -9,7 +10,6 @@ import {
   Copy,
   Search,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,26 +24,45 @@ import {
 } from "@/lib/diff-engine";
 import type { DiffResult } from "@/lib/types";
 import { cn, formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
+import { acceptDiffAsBaseline } from "@/app/actions/endpoints";
 
 export function DiffViewer({ diff }: { diff: DiffResult }) {
   const [search, setSearch] = React.useState("");
-  const [changeIndex, setChangeIndex] = React.useState(0);
+  const [activeChangeId, setActiveChangeId] = React.useState<string | null>(
+    diff.changes[0]?.id ?? null
+  );
   const [copied, setCopied] = React.useState(false);
   const [tab, setTab] = React.useState("summary");
   const [bodies, setBodies] = React.useState<{
     baselineBody: unknown;
     currentBody: unknown;
-  } | null>(diff.baseline.body != null && diff.current.body != null
-    ? { baselineBody: diff.baseline.body, currentBody: diff.current.body }
-    : null);
+  } | null>(
+    diff.baseline.body != null && diff.current.body != null
+      ? { baselineBody: diff.baseline.body, currentBody: diff.current.body }
+      : null
+  );
   const [bodiesError, setBodiesError] = React.useState<string | null>(null);
   const [bodiesLoading, setBodiesLoading] = React.useState(false);
+  const [bodiesRetry, setBodiesRetry] = React.useState(0);
+  const [acceptPending, setAcceptPending] = React.useState(false);
+  const [acceptError, setAcceptError] = React.useState<string | null>(null);
+  const [accepted, setAccepted] = React.useState(diff.accepted);
 
   const summary = summarizeChanges(diff.changes);
   const changeMap = React.useMemo(
     () => changesToMap(diff.changes),
     [diff.changes]
   );
+
+  const filteredChanges = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return diff.changes;
+    return diff.changes.filter(
+      (c) =>
+        c.path.toLowerCase().includes(q) ||
+        c.message.toLowerCase().includes(q)
+    );
+  }, [diff.changes, search]);
 
   const oldTree: JsonTreeNode | null = React.useMemo(
     () =>
@@ -60,8 +79,7 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
     [bodies, changeMap]
   );
 
-  React.useEffect(() => {
-    if (tab === "summary" || bodies || bodiesLoading) return;
+  const loadBodies = React.useCallback(() => {
     setBodiesLoading(true);
     setBodiesError(null);
     void fetch(`/api/diffs/${diff.id}/bodies`)
@@ -84,15 +102,26 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
         );
       })
       .finally(() => setBodiesLoading(false));
-  }, [tab, bodies, bodiesLoading, diff.id]);
+  }, [diff.id]);
 
-  const jump = (dir: 1 | -1) => {
-    if (!diff.changes.length) return;
-    setChangeIndex(
-      (i) => (i + dir + diff.changes.length) % diff.changes.length
-    );
-    setSearch(diff.changes[(changeIndex + dir + diff.changes.length) % diff.changes.length].path);
-  };
+  React.useEffect(() => {
+    if (tab === "summary" || bodies || bodiesLoading || bodiesError) return;
+    loadBodies();
+  }, [tab, bodies, bodiesLoading, bodiesError, loadBodies, bodiesRetry]);
+
+  const jump = React.useCallback(
+    (dir: 1 | -1) => {
+      if (!filteredChanges.length) return;
+      const idx = filteredChanges.findIndex((c) => c.id === activeChangeId);
+      const next =
+        filteredChanges[
+          ((idx < 0 ? 0 : idx) + dir + filteredChanges.length) %
+            filteredChanges.length
+        ];
+      setActiveChangeId(next.id);
+    },
+    [filteredChanges, activeChangeId]
+  );
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -111,7 +140,12 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, [jump]);
+
+  const activePath =
+    filteredChanges.find((c) => c.id === activeChangeId)?.path ??
+    diff.changes.find((c) => c.id === activeChangeId)?.path ??
+    "";
 
   const copyDiff = async () => {
     await navigator.clipboard.writeText(
@@ -129,19 +163,80 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const onAccept = async () => {
+    if (accepted || acceptPending) return;
+    if (
+      !confirm(
+        "Promote this response to the active baseline? Future checks will compare against it."
+      )
+    ) {
+      return;
+    }
+    setAcceptPending(true);
+    setAcceptError(null);
+    const result = await acceptDiffAsBaseline(diff.id);
+    if (result?.error) {
+      setAcceptError(result.error);
+      setAcceptPending(false);
+      return;
+    }
+    setAccepted(true);
+    setAcceptPending(false);
+  };
+
+  const bodiesPlaceholder = (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-sm text-muted">
+      <p>{bodiesError ?? "Loading response trees…"}</p>
+      {bodiesError ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setBodiesError(null);
+            setBodiesRetry((n) => n + 1);
+            loadBodies();
+          }}
+        >
+          Retry
+        </Button>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Sticky toolbar */}
       <div className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <span>Endpoints</span>
-              <ChevronRight className="size-3" />
-              <span className="text-foreground">{diff.endpointName}</span>
-              <ChevronRight className="size-3" />
-              <span className="font-mono text-muted">diff/{diff.id.slice(0, 12)}</span>
-            </div>
+            <nav
+              aria-label="Breadcrumb"
+              className="flex items-center gap-2 text-xs text-muted"
+            >
+              <Link
+                href="/endpoints"
+                className="hover:text-foreground transition-colors"
+              >
+                Endpoints
+              </Link>
+              <ChevronRight className="size-3" aria-hidden />
+              <Link
+                href={`/endpoints/${diff.endpointId}`}
+                className="truncate text-foreground hover:text-accent transition-colors"
+              >
+                {diff.endpointName}
+              </Link>
+              <ChevronRight className="size-3" aria-hidden />
+              <Link
+                href="/diffs"
+                className="font-mono text-muted hover:text-foreground transition-colors"
+              >
+                diffs
+              </Link>
+              <ChevronRight className="size-3" aria-hidden />
+              <span className="font-mono text-muted">
+                {diff.id.slice(0, 12)}
+              </span>
+            </nav>
             <h1 className="mt-1 text-lg font-semibold tracking-tight">
               Response diff
             </h1>
@@ -157,12 +252,31 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
               Next
             </Button>
             <Button variant="secondary" size="sm" onClick={copyDiff}>
-              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              {copied ? (
+                <Check className="size-3.5" />
+              ) : (
+                <Copy className="size-3.5" />
+              )}
               Copy diff
             </Button>
-            <Button size="sm">Accept baseline</Button>
+            <Button
+              size="sm"
+              disabled={accepted || acceptPending}
+              onClick={() => void onAccept()}
+            >
+              {accepted
+                ? "Baseline accepted"
+                : acceptPending
+                  ? "Accepting…"
+                  : "Accept baseline"}
+            </Button>
           </div>
         </div>
+        {acceptError ? (
+          <p role="alert" className="px-4 pb-2 text-xs text-danger">
+            {acceptError}
+          </p>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-4 border-t border-border-subtle px-4 py-2 text-xs">
           <Stat
@@ -200,7 +314,6 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Change list inspector */}
         <aside className="flex w-full shrink-0 flex-col border-b border-border lg:w-80 lg:border-b-0 lg:border-r">
           <div className="border-b border-border-subtle px-3 py-2">
             <div className="relative">
@@ -217,44 +330,33 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
             </div>
           </div>
           <div className="flex-1 overflow-auto">
-            {diff.changes
-              .filter(
-                (c) =>
-                  !search ||
-                  c.path.toLowerCase().includes(search.toLowerCase()) ||
-                  c.message.toLowerCase().includes(search.toLowerCase())
-              )
-              .map((change, i) => (
-                <button
-                  key={change.id}
-                  type="button"
-                  onClick={() => {
-                    setChangeIndex(i);
-                    setSearch(change.path);
-                  }}
-                  className={cn(
-                    "flex w-full flex-col gap-1 border-b border-border-subtle px-3 py-2.5 text-left transition-colors duration-100 cursor-pointer hover:bg-surface",
-                    change.path === search && "bg-accent-muted"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <SeverityBadge severity={change.severity} />
-                    <span className="font-mono text-[11px] text-muted truncate">
-                      {change.type}
-                    </span>
-                  </div>
-                  <span className="font-mono text-xs text-foreground truncate">
-                    {change.path}
+            {filteredChanges.map((change) => (
+              <button
+                key={change.id}
+                type="button"
+                onClick={() => setActiveChangeId(change.id)}
+                className={cn(
+                  "flex w-full flex-col gap-1 border-b border-border-subtle px-3 py-2.5 text-left transition-colors duration-100 cursor-pointer hover:bg-surface",
+                  change.id === activeChangeId && "bg-accent-muted"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <SeverityBadge severity={change.severity} />
+                  <span className="font-mono text-[11px] text-muted truncate">
+                    {change.type}
                   </span>
-                  <span className="text-[11px] text-muted line-clamp-2">
-                    {change.message}
-                  </span>
-                </button>
-              ))}
+                </div>
+                <span className="font-mono text-xs text-foreground truncate">
+                  {change.path}
+                </span>
+                <span className="text-[11px] text-muted line-clamp-2">
+                  {change.message}
+                </span>
+              </button>
+            ))}
           </div>
         </aside>
 
-        {/* Main panes */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <Tabs
             value={tab}
@@ -278,51 +380,49 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
               className="flex min-h-0 flex-1 flex-col lg:flex-row"
             >
               {bodiesLoading || !oldTree || !newTree ? (
-                <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted">
-                  {bodiesError ?? "Loading response trees…"}
-                </div>
+                bodiesPlaceholder
               ) : (
                 <>
-              <div className="flex min-h-[280px] min-w-0 flex-1 flex-col border-b border-border lg:border-b-0 lg:border-r">
-                <PaneHeader
-                  title="Old response"
-                  meta={`baseline v${diff.baseline.version}`}
-                  tone="old"
-                />
-                <DiffTree
-                  tree={oldTree}
-                  changes={diff.changes}
-                  search={search}
-                  className="flex-1"
-                />
-              </div>
-              <div className="hidden w-10 shrink-0 flex-col items-center justify-center gap-2 border-r border-border bg-surface/50 lg:flex">
-                {diff.changes.slice(0, 8).map((c) => (
-                  <span
-                    key={c.id}
-                    className={cn(
-                      "size-1.5 rounded-full",
-                      c.severity === "breaking" && "bg-danger",
-                      c.severity === "warning" && "bg-warning",
-                      c.severity === "info" && "bg-info"
-                    )}
-                    title={c.path}
-                  />
-                ))}
-              </div>
-              <div className="flex min-h-[280px] min-w-0 flex-1 flex-col">
-                <PaneHeader
-                  title="New response"
-                  meta="current check"
-                  tone="new"
-                />
-                <DiffTree
-                  tree={newTree}
-                  changes={diff.changes}
-                  search={search}
-                  className="flex-1"
-                />
-              </div>
+                  <div className="flex min-h-[280px] min-w-0 flex-1 flex-col border-b border-border lg:border-b-0 lg:border-r">
+                    <PaneHeader
+                      title="Old response"
+                      meta={`baseline v${diff.baseline.version}`}
+                      tone="old"
+                    />
+                    <DiffTree
+                      tree={oldTree}
+                      changes={diff.changes}
+                      search={activePath || search}
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="hidden w-10 shrink-0 flex-col items-center justify-center gap-2 border-r border-border bg-surface/50 lg:flex">
+                    {diff.changes.slice(0, 8).map((c) => (
+                      <span
+                        key={c.id}
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          c.severity === "breaking" && "bg-danger",
+                          c.severity === "warning" && "bg-warning",
+                          c.severity === "info" && "bg-info"
+                        )}
+                        title={c.path}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex min-h-[280px] min-w-0 flex-1 flex-col">
+                    <PaneHeader
+                      title="New response"
+                      meta="current check"
+                      tone="new"
+                    />
+                    <DiffTree
+                      tree={newTree}
+                      changes={diff.changes}
+                      search={activePath || search}
+                      className="flex-1"
+                    />
+                  </div>
                 </>
               )}
             </TabsContent>
@@ -332,19 +432,38 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
               className="flex min-h-0 flex-1 flex-col lg:flex-row"
             >
               {bodiesLoading || !bodies ? (
-                <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted">
-                  {bodiesError ?? "Loading raw JSON…"}
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-sm text-muted">
+                  <p>{bodiesError ?? "Loading raw JSON…"}</p>
+                  {bodiesError ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setBodiesError(null);
+                        setBodiesRetry((n) => n + 1);
+                        loadBodies();
+                      }}
+                    >
+                      Retry
+                    </Button>
+                  ) : null}
                 </div>
               ) : (
                 <>
-              <div className="min-h-[280px] flex-1 border-b border-border lg:border-b-0 lg:border-r">
-                <PaneHeader title="Old JSON" meta="baseline" tone="old" />
-                <JSONViewer data={bodies.baselineBody} className="h-[calc(100%-36px)]" />
-              </div>
-              <div className="min-h-[280px] flex-1">
-                <PaneHeader title="New JSON" meta="current" tone="new" />
-                <JSONViewer data={bodies.currentBody} className="h-[calc(100%-36px)]" />
-              </div>
+                  <div className="min-h-[280px] flex-1 border-b border-border lg:border-b-0 lg:border-r">
+                    <PaneHeader title="Old JSON" meta="baseline" tone="old" />
+                    <JSONViewer
+                      data={bodies.baselineBody}
+                      className="h-[calc(100%-36px)]"
+                    />
+                  </div>
+                  <div className="min-h-[280px] flex-1">
+                    <PaneHeader title="New JSON" meta="current" tone="new" />
+                    <JSONViewer
+                      data={bodies.currentBody}
+                      className="h-[calc(100%-36px)]"
+                    />
+                  </div>
                 </>
               )}
             </TabsContent>
@@ -432,19 +551,14 @@ function SummaryPanel({
           { label: "Additions", value: summary.added, color: "text-success" },
           { label: "Removals", value: summary.removed, color: "text-danger" },
         ].map((s) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-1"
-          >
+          <div key={s.label} className="space-y-1">
             <div className={cn("font-mono text-3xl font-semibold tabular-nums tracking-tight", s.color)}>
               {s.value}
             </div>
             <div className="text-xs text-muted uppercase tracking-wider">
               {s.label}
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 

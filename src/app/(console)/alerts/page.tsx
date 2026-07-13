@@ -109,6 +109,11 @@ export default async function AlertsPage({
                 disabled={enabledCount === 0}
                 className="min-h-9"
                 pendingLabel="Sending…"
+                title={
+                  enabledCount === 0
+                    ? "Add and enable a channel first"
+                    : "Send a test to enabled channels"
+                }
               >
                 Test notification
               </PendingSubmitButton>
@@ -118,6 +123,11 @@ export default async function AlertsPage({
             </Button>
           </div>
         </div>
+        {enabledCount === 0 ? (
+          <p className="mt-2 text-xs text-muted">
+            Add and enable a channel before sending a test notification.
+          </p>
+        ) : null}
 
         {params.tested ? (
           <p
