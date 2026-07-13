@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { listWorkspaceEndpointsForPalette } from "@/lib/workspace-data";
+import { planAllowsSchedules, canEditWorkspace } from "@/lib/plans";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 export const metadata = { title: "Schedules" };
@@ -25,6 +26,10 @@ export default async function SchedulesPage({
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
 
+  const schedulesAllowed = planAllowsSchedules(ctx.plan);
+  const canEdit = canEditWorkspace(ctx.role);
+  const cronConfigured = Boolean(process.env.CRON_SECRET);
+
   const supabase = await createClient();
   const [{ data: schedules }, endpoints] = await Promise.all([
     supabase
@@ -37,6 +42,10 @@ export default async function SchedulesPage({
     listWorkspaceEndpointsForPalette(ctx.workspaceId),
   ]);
 
+  const neverRan =
+    (schedules?.length ?? 0) > 0 &&
+    schedules!.every((s) => !s.last_run_at);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-border px-5 py-5">
@@ -44,7 +53,8 @@ export default async function SchedulesPage({
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Schedules</h1>
             <p className="mt-1 text-sm text-muted">
-              Recurring checks run every few minutes via cron when due.
+              Pick a frequency (hourly → monthly). A worker picks up due runs
+              every few minutes.
             </p>
           </div>
           <Button asChild size="sm" className="min-h-9">
@@ -75,7 +85,42 @@ export default async function SchedulesPage({
           >
             {params.error === "invalid"
               ? "Choose an endpoint and frequency."
-              : "Could not save schedule. Try again."}
+              : params.error === "plan"
+                ? "Scheduled checks require Starter or above. Upgrade in Billing."
+                : params.error === "forbidden"
+                  ? "Viewers cannot manage schedules."
+                  : "Could not save schedule. Try again."}
+          </p>
+        ) : null}
+
+        {!schedulesAllowed ? (
+          <p
+            role="status"
+            className="mt-4 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+          >
+            Scheduled checks are on Starter and above.{" "}
+            <Link href="/settings/billing" className="underline">
+              Upgrade in Billing
+            </Link>{" "}
+            to queue recurring runs.
+          </p>
+        ) : null}
+        {schedulesAllowed && !cronConfigured ? (
+          <p
+            role="status"
+            className="mt-4 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning"
+          >
+            Schedule worker is not configured on this deployment (`CRON_SECRET`
+            missing). Schedules will not run until cron is set up.
+          </p>
+        ) : null}
+        {schedulesAllowed && cronConfigured && neverRan ? (
+          <p
+            role="status"
+            className="mt-4 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+          >
+            Schedules are queued but have not run yet. The next worker tick
+            should pick them up within a few minutes.
           </p>
         ) : null}
 
@@ -87,12 +132,20 @@ export default async function SchedulesPage({
           <h2 id="add-schedule-heading" className="text-sm font-medium">
             Add schedule
           </h2>
-          <AddScheduleForm
-            endpoints={(endpoints ?? []).map((e) => ({
-              id: e.id,
-              name: e.name,
-            }))}
-          />
+          {schedulesAllowed && canEdit ? (
+            <AddScheduleForm
+              endpoints={(endpoints ?? []).map((e) => ({
+                id: e.id,
+                name: e.name,
+              }))}
+            />
+          ) : (
+            <p className="mt-3 text-sm text-muted">
+              {!canEdit
+                ? "Viewers can view schedules but cannot create them."
+                : "Upgrade to Starter to create schedules."}
+            </p>
+          )}
         </section>
       </div>
 
@@ -161,33 +214,38 @@ export default async function SchedulesPage({
                     : "—"}
                 </span>
                 <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
-                  <form action={toggleSchedule}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <input
-                      type="hidden"
-                      name="enabled"
-                      value={s.enabled ? "true" : "false"}
-                    />
-                    <input type="hidden" name="frequency" value={s.frequency} />
-                    <PendingSubmitButton
-                      size="sm"
-                      variant="secondary"
-                      pendingLabel={s.enabled ? "Pausing…" : "Enabling…"}
-                    >
-                      {s.enabled ? "Pause" : "Enable"}
-                    </PendingSubmitButton>
-                  </form>
-                  <form action={deleteSchedule}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <ConfirmSubmitButton
-                      size="sm"
-                      variant="ghost"
-                      pendingLabel="Removing…"
-                      confirmMessage="Remove this schedule?"
-                    >
-                      Remove
-                    </ConfirmSubmitButton>
-                  </form>
+                  {canEdit ? (
+                    <>
+                      <form action={toggleSchedule}>
+                        <input type="hidden" name="id" value={s.id} />
+                        <input
+                          type="hidden"
+                          name="enabled"
+                          value={s.enabled ? "true" : "false"}
+                        />
+                        <PendingSubmitButton
+                          size="sm"
+                          variant="secondary"
+                          pendingLabel={s.enabled ? "Pausing…" : "Enabling…"}
+                        >
+                          {s.enabled ? "Pause" : "Enable"}
+                        </PendingSubmitButton>
+                      </form>
+                      <form action={deleteSchedule}>
+                        <input type="hidden" name="id" value={s.id} />
+                        <ConfirmSubmitButton
+                          size="sm"
+                          variant="ghost"
+                          pendingLabel="Removing…"
+                          confirmMessage="Remove this schedule?"
+                        >
+                          Remove
+                        </ConfirmSubmitButton>
+                      </form>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted">View only</span>
+                  )}
                 </div>
               </div>
             );

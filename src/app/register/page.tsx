@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth/register-form";
 import { buildMetadata } from "@/lib/seo";
 
@@ -20,7 +21,9 @@ export default function RegisterPage() {
         </span>
         APIDiffGuard
       </Link>
-      <RegisterForm />
+      <Suspense fallback={<div className="w-full max-w-sm text-sm text-muted">Loading…</div>}>
+        <RegisterForm />
+      </Suspense>
     </div>
   );
 }

@@ -3,6 +3,10 @@ import { SITE_URL } from "@/lib/seo";
 
 /** Private app surfaces — keep out of search and AI training corpora. */
 const PRIVATE = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/update-password",
   "/dashboard",
   "/endpoints",
   "/diff",

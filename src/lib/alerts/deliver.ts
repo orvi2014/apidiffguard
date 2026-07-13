@@ -1,3 +1,8 @@
+import {
+  parseAndAssertPublicUrl,
+  safeFetch,
+} from "@/lib/safe-url";
+
 export type DeliverableChannel = "EMAIL" | "SLACK" | "DISCORD" | "WEBHOOK";
 
 export type DeliveryResult = {
@@ -55,17 +60,29 @@ export async function deliverAlert(opts: {
   }
 
   try {
-    const res = await fetch(target, {
+    parseAndAssertPublicUrl(target);
+  } catch (err) {
+    return {
+      ok: false,
+      status: "FAILED",
+      error: err instanceof Error ? err.message : "Invalid webhook URL",
+      payload: body,
+    };
+  }
+
+  try {
+    const payload =
+      opts.channel === "SLACK"
+        ? { text: `*APIDiffGuard*\n${opts.message}` }
+        : opts.channel === "DISCORD"
+          ? { content: `**APIDiffGuard**\n${opts.message}` }
+          : body;
+
+    const res = await safeFetch(target, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        opts.channel === "SLACK"
-          ? { text: `*APIDiffGuard*\n${opts.message}` }
-          : opts.channel === "DISCORD"
-            ? { content: `**APIDiffGuard**\n${opts.message}` }
-            : body
-      ),
-      signal: AbortSignal.timeout(12_000),
+      body: JSON.stringify(payload),
+      timeoutMs: 12_000,
     });
 
     if (!res.ok) {

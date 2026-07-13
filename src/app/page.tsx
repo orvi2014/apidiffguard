@@ -141,7 +141,7 @@ export default function LandingPage() {
                 {
                   icon: Bell,
                   title: "Alerts that matter",
-                  body: "Slack, Discord, email, and webhooks — filtered by severity so noise stays out.",
+                  body: "Slack, Discord, and webhooks — filtered by severity so noise stays out.",
                 },
                 {
                   icon: Braces,
@@ -150,8 +150,8 @@ export default function LandingPage() {
                 },
                 {
                   icon: Terminal,
-                  title: "CLI & REST API",
-                  body: "apidiff check in CI. Same engine as the console, authenticated with API tokens.",
+                  title: "Console-first monitoring",
+                  body: "Capture baselines and run checks in the console today. CLI and public API are on the roadmap.",
                 },
               ].map((f) => (
                   <div key={f.title} className="relative h-full overflow-hidden rounded-lg border border-border bg-background p-6 sm:p-8">
@@ -175,11 +175,11 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-24 lg:grid-cols-2">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Same checks in CI and the console.
+                Same engine in the console — CI CLI coming soon.
               </h2>
               <p className="mt-4 text-muted leading-relaxed">
-                Gate deploys on schema drift. Fail the pipeline when a breaking
-                change ships.
+                Review schema drift in the Diff Viewer today. A published CLI
+                for failing pipelines is on the roadmap.
               </p>
               <Link
                 href="/docs/cli"
@@ -230,7 +230,7 @@ export default function LandingPage() {
                 },
                 {
                   title: "Alert when it matters",
-                  body: "Route breaking changes to Slack, Discord, email, or a webhook instead of burying them in log noise.",
+                  body: "Route breaking changes to Slack, Discord, or a webhook instead of burying them in log noise.",
                 },
                 {
                   title: "Same engine as free tools",

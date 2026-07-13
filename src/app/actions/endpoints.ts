@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { canEditWorkspace, planEndpointLimit } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
-import { planEndpointLimit } from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
 import {
   authHeadersFromEndpoint,
@@ -173,6 +173,9 @@ export async function acceptDiffAsBaseline(diffId: string) {
 export async function createEndpoint(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot create endpoints." };
+  }
 
   const supabase = await createClient();
   const name = String(formData.get("name") ?? "").trim();
@@ -322,6 +325,9 @@ export async function importEndpoints(
 export async function deleteEndpoint(endpointId: string) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot delete endpoints." };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -337,9 +343,15 @@ export async function deleteEndpoint(endpointId: string) {
   redirect("/endpoints");
 }
 
-export async function captureBaselineAction(endpointId: string) {
+export async function captureBaselineAction(
+  endpointId: string,
+  opts?: { allowErrorStatus?: boolean }
+) {
   const ctx = await getWorkspaceContext();
   if (!ctx) return { error: "Unauthorized" };
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot capture baselines." };
+  }
 
   const supabase = await createClient();
   const { data: endpoint, error: epError } = await supabase
@@ -370,6 +382,21 @@ export async function captureBaselineAction(endpointId: string) {
       .update({ health: "UNKNOWN" })
       .eq("id", endpointId);
     return { error: result.error };
+  }
+
+  if (
+    result.statusCode >= 400 &&
+    !opts?.allowErrorStatus
+  ) {
+    await supabase
+      .from("endpoints")
+      .update({ health: "UNKNOWN" })
+      .eq("id", endpointId);
+    return {
+      error: `HTTP ${result.statusCode} — confirm to save as baseline anyway.`,
+      needsConfirm: true as const,
+      statusCode: result.statusCode,
+    };
   }
 
   const { data: latest } = await supabase
@@ -441,6 +468,9 @@ export async function captureBaselineAction(endpointId: string) {
 export async function runCheckAction(endpointId: string) {
   const ctx = await getWorkspaceContext();
   if (!ctx) return { error: "Unauthorized" };
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot run checks." };
+  }
 
   const supabase = await createClient();
   const result = await runEndpointCheck(supabase, {
@@ -459,6 +489,9 @@ export async function runCheckAction(endpointId: string) {
 export async function updateEndpoint(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot edit endpoints." };
+  }
 
   const endpointId = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -513,12 +546,22 @@ export async function updateEndpoint(formData: FormData) {
     existing.headers && typeof existing.headers === "object"
       ? (existing.headers as Record<string, string>)
       : {};
-  const headers = buildStoredHeaders({
-    contentType: requestBody
-      ? contentType || "application/json"
-      : prevHeaders["Content-Type"],
-    requestBody: requestBody || prevHeaders.__adg_body,
-  });
+  const needsBody = ["POST", "PUT", "PATCH"].includes(method);
+  const headers = needsBody
+    ? buildStoredHeaders({
+        contentType: contentType || "application/json",
+        requestBody: requestBody || undefined,
+      })
+    : buildStoredHeaders({
+        // Clear stored body when switching away from body methods
+        contentType: undefined,
+        requestBody: undefined,
+        extra: Object.fromEntries(
+          Object.entries(prevHeaders).filter(
+            ([k]) => !k.startsWith("__adg_") && k.toLowerCase() !== "content-type"
+          )
+        ),
+      });
 
   const { error } = await supabase
     .from("endpoints")
@@ -541,4 +584,68 @@ export async function updateEndpoint(formData: FormData) {
   revalidatePath("/endpoints");
   revalidatePath("/dashboard");
   return { ok: true as const };
+}
+
+export async function restoreBaselineAction(
+  endpointId: string,
+  baselineId: string
+) {
+  const ctx = await getWorkspaceContext();
+  if (!ctx) return { error: "Unauthorized" };
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot restore baselines." };
+  }
+
+  const supabase = await createClient();
+  const { data: endpoint } = await supabase
+    .from("endpoints")
+    .select("id")
+    .eq("id", endpointId)
+    .eq("workspace_id", ctx.workspaceId)
+    .maybeSingle();
+  if (!endpoint) return { error: "Endpoint not found." };
+
+  const { data: baseline } = await supabase
+    .from("baselines")
+    .select("id, version")
+    .eq("id", baselineId)
+    .eq("endpoint_id", endpointId)
+    .maybeSingle();
+  if (!baseline) return { error: "Baseline not found." };
+
+  await supabase
+    .from("baselines")
+    .update({ is_active: false })
+    .eq("endpoint_id", endpointId)
+    .eq("is_active", true);
+
+  const { error } = await supabase
+    .from("baselines")
+    .update({ is_active: true, approved: true })
+    .eq("id", baselineId);
+
+  if (error) return { error: error.message };
+
+  await supabase
+    .from("endpoints")
+    .update({
+      baseline_version: baseline.version,
+      health: "HEALTHY",
+      breaking_count: 0,
+      warning_count: 0,
+    })
+    .eq("id", endpointId);
+
+  await supabase.from("activities").insert({
+    type: "baseline_accepted",
+    title: "Baseline restored",
+    description: `Active baseline set to v${baseline.version}`,
+    workspace_id: ctx.workspaceId,
+    endpoint_id: endpointId,
+  });
+
+  revalidatePath(`/endpoints/${endpointId}`);
+  revalidatePath(`/endpoints/${endpointId}/baselines`);
+  revalidatePath("/dashboard");
+  return { ok: true as const, version: baseline.version };
 }

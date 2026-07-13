@@ -66,21 +66,41 @@ export async function GET(request: Request) {
       workspaceId: schedule.workspace_id,
     });
 
-    await supabase
-      .from("schedules")
-      .update({
-        last_run_at: now,
-        next_run_at: nextRunAt(String(schedule.frequency)),
-      })
-      .eq("id", schedule.id);
-
     if ("error" in check) {
+      // Retry soon instead of skipping a full period after failure
+      const retry = new Date();
+      retry.setMinutes(retry.getMinutes() + 15);
+      await supabase
+        .from("schedules")
+        .update({
+          last_run_at: now,
+          next_run_at: retry.toISOString(),
+        })
+        .eq("id", schedule.id);
+
+      await supabase.from("activities").insert({
+        type: "check_run",
+        title: "Scheduled check failed",
+        description: check.error,
+        workspace_id: schedule.workspace_id,
+        endpoint_id: schedule.endpoint_id,
+        metadata: { scheduleId: schedule.id, error: check.error },
+      });
+
       results.push({
         scheduleId: schedule.id,
         ok: false,
         error: check.error,
       });
     } else {
+      await supabase
+        .from("schedules")
+        .update({
+          last_run_at: now,
+          next_run_at: nextRunAt(String(schedule.frequency)),
+        })
+        .eq("id", schedule.id);
+
       results.push({
         scheduleId: schedule.id,
         ok: true,

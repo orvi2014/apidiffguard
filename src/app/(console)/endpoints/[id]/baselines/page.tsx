@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { RestoreBaselineButton } from "@/components/domain/restore-baseline-button";
 import { Button } from "@/components/ui/button";
+import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
@@ -13,6 +15,7 @@ export default async function BaselinesPage({
   const { id } = await params;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
   const { data: endpoint } = await supabase
@@ -91,9 +94,17 @@ export default async function BaselinesPage({
                   <p className="mt-1 text-xs text-muted-foreground">{b.notes}</p>
                 ) : null}
               </div>
-              <time className="text-[11px] text-muted-foreground">
-                {formatRelativeTime(b.created_at)}
-              </time>
+              <div className="flex items-center gap-3">
+                {!b.is_active && canEdit ? (
+                  <RestoreBaselineButton
+                    endpointId={id}
+                    baselineId={b.id}
+                  />
+                ) : null}
+                <time className="text-[11px] text-muted-foreground">
+                  {formatRelativeTime(b.created_at)}
+                </time>
+              </div>
             </div>
           ))}
         </div>

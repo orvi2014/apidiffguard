@@ -28,6 +28,9 @@ function severityFor(type: DiffChangeType, path: string): Severity {
   if (type === "removed" || type === "type_changed" || type === "status_changed") {
     return "breaking";
   }
+  if (type === "header_changed") {
+    return "warning";
+  }
   if (type === "changed" && !path.includes("meta") && !path.includes("preferences")) {
     return "warning";
   }
@@ -143,6 +146,59 @@ export function compareJson(
   };
 
   walk(oldValue, newValue, path);
+  return changes;
+}
+
+/** Compare response headers (case-insensitive keys). */
+export function compareHeaders(
+  oldHeaders: Record<string, string> | null | undefined,
+  newHeaders: Record<string, string> | null | undefined,
+  options: { ignoreKeys?: string[] } = {}
+): DiffChange[] {
+  const ignore = new Set(
+    (options.ignoreKeys ?? ["date", "x-request-id", "cf-ray", "server", "via"]).map(
+      (k) => k.toLowerCase()
+    )
+  );
+  const normalize = (h: Record<string, string> | null | undefined) => {
+    const out: Record<string, string> = {};
+    if (!h) return out;
+    for (const [k, v] of Object.entries(h)) {
+      const key = k.toLowerCase();
+      if (ignore.has(key)) continue;
+      out[key] = v;
+    }
+    return out;
+  };
+  const a = normalize(oldHeaders);
+  const b = normalize(newHeaders);
+  const changes: DiffChange[] = [];
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (a[key] === b[key]) continue;
+    if (a[key] == null && b[key] != null) {
+      pushChange(changes, {
+        path: `$header.${key}`,
+        type: "header_changed",
+        newValue: b[key],
+        message: `Header added: ${key}`,
+      });
+    } else if (a[key] != null && b[key] == null) {
+      pushChange(changes, {
+        path: `$header.${key}`,
+        type: "header_changed",
+        oldValue: a[key],
+        message: `Header removed: ${key}`,
+      });
+    } else {
+      pushChange(changes, {
+        path: `$header.${key}`,
+        type: "header_changed",
+        oldValue: a[key],
+        newValue: b[key],
+      });
+    }
+  }
   return changes;
 }
 

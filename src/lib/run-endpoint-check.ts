@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { compareJson, summarizeChanges } from "@/lib/diff-engine";
+import {
+  compareHeaders,
+  compareJson,
+  summarizeChanges,
+} from "@/lib/diff-engine";
 import {
   authHeadersFromEndpoint,
   fanOutWorkspaceAlerts,
@@ -45,6 +49,14 @@ export async function runEndpointCheck(
     return { error: "Capture a baseline before running a check." };
   }
 
+  const { data: ignoreRows } = await supabase
+    .from("ignore_rules")
+    .select("path")
+    .eq("endpoint_id", opts.endpointId);
+  const ignorePaths = (ignoreRows ?? [])
+    .map((r) => r.path)
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+
   await supabase
     .from("endpoints")
     .update({ health: "CHECKING" })
@@ -66,11 +78,14 @@ export async function runEndpointCheck(
     return { error: result.error };
   }
 
+  const checkStatus =
+    result.statusCode >= 200 && result.statusCode < 400 ? "SUCCESS" : "FAILED";
+
   const { data: checkRow } = await supabase
     .from("checks")
     .insert({
       endpoint_id: opts.endpointId,
-      status: "SUCCESS",
+      status: checkStatus,
       status_code: result.statusCode,
       headers: result.headers,
       body: result.body,
@@ -81,7 +96,13 @@ export async function runEndpointCheck(
     .select("id")
     .single();
 
-  const changes = compareJson(baseline.body, result.body);
+  const changes = [
+    ...compareJson(baseline.body, result.body, { ignorePaths }),
+    ...compareHeaders(
+      (baseline.headers ?? {}) as Record<string, string>,
+      result.headers
+    ),
+  ];
   if (baseline.status_code !== result.statusCode) {
     changes.unshift({
       id: "chg_status",

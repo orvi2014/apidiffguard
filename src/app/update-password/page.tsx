@@ -1,7 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { UpdatePasswordForm } from "@/components/auth/update-password-form";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Update password" };
+export const metadata: Metadata = buildMetadata({
+  title: "Update password",
+  description: "Set a new password for your APIDiffGuard account.",
+  path: "/update-password",
+  noIndex: true,
+});
 
 export default function UpdatePasswordPage() {
   return (

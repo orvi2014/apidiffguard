@@ -87,7 +87,7 @@ export default function NewEndpointPage() {
               <option value="bearer">Bearer token</option>
               <option value="api_key">API key</option>
               <option value="basic">Basic auth</option>
-              <option value="oauth">OAuth token</option>
+              <option value="oauth">Access token</option>
               <option value="custom">Custom headers</option>
             </select>
           </div>

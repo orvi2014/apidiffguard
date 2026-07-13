@@ -92,6 +92,16 @@ export function planEndpointLimit(id: PlanId): number | null {
   return getPlan(id).endpointLimit;
 }
 
+/** Scheduled checks require Starter or above. */
+export function planAllowsSchedules(id: PlanId): boolean {
+  return id !== "free";
+}
+
+export function canEditWorkspace(role: string): boolean {
+  const r = role.toUpperCase();
+  return r === "OWNER" || r === "ADMIN" || r === "MEMBER";
+}
+
 export type PaidPlanId = Exclude<PlanId, "free" | "team">;
 
 export function isPaidPlan(value: string): value is PaidPlanId {

@@ -1,7 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Reset password" };
+export const metadata: Metadata = buildMetadata({
+  title: "Reset password",
+  description: "Request a password reset link for your APIDiffGuard account.",
+  path: "/forgot-password",
+  noIndex: true,
+});
 
 export default function ForgotPasswordPage() {
   return (

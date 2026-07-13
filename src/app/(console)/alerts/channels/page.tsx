@@ -7,6 +7,7 @@ import {
 import { AddChannelForm } from "@/components/alerts/add-channel-form";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { ConfirmSubmitButton } from "@/components/form/confirm-submit-button";
+import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
@@ -40,6 +41,7 @@ export default async function AlertChannelsPage({
   const params = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/alerts/channels");
+  const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
   const { data: channels } = await supabase
@@ -61,8 +63,7 @@ export default async function AlertChannelsPage({
             Alert channels
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Route breaking and warning drift to Slack, Discord, email, or a
-            webhook.
+            Route breaking and warning drift to Slack, Discord, or a webhook.
           </p>
         </div>
       </div>
@@ -91,8 +92,12 @@ export default async function AlertChannelsPage({
           {params.error === "no-channel"
             ? "Add a channel before sending a test notification."
             : params.error === "invalid"
-              ? "Choose a channel and enter a valid destination (HTTPS URL or email)."
-              : "Could not save channel. Try again."}
+              ? "Choose a channel and enter a valid HTTPS webhook URL."
+              : params.error === "email-unavailable"
+                ? "Email alerts are not available yet. Use Slack, Discord, or a webhook."
+                : params.error === "forbidden"
+                  ? "Viewers can view channels but cannot change them."
+                  : "Could not save channel. Try again."}
         </p>
       ) : null}
 
@@ -103,7 +108,13 @@ export default async function AlertChannelsPage({
         <h2 id="add-channel-heading" className="text-sm font-medium">
           Add channel
         </h2>
-        <AddChannelForm />
+        {canEdit ? (
+          <AddChannelForm />
+        ) : (
+          <p className="mt-3 text-sm text-muted">
+            Viewers can view channels but cannot add them.
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="channels-list-heading">
@@ -113,7 +124,7 @@ export default async function AlertChannelsPage({
         <div className="mt-3 divide-y divide-border border border-border">
           {!channels?.length ? (
             <p className="px-4 py-8 text-center text-sm text-muted">
-              No channels yet. Add Slack, Discord, email, or a webhook above.
+              No channels yet. Add Slack, Discord, or a webhook above.
             </p>
           ) : (
             channels.map((row) => (
@@ -144,32 +155,38 @@ export default async function AlertChannelsPage({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <form action={toggleAlertChannel}>
-                    <input type="hidden" name="id" value={row.id} />
-                    <input
-                      type="hidden"
-                      name="enabled"
-                      value={row.enabled ? "true" : "false"}
-                    />
-                    <PendingSubmitButton
-                      size="sm"
-                      variant="secondary"
-                      pendingLabel={row.enabled ? "Disabling…" : "Enabling…"}
-                    >
-                      {row.enabled ? "Disable" : "Enable"}
-                    </PendingSubmitButton>
-                  </form>
-                  <form action={deleteAlertChannel}>
-                    <input type="hidden" name="id" value={row.id} />
-                    <ConfirmSubmitButton
-                      size="sm"
-                      variant="ghost"
-                      pendingLabel="Removing…"
-                      confirmMessage="Remove this alert channel?"
-                    >
-                      Remove
-                    </ConfirmSubmitButton>
-                  </form>
+                  {canEdit ? (
+                    <>
+                      <form action={toggleAlertChannel}>
+                        <input type="hidden" name="id" value={row.id} />
+                        <input
+                          type="hidden"
+                          name="enabled"
+                          value={row.enabled ? "true" : "false"}
+                        />
+                        <PendingSubmitButton
+                          size="sm"
+                          variant="secondary"
+                          pendingLabel={row.enabled ? "Disabling…" : "Enabling…"}
+                        >
+                          {row.enabled ? "Disable" : "Enable"}
+                        </PendingSubmitButton>
+                      </form>
+                      <form action={deleteAlertChannel}>
+                        <input type="hidden" name="id" value={row.id} />
+                        <ConfirmSubmitButton
+                          size="sm"
+                          variant="ghost"
+                          pendingLabel="Removing…"
+                          confirmMessage="Remove this alert channel?"
+                        >
+                          Remove
+                        </ConfirmSubmitButton>
+                      </form>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted">View only</span>
+                  )}
                 </div>
               </article>
             ))

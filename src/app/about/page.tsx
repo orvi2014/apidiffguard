@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: "Who is APIDiffGuard for?",
-    a: "Backend and platform engineers, agencies integrating partner APIs such as Stripe, and teams that want CI gates on response contracts instead of ad-hoc curl scripts.",
+    a: "Backend and platform engineers, agencies integrating partner APIs such as Stripe, and teams that want scheduled response-contract checks instead of ad-hoc curl scripts.",
   },
   {
     q: "How is APIDiffGuard different from uptime monitoring?",
@@ -64,7 +64,7 @@ export default function AboutPage() {
           howToJsonLd({
             name: "How to detect breaking API changes with APIDiffGuard",
             description:
-              "Capture a baseline, run checks, and fail CI on breaking severity.",
+              "Capture a baseline, run checks, and alert on breaking severity.",
             path: "/about",
             steps: [
               {
@@ -80,8 +80,8 @@ export default function AboutPage() {
                 text: "Re-fetch the endpoint and diff the body and status against the baseline.",
               },
               {
-                name: "Gate CI on breaking changes",
-                text: "Fail the pipeline when severity includes breaking changes such as removed fields or type changes.",
+                name: "Alert on breaking changes",
+                text: "Route Slack, Discord, or webhook alerts when severity includes breaking changes such as removed fields or type changes.",
               },
             ],
           }),
@@ -107,7 +107,7 @@ export default function AboutPage() {
         <div className="mt-14 space-y-12">
           <AnswerBlock
             question="What problem does it solve?"
-            answer="Partner and internal APIs change shape without warning. Unit tests of your code miss those breaks. APIDiffGuard replaces ad-hoc curl scripts with baselines, scheduled or CI checks, and a severity-aware JSON diff so teams see removed fields and type changes before customers do."
+            answer="Partner and internal APIs change shape without warning. Unit tests of your code miss those breaks. APIDiffGuard replaces ad-hoc curl scripts with baselines, scheduled checks, and a severity-aware JSON diff so teams see removed fields and type changes before customers do."
           />
           <AnswerBlock
             question="How does API monitoring differ from a JSON Diff?"

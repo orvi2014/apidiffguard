@@ -97,6 +97,12 @@ export function JsonTextarea({
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}
         placeholder='{\n  "hello": "world"\n}'
+        aria-invalid={Boolean(error) || sizeTone === "block"}
+        aria-describedby={
+          error || sizeTone === "warn" || sizeTone === "block"
+            ? `${textareaId}-status`
+            : undefined
+        }
         className={cn(
           "min-h-[280px] flex-1 resize-y rounded-lg border bg-surface px-3 py-3 font-mono text-xs leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-ring",
           error || sizeTone === "block"
@@ -107,21 +113,35 @@ export function JsonTextarea({
         )}
       />
       {sizeTone === "warn" ? (
-        <p className="mt-2 flex items-start gap-1.5 text-xs text-warning">
+        <p
+          id={`${textareaId}-status`}
+          role="status"
+          className="mt-2 flex items-start gap-1.5 text-xs text-warning"
+        >
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
           Large payload ({formatBytes(size)}). Diff still runs; the tree may feel
           slow above 1 MB.
         </p>
       ) : null}
       {sizeTone === "block" ? (
-        <p className="mt-2 flex items-start gap-1.5 text-xs text-danger">
+        <p
+          id={`${textareaId}-status`}
+          role="alert"
+          className="mt-2 flex items-start gap-1.5 text-xs text-danger"
+        >
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
           Too large ({formatBytes(size)}). Max is {formatBytes(JSON_SIZE_BLOCK_BYTES)}{" "}
           per side — trim the JSON or use APIDiffGuard for stored baselines.
         </p>
       ) : null}
       {error && sizeTone !== "block" ? (
-        <p className="mt-2 text-xs text-danger">{error}</p>
+        <p
+          id={`${textareaId}-status`}
+          role="alert"
+          className="mt-2 text-xs text-danger"
+        >
+          {error}
+        </p>
       ) : null}
     </div>
   );

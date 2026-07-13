@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { EndpointDetailLive } from "@/components/domain/endpoint-detail-live";
 import { createClient } from "@/lib/supabase/server";
+import { canEditWorkspace } from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { mapEndpoint, type DbEndpoint } from "@/lib/mappers";
 import type { Baseline } from "@/lib/types";
@@ -13,6 +14,7 @@ export default async function EndpointDetailPage({
   const { id } = await params;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
   const { data: row } = await supabase
@@ -74,6 +76,7 @@ export default async function EndpointDetailPage({
       latestDiffId={latestDiff?.id}
       requestBody={requestBody}
       contentType={contentType}
+      canEdit={canEdit}
     />
   );
 }

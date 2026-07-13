@@ -30,12 +30,14 @@ export function EndpointDetailLive({
   latestDiffId,
   requestBody = "",
   contentType = "application/json",
+  canEdit = true,
 }: {
   endpoint: Endpoint;
   baselines: Baseline[];
   latestDiffId?: string | null;
   requestBody?: string;
   contentType?: string;
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<"baseline" | "check" | "delete" | null>(
@@ -52,12 +54,27 @@ export function EndpointDetailLive({
     setLocal(endpoint);
   }, [endpoint]);
 
-  const onCapture = async () => {
+  const onCapture = async (allowErrorStatus = false) => {
     setBusy("baseline");
     setMessage(null);
-    const result = await captureBaselineAction(local.id);
+    const result = await captureBaselineAction(local.id, { allowErrorStatus });
     setBusy(null);
-    if (result.error) {
+    if (result && "needsConfirm" in result && result.needsConfirm) {
+      if (
+        confirm(
+          `Got HTTP ${result.statusCode}. Save this error response as the baseline anyway?`
+        )
+      ) {
+        await onCapture(true);
+      } else {
+        setMessage({
+          tone: "warn",
+          text: result.error ?? "Baseline not saved.",
+        });
+      }
+      return;
+    }
+    if (result?.error) {
       setMessage({ tone: "err", text: result.error });
       return;
     }
@@ -136,57 +153,65 @@ export function EndpointDetailLive({
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="gap-1.5"
-                disabled={busy !== null}
-                onClick={() => setEditing((v) => !v)}
-              >
-                <Pencil className="size-3.5" />
-                {editing ? "Close edit" : "Edit"}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="gap-1.5"
-                disabled={busy !== null}
-                onClick={() => void onCapture()}
-              >
-                {busy === "baseline" ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Shield className="size-3.5" />
-                )}
-                Capture baseline
-              </Button>
-              <Button
-                size="sm"
-                className="gap-1.5"
-                disabled={busy !== null}
-                onClick={() => void onCheck()}
-              >
-                {busy === "check" ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Play className="size-3.5" />
-                )}
-                Run check
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-danger"
-                disabled={busy !== null}
-                aria-label="Delete endpoint"
-                onClick={() => void onDelete()}
-              >
-                <Trash2 className="size-3.5" aria-hidden />
-              </Button>
+              {canEdit ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-1.5"
+                    disabled={busy !== null}
+                    onClick={() => setEditing((v) => !v)}
+                  >
+                    <Pencil className="size-3.5" />
+                    {editing ? "Close edit" : "Edit"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-1.5"
+                    disabled={busy !== null}
+                    onClick={() => void onCapture()}
+                  >
+                    {busy === "baseline" ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Shield className="size-3.5" />
+                    )}
+                    Capture baseline
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={busy !== null}
+                    onClick={() => void onCheck()}
+                  >
+                    {busy === "check" ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Play className="size-3.5" />
+                    )}
+                    Run check
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-danger"
+                    disabled={busy !== null}
+                    aria-label="Delete endpoint"
+                    onClick={() => void onDelete()}
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                  </Button>
+                </>
+              ) : (
+                <p className="text-xs text-muted">
+                  View-only — ask an editor to capture baselines or run checks.
+                </p>
+              )}
             </div>
           </div>
 
-          {editing ? (
+          {editing && canEdit ? (
             <EndpointEditForm
               endpoint={local}
               requestBody={requestBody}

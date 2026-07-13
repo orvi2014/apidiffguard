@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { canEditWorkspace, planAllowsSchedules } from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
 
 const FREQUENCIES = ["HOURLY", "DAILY", "WEEKLY", "MONTHLY"] as const;
@@ -34,6 +35,12 @@ function computeNextRunAt(frequency: Frequency, from = new Date()): string {
 export async function createSchedule(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/schedules");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/schedules?error=forbidden");
+  }
+  if (!planAllowsSchedules(ctx.plan)) {
+    redirect("/schedules?error=plan");
+  }
 
   const endpointId = String(formData.get("endpoint_id") ?? "").trim();
   const frequency = String(formData.get("frequency") ?? "DAILY").toUpperCase();
@@ -74,11 +81,18 @@ export async function createSchedule(formData: FormData) {
 export async function toggleSchedule(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/schedules");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/schedules?error=forbidden");
+  }
 
   const id = String(formData.get("id") ?? "").trim();
   const enabled = String(formData.get("enabled") ?? "") === "true";
-  const frequency = String(formData.get("frequency") ?? "DAILY").toUpperCase();
   if (!id) redirect("/schedules?error=invalid");
+
+  // Enabling: require paid plan
+  if (!enabled && !planAllowsSchedules(ctx.plan)) {
+    redirect("/schedules?error=plan");
+  }
 
   const supabase = await createClient();
   const patch: {
@@ -86,10 +100,12 @@ export async function toggleSchedule(formData: FormData) {
     next_run_at?: string | null;
   } = { enabled: !enabled };
 
-  if (!enabled && isFrequency(frequency)) {
-    patch.next_run_at = computeNextRunAt(frequency);
+  if (!enabled) {
+    // Turning ON — run on next cron tick
+    patch.next_run_at = new Date().toISOString();
   }
   if (enabled) {
+    // Turning OFF
     patch.next_run_at = null;
   }
 
@@ -110,6 +126,9 @@ export async function toggleSchedule(formData: FormData) {
 export async function deleteSchedule(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/schedules");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/schedules?error=forbidden");
+  }
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) redirect("/schedules?error=invalid");
@@ -129,3 +148,5 @@ export async function deleteSchedule(formData: FormData) {
   revalidatePath("/dashboard");
   redirect("/schedules?deleted=1");
 }
+
+export { computeNextRunAt };

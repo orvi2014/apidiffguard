@@ -108,11 +108,6 @@ export function websiteJsonLd() {
     name: SITE_NAME,
     url: SITE_URL,
     description: DEFAULT_DESCRIPTION,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${SITE_URL}/docs?q={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
   };
 }
 

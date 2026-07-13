@@ -19,10 +19,11 @@ export function JsonValidatorTool() {
         label="JSON to validate"
         value={input}
         onChange={setInput}
-        error={null}
+        error={hasInput && !valid ? parsed.error ?? "Invalid JSON." : null}
       />
       {hasInput ? (
         <div
+          role={valid ? "status" : "alert"}
           className={cn(
             "flex items-start gap-3 rounded-lg border px-4 py-4",
             valid

@@ -19,11 +19,12 @@ Third-party and internal APIs change shape without warning (removed fields, type
 
 ## Free vs Cloud
 - **Free tools** (no login): JSON Diff, Formatter, Validator at ${SITE_URL}/tools — run in the browser.
-- **Cloud**: Hosted auth, workspaces, baselines, checks, console Diff Viewer; schedules/alerts on the roadmap/pricing tiers.
+- **Cloud**: Hosted auth, workspaces, baselines, checks, Diff Viewer, schedules (Starter+), and Slack/Discord/webhook alerts.
 - **Self-host**: MIT open-core at https://github.com/orvi2014/apidiffguard — you operate Supabase/Vercel yourself.
+- **Roadmap**: Published CLI and public REST API (not available yet). Use the console or @apidiffguard/diff in your own CI job today.
 
 ## Who it is for
-Backend and platform engineers, agencies integrating partner APIs (e.g. Stripe), and teams that want CI gates on response contracts.
+Backend and platform engineers, agencies integrating partner APIs (e.g. Stripe), and teams that want scheduled response-contract monitoring.
 
 ## How it differs from alternatives
 - Not only a status ping: it compares response *shape*.

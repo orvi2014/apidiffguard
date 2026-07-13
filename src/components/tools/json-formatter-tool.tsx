@@ -58,7 +58,9 @@ export function JsonFormatterTool() {
         error={input.trim() ? parsed.error : null}
       />
       {parsed.value !== undefined ? (
-        <p className="text-xs text-success">Valid JSON · ready to format</p>
+        <p role="status" className="text-xs text-success">
+          Valid JSON · ready to format
+        </p>
       ) : null}
     </div>
   );

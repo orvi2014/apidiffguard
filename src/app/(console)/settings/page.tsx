@@ -36,8 +36,8 @@ export default function SettingsPage() {
               Intended default when a CLI ships — use console checks today
             </div>
           </div>
-          <span className="rounded bg-success-muted px-2 py-0.5 text-[11px] text-success">
-            Enabled
+          <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+            Coming soon
           </span>
         </div>
       </fieldset>

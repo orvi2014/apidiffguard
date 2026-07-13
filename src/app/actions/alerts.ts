@@ -3,16 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { deliverAlert, type DeliverableChannel } from "@/lib/alerts/deliver";
+import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
-const CHANNELS = ["EMAIL", "SLACK", "DISCORD", "WEBHOOK"] as const;
+const CHANNELS = ["SLACK", "DISCORD", "WEBHOOK"] as const;
 const SEVERITIES = ["INFO", "WARNING", "BREAKING"] as const;
 
-export type AlertChannel = (typeof CHANNELS)[number];
+export type AlertChannel = (typeof CHANNELS)[number] | "EMAIL";
 export type AlertSeverity = (typeof SEVERITIES)[number];
 
-function isChannel(value: string): value is AlertChannel {
+function isChannel(value: string): value is (typeof CHANNELS)[number] {
   return (CHANNELS as readonly string[]).includes(value);
 }
 
@@ -20,10 +21,7 @@ function isSeverity(value: string): value is AlertSeverity {
   return (SEVERITIES as readonly string[]).includes(value);
 }
 
-function isValidTarget(channel: AlertChannel, target: string): boolean {
-  if (channel === "EMAIL") {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target);
-  }
+function isValidTarget(channel: (typeof CHANNELS)[number], target: string): boolean {
   try {
     const url = new URL(target);
     return url.protocol === "https:";
@@ -35,11 +33,17 @@ function isValidTarget(channel: AlertChannel, target: string): boolean {
 export async function createAlertChannel(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/alerts/channels");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/alerts/channels?error=forbidden");
+  }
 
   const channel = String(formData.get("channel") ?? "").toUpperCase();
   const target = String(formData.get("target") ?? "").trim();
   const minSeverity = String(formData.get("min_severity") ?? "WARNING").toUpperCase();
 
+  if (channel === "EMAIL") {
+    redirect("/alerts/channels?error=email-unavailable");
+  }
   if (!isChannel(channel) || !target || !isValidTarget(channel, target)) {
     redirect("/alerts/channels?error=invalid");
   }
@@ -48,11 +52,7 @@ export async function createAlertChannel(formData: FormData) {
   }
 
   const config =
-    channel === "EMAIL"
-      ? { email: target }
-      : channel === "WEBHOOK"
-        ? { url: target }
-        : { webhookUrl: target };
+    channel === "WEBHOOK" ? { url: target } : { webhookUrl: target };
 
   const supabase = await createClient();
   const { error } = await supabase.from("alert_configs").insert({
@@ -75,12 +75,29 @@ export async function createAlertChannel(formData: FormData) {
 export async function toggleAlertChannel(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/alerts/channels");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/alerts/channels?error=forbidden");
+  }
 
   const id = String(formData.get("id") ?? "").trim();
   const enabled = String(formData.get("enabled") ?? "") === "true";
   if (!id) redirect("/alerts/channels?error=invalid");
 
   const supabase = await createClient();
+
+  // Prevent enabling email channels
+  if (!enabled) {
+    const { data: row } = await supabase
+      .from("alert_configs")
+      .select("channel")
+      .eq("id", id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+    if (row?.channel === "EMAIL") {
+      redirect("/alerts/channels?error=email-unavailable");
+    }
+  }
+
   const { error } = await supabase
     .from("alert_configs")
     .update({ enabled: !enabled })
@@ -98,6 +115,9 @@ export async function toggleAlertChannel(formData: FormData) {
 export async function deleteAlertChannel(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/alerts/channels");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/alerts/channels?error=forbidden");
+  }
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) redirect("/alerts/channels?error=invalid");
@@ -121,6 +141,9 @@ export async function deleteAlertChannel(formData: FormData) {
 export async function testAlertNotification() {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/alerts");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/alerts?error=forbidden");
+  }
 
   const supabase = await createClient();
   const { data: configs } = await supabase
@@ -128,36 +151,41 @@ export async function testAlertNotification() {
     .select("id, channel, config, enabled")
     .eq("workspace_id", ctx.workspaceId)
     .eq("enabled", true)
-    .order("created_at", { ascending: true })
-    .limit(1);
+    .neq("channel", "EMAIL")
+    .order("created_at", { ascending: true });
 
-  const config = configs?.[0];
-  if (!config) {
+  if (!configs?.length) {
     redirect("/alerts/channels?error=no-channel");
   }
 
   const message = "Test notification from APIDiffGuard console";
-  const delivery = await deliverAlert({
-    channel: config.channel as DeliverableChannel,
-    config: (config.config ?? {}) as Record<string, unknown>,
-    message,
-    severity: "INFO",
-  });
+  let anyOk = false;
+  let anyFail = false;
 
-  const { error } = await supabase.from("alert_history").insert({
-    alert_config_id: config.id,
-    status: delivery.status,
-    severity: "INFO",
-    message,
-    payload: delivery.payload ?? null,
-    error: delivery.error ?? null,
-    sent_at: delivery.ok ? new Date().toISOString() : null,
-  });
+  for (const config of configs) {
+    const delivery = await deliverAlert({
+      channel: config.channel as DeliverableChannel,
+      config: (config.config ?? {}) as Record<string, unknown>,
+      message,
+      severity: "INFO",
+    });
 
-  if (error) {
-    redirect("/alerts?error=test-failed");
+    await supabase.from("alert_history").insert({
+      alert_config_id: config.id,
+      status: delivery.status,
+      severity: "INFO",
+      message,
+      payload: delivery.payload ?? null,
+      error: delivery.error ?? null,
+      sent_at: delivery.ok ? new Date().toISOString() : null,
+    });
+
+    if (delivery.ok) anyOk = true;
+    else anyFail = true;
   }
 
   revalidatePath("/alerts");
-  redirect(delivery.ok ? "/alerts?tested=1" : "/alerts?error=delivery-failed");
+  if (anyOk && !anyFail) redirect("/alerts?tested=1");
+  if (anyOk && anyFail) redirect("/alerts?tested=1&error=partial");
+  redirect("/alerts?error=delivery-failed");
 }

@@ -5,6 +5,7 @@ import { SeverityBadge } from "@/components/domain/badges";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
+import { canEditWorkspace } from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ export default async function AlertsPage({
   const params = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
   const { data: configs } = await supabase
@@ -58,7 +60,7 @@ export default async function AlertsPage({
         ? supabase
             .from("alert_history")
             .select(
-              "id, alert_config_id, status, severity, message, created_at"
+              "id, alert_config_id, status, severity, message, error, created_at"
             )
             .in("alert_config_id", configIds)
             .order("created_at", { ascending: false })
@@ -98,26 +100,28 @@ export default async function AlertsPage({
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Alerts</h1>
             <p className="mt-1 text-sm text-muted">
-              Delivery history across Slack, Discord, email, and webhooks.
+              Delivery history across Slack, Discord, and webhooks.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <form action={testAlertNotification}>
-              <PendingSubmitButton
-                size="sm"
-                variant="secondary"
-                disabled={enabledCount === 0}
-                className="min-h-9"
-                pendingLabel="Sending…"
-                title={
-                  enabledCount === 0
-                    ? "Add and enable a channel first"
-                    : "Send a test to enabled channels"
-                }
-              >
-                Test notification
-              </PendingSubmitButton>
-            </form>
+            {canEdit ? (
+              <form action={testAlertNotification}>
+                <PendingSubmitButton
+                  size="sm"
+                  variant="secondary"
+                  disabled={enabledCount === 0}
+                  className="min-h-9"
+                  pendingLabel="Sending…"
+                  title={
+                    enabledCount === 0
+                      ? "Add and enable a channel first"
+                      : "Send a test to enabled channels"
+                  }
+                >
+                  Test notification
+                </PendingSubmitButton>
+              </form>
+            ) : null}
             <Button asChild size="sm" className="min-h-9">
               <Link href="/alerts/channels">Configure channels</Link>
             </Button>
@@ -144,7 +148,11 @@ export default async function AlertsPage({
           >
             {params.error === "delivery-failed"
               ? "Delivery failed. Check the channel destination and try again."
-              : "Could not send test notification."}
+              : params.error === "forbidden"
+                ? "Viewers cannot send test notifications."
+                : params.error === "partial"
+                  ? "Some channels succeeded; others failed. Check history below."
+                  : "Could not send test notification."}
           </p>
         ) : null}
 
@@ -223,6 +231,11 @@ export default async function AlertsPage({
                 />
                 <div className="min-w-0">
                   <p className="truncate text-sm">{alert.message}</p>
+                  {alert.status === "FAILED" && alert.error ? (
+                    <p className="mt-0.5 truncate text-xs text-danger">
+                      {alert.error}
+                    </p>
+                  ) : null}
                 </div>
                 <span
                   className={cn(
