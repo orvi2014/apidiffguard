@@ -1,0 +1,31 @@
+# Ping the schedules cron endpoint so enabled checks run without Vercel Pro cron.
+# Requires repo secrets: CRON_SECRET (same as Vercel), optional APP_URL.
+name: Schedules cron
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run-due-schedules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger /api/cron/schedules
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing CRON_SECRET repo secret — skipping."
+            exit 1
+          fi
+          BASE="${APP_URL:-https://apidiffguard.com}"
+          BASE="${BASE%/}"
+          curl -fsS --max-time 90 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${BASE}/api/cron/schedules"
+          echo
+          echo "OK"
