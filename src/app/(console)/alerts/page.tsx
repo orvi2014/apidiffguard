@@ -153,7 +153,7 @@ export default async function AlertsPage({
             { label: "Channels", value: String(configs?.length ?? 0) },
             { label: "Sent today", value: String(sentTodayCount ?? 0) },
             {
-              label: "Failed",
+              label: "Failed (all time)",
               value: String(failed ?? 0),
               tone: failed ? "text-danger" : undefined,
             },

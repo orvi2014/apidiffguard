@@ -29,7 +29,9 @@ A **diff** compares the active baseline body (and status) to a check result. Cha
 
 ## Ignore rules
 
-Volatile paths (`request_id`, timestamps, cursors) should be ignored so alerts fire on contract changes — not every unique request.
+Volatile paths (`request_id`, timestamps, cursors) should eventually be ignored so alerts fire on contract changes — not every unique request.
+
+**Status:** ignore rules are in the data model and diff engine, but the console UI to manage them is not shipped yet. Until then, prefer stable response shapes or filter noise in the Diff Viewer.
 
 ## Schedules
 

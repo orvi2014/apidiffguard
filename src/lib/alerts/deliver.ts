@@ -27,6 +27,8 @@ export async function deliverAlert(opts: {
   config: Record<string, unknown>;
   message: string;
   severity: string;
+  event?: string;
+  meta?: Record<string, unknown>;
 }): Promise<DeliveryResult> {
   const target = targetFromConfig(opts.channel, opts.config);
   if (!target) {
@@ -35,18 +37,20 @@ export async function deliverAlert(opts: {
 
   const body = {
     source: "apidiffguard",
-    event: "alert.test",
+    event: opts.event ?? "alert.test",
     severity: opts.severity,
     message: opts.message,
     sentAt: new Date().toISOString(),
+    ...(opts.meta ?? {}),
   };
 
   if (opts.channel === "EMAIL") {
-    // Outbound email provider is not configured yet; record as sent for console tests.
     return {
-      ok: true,
-      status: "SENT",
-      payload: { ...body, channel: "EMAIL", email: target, delivery: "recorded" },
+      ok: false,
+      status: "FAILED",
+      error:
+        "Email delivery is not configured yet. Use Slack, Discord, or a webhook channel.",
+      payload: { ...body, channel: "EMAIL", email: target },
     };
   }
 

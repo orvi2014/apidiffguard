@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/server";
@@ -28,7 +28,7 @@ export default async function WorkspaceSettingsPage({
       <div>
         <h2 className="text-base font-medium">Workspace</h2>
         <p className="mt-1 text-sm text-muted">
-          Name, members, and invitations.
+          Workspace name and members.
         </p>
       </div>
 
@@ -66,7 +66,9 @@ export default async function WorkspaceSettingsPage({
             required
           />
         </div>
-        <Button type="submit">Update workspace</Button>
+        <PendingSubmitButton type="submit" pendingLabel="Saving…">
+          Update workspace
+        </PendingSubmitButton>
       </form>
 
       <div>

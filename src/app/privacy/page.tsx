@@ -14,7 +14,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen">
       <MarketingHeader />
-      <main className="mx-auto max-w-3xl px-5 py-16">
+      <main id="main" className="mx-auto max-w-3xl px-5 py-16">
         <p className="text-xs text-muted-foreground">Last updated: July 12, 2026</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Privacy Policy</h1>
         <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none text-sm leading-relaxed text-muted-foreground">

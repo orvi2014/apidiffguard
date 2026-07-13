@@ -116,12 +116,16 @@ export function AppShell({
           >
             <Settings className="size-4" />
           </Link>
-          <div className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted">
+          <Link
+            href="/settings/workspace"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted transition-colors hover:border-[#3f3f46] hover:text-foreground"
+            title="Workspace settings"
+          >
             <span className="size-5 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800" />
             <span className="hidden max-w-[120px] truncate sm:inline">
               {workspaceName}
             </span>
-          </div>
+          </Link>
           <form action={signOut}>
             <button
               type="submit"

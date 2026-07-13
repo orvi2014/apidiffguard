@@ -9,18 +9,22 @@ export default function TokensPage() {
       <div>
         <h2 className="text-base font-medium">API tokens</h2>
         <p className="mt-1 text-sm text-muted">
-          Authenticate the CLI and REST API.
+          Authenticate a future CLI and public REST API.
         </p>
       </div>
 
       <div className="rounded-md border border-border bg-surface px-4 py-6 text-center">
         <p className="text-sm text-muted">
-          Personal access tokens are not available yet. Use the console while
-          signed in, or self-host with your own credentials.
+          Personal access tokens are not available yet. Use the signed-in
+          console for baselines, checks, and schedules. See{" "}
+          <Link href="/docs/api" className="text-foreground underline-offset-4 hover:underline">
+            API status
+          </Link>{" "}
+          for what exists today.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Button asChild size="sm" variant="secondary">
-            <Link href="/docs/cli">CLI docs</Link>
+            <Link href="/docs/api">API docs</Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
             <Link href="/settings/billing">Billing</Link>

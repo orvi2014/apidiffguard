@@ -7,12 +7,14 @@ import {
   GitCompare,
   History,
   Loader2,
+  Pencil,
   Play,
   Shield,
   Trash2,
 } from "lucide-react";
 import { HealthBadge, MethodBadge, SeverityBadge } from "@/components/domain/badges";
 import { Timeline } from "@/components/domain/activity";
+import { EndpointEditForm } from "@/components/domain/endpoint-edit-form";
 import { Button } from "@/components/ui/button";
 import type { Baseline, Endpoint } from "@/lib/types";
 import { cn, formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
@@ -26,15 +28,20 @@ export function EndpointDetailLive({
   endpoint,
   baselines,
   latestDiffId,
+  requestBody = "",
+  contentType = "application/json",
 }: {
   endpoint: Endpoint;
   baselines: Baseline[];
   latestDiffId?: string | null;
+  requestBody?: string;
+  contentType?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<"baseline" | "check" | "delete" | null>(
     null
   );
+  const [editing, setEditing] = React.useState(false);
   const [message, setMessage] = React.useState<{
     tone: "ok" | "warn" | "err";
     text: string;
@@ -66,13 +73,14 @@ export function EndpointDetailLive({
     setMessage(null);
     const result = await runCheckAction(local.id);
     setBusy(null);
-    if (result.error) {
+    if ("error" in result && result.error) {
       setMessage({
         tone: result.error.includes("baseline") ? "warn" : "err",
         text: result.error,
       });
       return;
     }
+    if (!("success" in result) || !result.success) return;
     if (result.changeCount === 0) {
       setMessage({
         tone: "ok",
@@ -92,7 +100,12 @@ export function EndpointDetailLive({
   const onDelete = async () => {
     if (!confirm("Delete this endpoint?")) return;
     setBusy("delete");
-    await deleteEndpoint(local.id);
+    setMessage(null);
+    const result = await deleteEndpoint(local.id);
+    if (result?.error) {
+      setMessage({ tone: "err", text: result.error });
+      setBusy(null);
+    }
   };
 
   return (
@@ -123,6 +136,16 @@ export function EndpointDetailLive({
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1.5"
+                disabled={busy !== null}
+                onClick={() => setEditing((v) => !v)}
+              >
+                <Pencil className="size-3.5" />
+                {editing ? "Close edit" : "Edit"}
+              </Button>
               <Button
                 size="sm"
                 variant="secondary"
@@ -163,8 +186,21 @@ export function EndpointDetailLive({
             </div>
           </div>
 
+          {editing ? (
+            <EndpointEditForm
+              endpoint={local}
+              requestBody={requestBody}
+              contentType={contentType}
+              onDone={() => {
+                setEditing(false);
+                setMessage({ tone: "ok", text: "Endpoint updated." });
+              }}
+            />
+          ) : null}
+
           {message ? (
             <div
+              role={message.tone === "err" ? "alert" : "status"}
               className={cn(
                 "mt-4 rounded-md border px-3 py-2 text-xs",
                 message.tone === "ok" &&
@@ -288,7 +324,7 @@ export function EndpointDetailLive({
                 meta: local.lastCheckedAt
                   ? `${local.health} · ${local.breakingCount ?? 0} breaking`
                   : "Capture a baseline to begin",
-                at: local.lastCheckedAt ?? new Date().toISOString(),
+                at: local.lastCheckedAt ?? "",
                 tone:
                   local.health === "breaking"
                     ? "danger"

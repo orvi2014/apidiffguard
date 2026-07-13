@@ -89,7 +89,7 @@ export default function AboutPage() {
         ]}
       />
       <MarketingHeader />
-      <main className="mx-auto max-w-3xl px-5 py-16">
+      <main id="main" className="mx-auto max-w-3xl px-5 py-16">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
           About
         </p>
@@ -127,7 +127,7 @@ export default function AboutPage() {
           </AnswerBlock>
           <AnswerBlock
             question="Is APIDiffGuard open source?"
-            answer="Yes. The repository is MIT open-core. You can self-host, reuse the @apidiffguard/diff package, and use free tools publicly. The commercial product is hosted Cloud convenience — auth, workspaces, and managed monitoring — not a lock on the diff algorithm."
+            answer="Yes. The repository is MIT open-core. You can self-host and use the free browser tools. The diff engine package lives in-repo under packages/diff-engine (not published to npm yet). Cloud is hosted convenience — auth, workspaces, and managed monitoring."
           >
             <p className="mt-3 text-sm">
               <a

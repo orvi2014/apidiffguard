@@ -47,6 +47,8 @@ function OpenAPIImportWizard() {
   const [tagFilter, setTagFilter] = React.useState<string | "all">("all");
   const [importing, setImporting] = React.useState(false);
   const [importedCount, setImportedCount] = React.useState<number | null>(null);
+  const [skippedCount, setSkippedCount] = React.useState<number | null>(null);
+  const [showAllTags, setShowAllTags] = React.useState(false);
 
   const applySpec = React.useCallback(
     (next: ParsedOpenAPISpec, label: string) => {
@@ -57,6 +59,7 @@ function OpenAPIImportWizard() {
       setQuery("");
       setTagFilter("all");
       setImportedCount(null);
+      setSkippedCount(null);
       setError(null);
     },
     []
@@ -264,7 +267,8 @@ function OpenAPIImportWizard() {
           method: ep.method,
           description: ep.description,
           tags: [...ep.tags, "openapi"],
-          authType: ep.authType,
+          // Credentials are not in the spec — import as unauthenticated.
+          authType: "none",
         }));
 
       const result = await importEndpoints(payload);
@@ -274,8 +278,11 @@ function OpenAPIImportWizard() {
       }
 
       setImportedCount(result.count);
-      router.push("/endpoints");
-      router.refresh();
+      setSkippedCount(result.skipped ?? 0);
+      if ((result.skipped ?? 0) === 0) {
+        router.push("/endpoints");
+        router.refresh();
+      }
     } finally {
       setImporting(false);
     }
@@ -388,6 +395,16 @@ function OpenAPIImportWizard() {
                 type="button"
                 disabled={loading}
                 onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) void onFile(file);
+                }}
                 className="flex w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-surface px-4 py-10 text-center transition-colors cursor-pointer hover:border-[#3f3f46] hover:bg-surface-elevated disabled:opacity-50"
               >
                 {loading ? (
@@ -493,9 +510,27 @@ function OpenAPIImportWizard() {
 
               {importedCount != null ? (
                 <p className="mt-2 text-xs text-success">
-                  Imported {importedCount} endpoints.
+                  Imported {importedCount} endpoints
+                  {skippedCount ? ` · skipped ${skippedCount} (plan limit)` : ""}.
+                  {skippedCount ? (
+                    <>
+                      {" "}
+                      <Link href="/settings/billing" className="underline">
+                        Upgrade
+                      </Link>{" "}
+                      to import more, or edit auth on imported endpoints before
+                      checking.
+                    </>
+                  ) : (
+                    " Auth is set to none — edit endpoints if credentials are required."
+                  )}
                 </p>
-              ) : null}
+              ) : (
+                <p className="mt-2 text-[11px] text-muted">
+                  Imported operations start with auth=none. Add credentials on
+                  each endpoint after import if needed.
+                </p>
+              )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <div className="relative min-w-[180px] flex-1 max-w-xs">
@@ -535,20 +570,31 @@ function OpenAPIImportWizard() {
               </div>
 
               {tags.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-1">
+                <div className="mt-3 flex max-h-28 flex-wrap gap-1 overflow-y-auto">
                   <TagChip
                     active={tagFilter === "all"}
                     onClick={() => setTagFilter("all")}
                     label={`All (${spec.endpoints.length})`}
                   />
-                  {tags.slice(0, 12).map(([tag, count]) => (
-                    <TagChip
-                      key={tag}
-                      active={tagFilter === tag}
-                      onClick={() => setTagFilter(tag)}
-                      label={`${tag} (${count})`}
-                    />
-                  ))}
+                  {(showAllTags ? tags : tags.slice(0, 12)).map(
+                    ([tag, count]) => (
+                      <TagChip
+                        key={tag}
+                        active={tagFilter === tag}
+                        onClick={() => setTagFilter(tag)}
+                        label={`${tag} (${count})`}
+                      />
+                    )
+                  )}
+                  {!showAllTags && tags.length > 12 ? (
+                    <button
+                      type="button"
+                      className="rounded px-2 py-1 text-[11px] text-muted hover:text-foreground"
+                      onClick={() => setShowAllTags(true)}
+                    >
+                      +{tags.length - 12} more
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>

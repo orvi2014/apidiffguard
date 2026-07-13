@@ -55,7 +55,9 @@ export default async function BaselinesPage({
           </p>
         </div>
         <Link href={`/endpoints/${id}`}>
-          <Button size="sm">Capture new</Button>
+          <Button size="sm" variant="secondary">
+            Open endpoint
+          </Button>
         </Link>
       </div>
 

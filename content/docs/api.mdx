@@ -1,30 +1,26 @@
 ---
 title: REST API
-description: Authenticate with an API key and run checks programmatically.
+description: Programmatic API status and current alternatives.
 ---
 
-Authenticate with an API key header. Base URL:
+A public `https://api.apidiffguard.com/v1` host and personal access tokens are **not available yet**.
+
+## What exists today
+
+| Surface | Notes |
+| --- | --- |
+| Console | Full baseline / check / diff / alerts / schedules UI |
+| `POST /api/check` | One-off public URL probe (app origin) |
+| `POST /api/openapi/parse` | OpenAPI parse for import |
+| Stripe webhooks | Billing only |
+
+API tokens under **Settings → Tokens** are listed as coming soon. Do not expect `adg_live_…` keys to work.
+
+## Planned API (coming soon)
 
 ```
-https://api.apidiffguard.com/v1
+Authorization: Bearer adg_live_…
+POST /v1/endpoints/:id/check
 ```
 
-## Endpoints
-
-| Method | Path | Description |
-| --- | --- | --- |
-| `POST` | `/endpoints` | Create an endpoint |
-| `POST` | `/endpoints/:id/baseline` | Capture baseline |
-| `POST` | `/endpoints/:id/check` | Run check |
-| `GET` | `/endpoints/:id/diffs` | List diffs |
-| `POST` | `/webhooks` | Register inbound webhook |
-
-## Example
-
-```bash
-curl -X POST https://api.apidiffguard.com/v1/endpoints/ep_users/check \
-  -H "Authorization: Bearer adg_live_…" \
-  -H "Content-Type: application/json"
-```
-
-Create keys under **Settings → Tokens** in the console.
+Until that ships, automate with the console, schedules (cron), and webhook alert channels.

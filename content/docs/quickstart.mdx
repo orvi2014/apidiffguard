@@ -25,10 +25,8 @@ Open the endpoint and click **Capture baseline**. APIDiffGuard fetches the live 
 
 Click **Run check**. The latest response is compared to the active baseline. Breaking changes (removed fields, type changes, status class flips) show up in the Diff Viewer.
 
-## 5. Gate CI (optional)
+## 5. Automate (optional)
 
-```bash
-npx apidiff check --endpoint ep_users --fail-on breaking
-```
+Create a **schedule** in the console so checks re-run on an interval. Wire **Slack / Discord / webhook** alert channels for breaking or warning diffs.
 
-Fail the job when the contract breaks — the same engine as the console.
+A published CLI is [not available yet](/docs/cli) — use the console and schedules for CI-adjacent monitoring today.

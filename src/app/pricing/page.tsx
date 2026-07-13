@@ -25,11 +25,11 @@ const faqs = [
   },
   {
     q: "Can I ignore volatile fields?",
-    a: "Yes. Ignore timestamps, UUIDs, request IDs, etags, and any custom JSON path per endpoint.",
+    a: "Ignore rules are on the roadmap. Today, review noisy paths in the Diff Viewer; stable response shapes work best.",
   },
   {
-    q: "Does the CLI use the same engine?",
-    a: "Yes. apidiff check runs the same comparison logic and can fail CI on breaking severity.",
+    q: "Is there a CLI?",
+    a: "Not published yet. Use the console and schedules for monitoring; see the CLI docs for current status.",
   },
   {
     q: "What auth types are supported?",

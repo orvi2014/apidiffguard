@@ -50,16 +50,24 @@ export function CommandPalette({
   const router = useRouter();
   const [endpoints, setEndpoints] = React.useState<PaletteEndpoint[]>([]);
   const [loadingEndpoints, setLoadingEndpoints] = React.useState(false);
+  const [endpointsError, setEndpointsError] = React.useState(false);
 
   React.useEffect(() => {
     if (!open || endpoints.length > 0 || loadingEndpoints) return;
     setLoadingEndpoints(true);
+    setEndpointsError(false);
     void fetch("/api/workspace/endpoints")
-      .then((r) => (r.ok ? r.json() : { endpoints: [] }))
-      .then((data: { endpoints?: PaletteEndpoint[] }) => {
+      .then(async (r) => {
+        if (!r.ok) throw new Error("failed");
+        return r.json() as Promise<{ endpoints?: PaletteEndpoint[] }>;
+      })
+      .then((data) => {
         setEndpoints(data.endpoints ?? []);
       })
-      .catch(() => setEndpoints([]))
+      .catch(() => {
+        setEndpoints([]);
+        setEndpointsError(true);
+      })
       .finally(() => setLoadingEndpoints(false));
   }, [open, endpoints.length, loadingEndpoints]);
 
@@ -73,7 +81,11 @@ export function CommandPalette({
       <CommandInput placeholder="Jump to endpoint, run action…" />
       <CommandList>
         <CommandEmpty>
-          {loadingEndpoints ? "Loading…" : "No results"}
+          {loadingEndpoints
+            ? "Loading…"
+            : endpointsError
+              ? "Couldn’t load endpoints"
+              : "No results"}
         </CommandEmpty>
         <CommandGroup heading="Navigation">
           {navCommands.map((cmd) => (

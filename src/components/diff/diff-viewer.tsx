@@ -330,7 +330,21 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
             </div>
           </div>
           <div className="flex-1 overflow-auto">
-            {filteredChanges.map((change) => (
+            {filteredChanges.length === 0 ? (
+              <div className="px-3 py-8 text-center text-xs text-muted">
+                <p>No changes match this filter.</p>
+                {search.trim() ? (
+                  <button
+                    type="button"
+                    className="mt-2 text-accent hover:underline"
+                    onClick={() => setSearch("")}
+                  >
+                    Clear filter
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              filteredChanges.map((change) => (
               <button
                 key={change.id}
                 type="button"
@@ -353,7 +367,8 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
                   {change.message}
                 </span>
               </button>
-            ))}
+            ))
+            )}
           </div>
         </aside>
 

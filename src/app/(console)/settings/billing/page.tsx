@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Check } from "lucide-react";
 import {
   CheckoutButton,
@@ -24,7 +25,7 @@ export default async function BillingPage({
 }) {
   const params = await searchParams;
   const ctx = await getWorkspaceContext();
-  if (!ctx) return null;
+  if (!ctx) redirect("/login?next=/settings/billing");
 
   const plan = getPlan(ctx.plan);
   const supabase = await createClient();

@@ -39,6 +39,7 @@ export async function runHttpCheck(input: {
   url: string;
   method: string;
   headers?: Record<string, string>;
+  body?: string;
   timeoutMs?: number;
 }): Promise<HttpCheckResult> {
   try {
@@ -82,6 +83,10 @@ export async function runHttpCheck(input: {
     response = await safeFetch(input.url.trim(), {
       method,
       headers,
+      body:
+        input.body && method !== "GET" && method !== "HEAD"
+          ? input.body
+          : undefined,
       timeoutMs,
     });
   } catch (err) {

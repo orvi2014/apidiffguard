@@ -13,7 +13,7 @@ const channelMeta: Record<
   EMAIL: {
     label: "Email",
     placeholder: "alerts@yourcompany.com",
-    hint: "Destination email address",
+    hint: "Not deliverable yet — use Slack, Discord, or webhook for live alerts",
   },
   SLACK: {
     label: "Slack",

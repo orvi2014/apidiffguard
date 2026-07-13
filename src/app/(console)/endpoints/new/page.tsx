@@ -12,7 +12,9 @@ type AuthOption = "none" | "bearer" | "api_key" | "basic" | "oauth" | "custom";
 export default function NewEndpointPage() {
   const [pending, startTransition] = useTransition();
   const [auth, setAuth] = useState<AuthOption>("none");
+  const [method, setMethod] = useState("GET");
   const [error, setError] = useState<string | null>(null);
+  const needsBody = ["POST", "PUT", "PATCH"].includes(method);
 
   return (
     <div className="mx-auto max-w-xl px-5 py-10">
@@ -47,9 +49,10 @@ export default function NewEndpointPage() {
               id="method"
               name="method"
               className="flex h-9 w-full rounded-md border border-border bg-surface px-2 text-sm"
-              defaultValue="GET"
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
             >
-              {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
+              {["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"].map((m) => (
                 <option key={m}>{m}</option>
               ))}
             </select>
@@ -59,6 +62,7 @@ export default function NewEndpointPage() {
             <Input
               id="url"
               name="url"
+              type="url"
               placeholder="https://api.example.com/v1/users"
               className="font-mono text-xs"
               required
@@ -172,6 +176,30 @@ export default function NewEndpointPage() {
               />
             </div>
           </div>
+        ) : null}
+
+        {needsBody ? (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="content_type">Content-Type</Label>
+              <Input
+                id="content_type"
+                name="content_type"
+                defaultValue="application/json"
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="request_body">Request body</Label>
+              <textarea
+                id="request_body"
+                name="request_body"
+                rows={5}
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs"
+                placeholder='{"example": true}'
+              />
+            </div>
+          </>
         ) : null}
 
         <div className="space-y-1.5">

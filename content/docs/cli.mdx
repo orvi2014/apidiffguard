@@ -1,30 +1,22 @@
 ---
 title: CLI
-description: Run the same diff engine from your terminal and CI.
+description: CLI status and how to check APIs today.
 ---
 
-Install globally:
+The `@apidiffguard/cli` package is **not published yet**. Until it ships, use one of these:
+
+1. **Console** — capture baselines and run checks at [apidiffguard.com/dashboard](https://apidiffguard.com/dashboard).
+2. **Local engine** — the open-source `@apidiffguard/diff` package lives in this repo under `packages/diff-engine` (not on npm yet). Import it from source for CI experiments.
+3. **HTTP check helper** — `POST /api/check` on the web app accepts a public URL and returns status + body for one-off probes (authenticated session required for monitored endpoints).
+
+## Planned CLI (coming soon)
+
+When published, the intended surface looks like:
 
 ```bash
 npm i -g @apidiffguard/cli
+apidiff login
+apidiff check --endpoint <id> --fail-on breaking
 ```
 
-## Commands
-
-| Command | Description |
-| --- | --- |
-| `apidiff login` | Authenticate with a browser or API token |
-| `apidiff add` | Register an endpoint from URL + method |
-| `apidiff baseline` | Capture and optionally approve a baseline |
-| `apidiff check` | Run a check against the active baseline |
-| `apidiff diff` | Print the latest diff summary to stdout |
-| `apidiff monitor` | Daemon mode for local continuous checks |
-| `apidiff import` | Import endpoints from an OpenAPI document |
-
-## CI example
-
-```bash
-npx apidiff check --endpoint ep_users --fail-on breaking
-```
-
-Exit non-zero when breaking changes are detected so the pipeline stops the deploy.
+Track progress on [GitHub](https://github.com/orvi2014/apidiffguard). Prefer the console for production monitoring today.

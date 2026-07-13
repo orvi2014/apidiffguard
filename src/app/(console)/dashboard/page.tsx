@@ -124,7 +124,7 @@ export default async function DashboardPage() {
                 <Link href={`/endpoints/${primaryEndpoint.id}`}>
                   <Button size="sm" className="gap-1.5">
                     <Play className="size-3.5" />
-                    Run check
+                    Open endpoint
                   </Button>
                 </Link>
               ) : null}
@@ -233,14 +233,14 @@ export default async function DashboardPage() {
                 href: primaryEndpoint
                   ? `/endpoints/${primaryEndpoint.id}`
                   : "/endpoints/new",
-                label: "Capture baseline",
+                label: "Open endpoint to capture",
                 icon: Shield,
               },
               {
                 href: primaryEndpoint
                   ? `/endpoints/${primaryEndpoint.id}`
                   : "/endpoints/new",
-                label: "Run check",
+                label: "Open endpoint to check",
                 icon: Play,
               },
               { href: "/endpoints/new", label: "Create endpoint", icon: Plus },

@@ -40,7 +40,7 @@ export default async function BlogPostPage(props: {
   return (
     <div className="min-h-screen">
       <MarketingHeader />
-      <main className="mx-auto w-full max-w-3xl px-5 py-12 sm:py-16">
+      <main id="main" className="mx-auto w-full max-w-3xl px-5 py-12 sm:py-16">
         <JsonLd
           data={[
             articleJsonLd({

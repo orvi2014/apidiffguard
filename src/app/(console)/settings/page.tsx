@@ -33,7 +33,7 @@ export default function SettingsPage() {
           <div>
             <div className="text-sm">Fail CI on breaking</div>
             <div className="text-xs text-muted">
-              Default for apidiff check --fail-on
+              Intended default when a CLI ships — use console checks today
             </div>
           </div>
           <span className="rounded bg-success-muted px-2 py-0.5 text-[11px] text-success">

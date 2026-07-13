@@ -18,13 +18,20 @@ export default async function EndpointDetailPage({
   const { data: row } = await supabase
     .from("endpoints")
     .select(
-      "id, name, url, method, environment, tags, description, health, auth_type, last_checked_at, response_time, baseline_version, breaking_count, warning_count"
+      "id, name, url, method, environment, tags, description, health, auth_type, headers, last_checked_at, response_time, baseline_version, breaking_count, warning_count"
     )
     .eq("id", id)
     .eq("workspace_id", ctx.workspaceId)
     .maybeSingle();
 
   if (!row) notFound();
+
+  const headers =
+    row.headers && typeof row.headers === "object"
+      ? (row.headers as Record<string, string>)
+      : {};
+  const requestBody = headers.__adg_body ?? "";
+  const contentType = headers["Content-Type"] ?? "application/json";
 
   const [{ data: baselineRows }, { data: latestDiff }] = await Promise.all([
     supabase
@@ -65,6 +72,8 @@ export default async function EndpointDetailPage({
       endpoint={mapEndpoint(row as DbEndpoint)}
       baselines={baselines}
       latestDiffId={latestDiff?.id}
+      requestBody={requestBody}
+      contentType={contentType}
     />
   );
 }

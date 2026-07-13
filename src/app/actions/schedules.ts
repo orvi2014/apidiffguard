@@ -59,7 +59,7 @@ export async function createSchedule(formData: FormData) {
     endpoint_id: endpointId,
     frequency,
     enabled: true,
-    next_run_at: computeNextRunAt(frequency),
+    next_run_at: new Date().toISOString(),
   });
 
   if (error) {

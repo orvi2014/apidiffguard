@@ -21,7 +21,7 @@ export default function BlogIndexPage() {
   return (
     <div className="min-h-screen">
       <MarketingHeader />
-      <main className="mx-auto max-w-3xl px-5 py-16">
+      <main id="main" className="mx-auto max-w-3xl px-5 py-16">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fd-primary">
           Blog
         </p>

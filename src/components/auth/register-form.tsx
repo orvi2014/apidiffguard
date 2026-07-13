@@ -2,14 +2,22 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInWithGitHub, signUp } from "@/app/actions/auth";
 
 export function RegisterForm() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/dashboard";
+  const plan = searchParams.get("plan") ?? "";
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+
+  const loginHref = `/login?next=${encodeURIComponent(next)}${
+    plan ? `&plan=${encodeURIComponent(plan)}` : ""
+  }`;
 
   return (
     <div className="w-full max-w-sm">
@@ -22,10 +30,11 @@ export function RegisterForm() {
 
       <form
         className="mt-8"
-        action={async () => {
+        action={async (fd) => {
           setPending(true);
           setError(null);
-          const result = await signInWithGitHub();
+          fd.set("next", plan ? `/settings/billing?upgrade=${plan}` : next);
+          const result = await signInWithGitHub(fd);
           if (result?.error) {
             setError(result.error);
             setPending(false);
@@ -55,6 +64,8 @@ export function RegisterForm() {
         action={async (fd) => {
           setPending(true);
           setError(null);
+          fd.set("next", next);
+          if (plan) fd.set("plan", plan);
           const result = await signUp(fd);
           if (result?.error) {
             setError(result.error);
@@ -64,10 +75,10 @@ export function RegisterForm() {
       >
         <div className="space-y-1.5">
           <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" placeholder="Alex Rivera" required />
+          <Input id="name" name="name" placeholder="Ada Lovelace" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="email">Work email</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             name="email"
@@ -106,7 +117,7 @@ export function RegisterForm() {
 
       <p className="mt-6 text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="text-foreground hover:underline">
+        <Link href={loginHref} className="text-foreground hover:underline">
           Sign in
         </Link>
       </p>

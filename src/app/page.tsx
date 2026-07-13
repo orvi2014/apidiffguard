@@ -185,14 +185,13 @@ export default function LandingPage() {
                 href="/docs/cli"
                 className="mt-6 inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
               >
-                CLI documentation
+                CLI status
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
             <pre className="overflow-x-auto rounded-lg border border-border bg-surface p-5 font-mono text-[13px] leading-relaxed text-muted">
               <code>
-                <span className="text-muted-foreground">$</span>{" "}
-                <span className="text-foreground">npx apidiff check</span>
+                <span className="text-muted-foreground"># Console · Run check</span>
                 {"\n"}
                 <span className="text-success">✓</span> GET /v1/products — healthy
                 {"\n"}
@@ -201,7 +200,7 @@ export default function LandingPage() {
                 <span className="text-danger">✗</span> GET /v1/users — 2 breaking
                 {"\n\n"}
                 <span className="text-muted-foreground">
-                  Exit code 1 · see diff in console
+                  Open the Diff Viewer to review field changes
                 </span>
               </code>
             </pre>
@@ -258,8 +257,7 @@ export default function LandingPage() {
                   Keyboard-first, like the tools you already live in.
                 </h2>
                 <p className="mt-1 text-sm text-muted">
-                  ⌘K command palette · n / p jump between diffs · expand and
-                  collapse trees without leaving the keys.
+                  ⌘K command palette · n / p jump between changes in a diff.
                 </p>
               </div>
             </div>

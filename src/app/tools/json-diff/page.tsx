@@ -48,7 +48,7 @@ export default function JsonDiffPage() {
         ]}
       />
       <MarketingHeader />
-      <main className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
+      <main id="main" className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Link href="/tools" className="hover:text-foreground">
             Tools

@@ -5,8 +5,13 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { planEndpointLimit } from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
-import { compareJson, summarizeChanges } from "@/lib/diff-engine";
+import {
+  authHeadersFromEndpoint,
+  buildStoredHeaders,
+  requestBodyFromEndpoint,
+} from "@/lib/endpoint-auth";
 import { runHttpCheck } from "@/lib/http-check";
+import { runEndpointCheck } from "@/lib/run-endpoint-check";
 
 function mapMethod(method: string) {
   return method.toUpperCase() as
@@ -25,41 +30,6 @@ function mapAuth(auth: string) {
   return (allowed.includes(key as (typeof allowed)[number])
     ? key
     : "NONE") as (typeof allowed)[number];
-}
-
-function authHeadersFromEndpoint(endpoint: {
-  auth_type?: string | null;
-  auth_config?: unknown;
-  headers?: unknown;
-}): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (endpoint.headers && typeof endpoint.headers === "object") {
-    for (const [k, v] of Object.entries(
-      endpoint.headers as Record<string, unknown>
-    )) {
-      if (typeof v === "string" && v) out[k] = v;
-    }
-  }
-  const config =
-    endpoint.auth_config && typeof endpoint.auth_config === "object"
-      ? (endpoint.auth_config as Record<string, string>)
-      : {};
-  const type = String(endpoint.auth_type ?? "NONE").toUpperCase();
-  if (type === "BEARER" || type === "OAUTH") {
-    if (config.token) out.Authorization = `Bearer ${config.token}`;
-  } else if (type === "API_KEY") {
-    const header = config.header || "X-API-Key";
-    if (config.key) out[header] = config.key;
-  } else if (type === "BASIC") {
-    const user = config.username ?? "";
-    const pass = config.password ?? "";
-    if (user) {
-      out.Authorization = `Basic ${Buffer.from(`${user}:${pass}`).toString("base64")}`;
-    }
-  } else if (type === "CUSTOM") {
-    if (config.header && config.value) out[config.header] = config.value;
-  }
-  return out;
 }
 
 function buildAuthConfig(
@@ -212,9 +182,23 @@ export async function createEndpoint(formData: FormData) {
   const authType = mapAuth(String(formData.get("auth") ?? "none"));
   const description = String(formData.get("desc") ?? "").trim() || null;
   const authConfig = buildAuthConfig(authType, formData);
+  const requestBody = String(formData.get("request_body") ?? "").trim();
+  const contentType = String(formData.get("content_type") ?? "application/json").trim();
+  const headers = buildStoredHeaders({
+    contentType: requestBody ? contentType || "application/json" : undefined,
+    requestBody: requestBody || undefined,
+  });
 
   if (!name || !url) {
     return { error: "Name and URL are required." };
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { error: "URL must start with http:// or https://." };
+    }
+  } catch {
+    return { error: "Enter a valid URL." };
   }
   if (authType !== "NONE" && !authConfigValid(authType, authConfig)) {
     return { error: "Fill in the auth credentials for the selected type." };
@@ -242,6 +226,7 @@ export async function createEndpoint(formData: FormData) {
       environment,
       auth_type: authType,
       auth_config: authConfig,
+      headers,
       description,
       workspace_id: ctx.workspaceId,
     })
@@ -273,17 +258,18 @@ export async function importEndpoints(
   }>
 ) {
   const ctx = await getWorkspaceContext();
-  if (!ctx) return { error: "Unauthorized", count: 0 };
+  if (!ctx) return { error: "Unauthorized", count: 0, skipped: 0 };
 
   if (!Array.isArray(endpoints) || endpoints.length === 0) {
-    return { error: "No endpoints to import.", count: 0 };
+    return { error: "No endpoints to import.", count: 0, skipped: 0 };
   }
   if (endpoints.length > 200) {
-    return { error: "Import is limited to 200 endpoints per batch.", count: 0 };
+    return { error: "Import is limited to 200 endpoints per batch.", count: 0, skipped: 0 };
   }
 
   const supabase = await createClient();
   let toImport = endpoints;
+  let skipped = 0;
   const limit = planEndpointLimit(ctx.plan);
   if (limit != null) {
     const { count } = await supabase
@@ -295,8 +281,10 @@ export async function importEndpoints(
       return {
         error: `Your ${ctx.plan} plan allows ${limit} endpoints. Upgrade in Settings → Billing to import more.`,
         count: 0,
+        skipped: endpoints.length,
       };
     }
+    skipped = Math.max(0, endpoints.length - remaining);
     toImport = endpoints.slice(0, remaining);
   }
 
@@ -306,7 +294,8 @@ export async function importEndpoints(
     method: mapMethod(ep.method),
     description: ep.description ?? null,
     tags: ep.tags ?? [],
-    auth_type: mapAuth(ep.authType ?? "none"),
+    // Spec auth types need credentials — import as NONE until edited.
+    auth_type: "NONE" as const,
     workspace_id: ctx.workspaceId,
     environment: "production",
   }));
@@ -316,7 +305,7 @@ export async function importEndpoints(
     .insert(rows)
     .select("id");
 
-  if (error) return { error: error.message, count: 0 };
+  if (error) return { error: error.message, count: 0, skipped };
 
   await supabase.from("activities").insert({
     type: "endpoint_added",
@@ -327,7 +316,7 @@ export async function importEndpoints(
 
   revalidatePath("/endpoints");
   revalidatePath("/dashboard");
-  return { count: data.length };
+  return { count: data.length, skipped };
 }
 
 export async function deleteEndpoint(endpointId: string) {
@@ -372,6 +361,7 @@ export async function captureBaselineAction(endpointId: string) {
     method: endpoint.method,
     timeoutMs: endpoint.timeout_ms,
     headers: authHeadersFromEndpoint(endpoint),
+    body: requestBodyFromEndpoint(endpoint),
   });
 
   if (result.error && result.statusCode === 0) {
@@ -453,127 +443,102 @@ export async function runCheckAction(endpointId: string) {
   if (!ctx) return { error: "Unauthorized" };
 
   const supabase = await createClient();
-  const { data: endpoint } = await supabase
-    .from("endpoints")
-    .select("*")
-    .eq("id", endpointId)
-    .eq("workspace_id", ctx.workspaceId)
-    .single();
-
-  if (!endpoint) return { error: "Endpoint not found." };
-
-  const { data: baseline } = await supabase
-    .from("baselines")
-    .select("*")
-    .eq("endpoint_id", endpointId)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (!baseline) {
-    return { error: "Capture a baseline before running a check." };
-  }
-
-  await supabase
-    .from("endpoints")
-    .update({ health: "CHECKING" })
-    .eq("id", endpointId);
-
-  const result = await runHttpCheck({
-    url: endpoint.url,
-    method: endpoint.method,
-    timeoutMs: endpoint.timeout_ms,
-    headers: authHeadersFromEndpoint(endpoint),
-  });
-
-  if (result.error && result.statusCode === 0) {
-    await supabase
-      .from("endpoints")
-      .update({ health: "UNKNOWN" })
-      .eq("id", endpointId);
-    return { error: result.error };
-  }
-
-  const { data: checkRow } = await supabase
-    .from("checks")
-    .insert({
-      endpoint_id: endpointId,
-      status: "SUCCESS",
-      status_code: result.statusCode,
-      headers: result.headers,
-      body: result.body,
-      response_time: result.responseTime,
-      content_size: result.contentSize,
-      finished_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  const changes = compareJson(baseline.body, result.body);
-  if (baseline.status_code !== result.statusCode) {
-    changes.unshift({
-      id: "chg_status",
-      path: "$status",
-      type: "status_changed",
-      severity: "breaking",
-      oldValue: baseline.status_code,
-      newValue: result.statusCode,
-      message: `HTTP status changed ${baseline.status_code} → ${result.statusCode}`,
-    });
-  }
-
-  const summary = summarizeChanges(changes);
-  const health =
-    summary.breakingCount > 0
-      ? "BREAKING"
-      : summary.warningCount > 0
-        ? "WARNING"
-        : "HEALTHY";
-
-  const { data: diff } = await supabase
-    .from("diffs")
-    .insert({
-      endpoint_id: endpointId,
-      baseline_id: baseline.id,
-      check_id: checkRow?.id ?? null,
-      summary,
-      changes,
-      breaking_count: summary.breakingCount,
-      warning_count: summary.warningCount,
-      info_count: summary.infoCount,
-    })
-    .select("id")
-    .single();
-
-  await supabase
-    .from("endpoints")
-    .update({
-      health,
-      response_time: result.responseTime,
-      last_checked_at: new Date().toISOString(),
-      breaking_count: summary.breakingCount,
-      warning_count: summary.warningCount,
-    })
-    .eq("id", endpointId);
-
-  await supabase.from("activities").insert({
-    type: summary.breakingCount ? "diff_detected" : "check_run",
-    title: summary.breakingCount
-      ? `Breaking changes on ${endpoint.name}`
-      : `Check completed · ${endpoint.name}`,
-    description: `${summary.breakingCount} breaking · ${summary.warningCount} warnings`,
-    workspace_id: ctx.workspaceId,
-    metadata: diff ? { diffId: diff.id } : null,
+  const result = await runEndpointCheck(supabase, {
+    endpointId,
+    workspaceId: ctx.workspaceId,
   });
 
   revalidatePath(`/endpoints/${endpointId}`);
   revalidatePath("/endpoints");
   revalidatePath("/dashboard");
+  revalidatePath("/diffs");
+  revalidatePath("/alerts");
+  return result;
+}
 
-  return {
-    success: true,
-    diffId: diff?.id,
-    breakingCount: summary.breakingCount,
-    warningCount: summary.warningCount,
-    changeCount: changes.length,
-  };
+export async function updateEndpoint(formData: FormData) {
+  const ctx = await getWorkspaceContext();
+  if (!ctx) redirect("/login");
+
+  const endpointId = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim();
+  const method = mapMethod(String(formData.get("method") ?? "GET"));
+  const environment = String(formData.get("env") ?? "production").trim();
+  const authType = mapAuth(String(formData.get("auth") ?? "none"));
+  const description = String(formData.get("desc") ?? "").trim() || null;
+  const authConfig = buildAuthConfig(authType, formData);
+  const requestBody = String(formData.get("request_body") ?? "").trim();
+  const contentType = String(formData.get("content_type") ?? "application/json").trim();
+  const keepAuth = String(formData.get("keep_auth") ?? "") === "1";
+
+  if (!endpointId || !name || !url) {
+    return { error: "Name and URL are required." };
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { error: "URL must start with http:// or https://." };
+    }
+  } catch {
+    return { error: "Enter a valid URL." };
+  }
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("endpoints")
+    .select("id, auth_config, headers")
+    .eq("id", endpointId)
+    .eq("workspace_id", ctx.workspaceId)
+    .maybeSingle();
+
+  if (!existing) return { error: "Endpoint not found." };
+
+  let nextAuthConfig = authConfig;
+  if (keepAuth && authType !== "NONE") {
+    const prev =
+      existing.auth_config && typeof existing.auth_config === "object"
+        ? (existing.auth_config as Record<string, string>)
+        : {};
+    // Keep previous secrets when form fields are left blank.
+    nextAuthConfig = { ...prev, ...Object.fromEntries(
+      Object.entries(authConfig).filter(([, v]) => v !== "")
+    ) };
+  }
+  if (authType !== "NONE" && !authConfigValid(authType, nextAuthConfig)) {
+    return { error: "Fill in the auth credentials for the selected type." };
+  }
+
+  const prevHeaders =
+    existing.headers && typeof existing.headers === "object"
+      ? (existing.headers as Record<string, string>)
+      : {};
+  const headers = buildStoredHeaders({
+    contentType: requestBody
+      ? contentType || "application/json"
+      : prevHeaders["Content-Type"],
+    requestBody: requestBody || prevHeaders.__adg_body,
+  });
+
+  const { error } = await supabase
+    .from("endpoints")
+    .update({
+      name,
+      url,
+      method,
+      environment,
+      auth_type: authType,
+      auth_config: authType === "NONE" ? {} : nextAuthConfig,
+      headers,
+      description,
+    })
+    .eq("id", endpointId)
+    .eq("workspace_id", ctx.workspaceId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/endpoints/${endpointId}`);
+  revalidatePath("/endpoints");
+  revalidatePath("/dashboard");
+  return { ok: true as const };
 }

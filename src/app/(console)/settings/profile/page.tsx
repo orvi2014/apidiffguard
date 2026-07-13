@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/server";
@@ -68,8 +68,14 @@ export default async function ProfilePage({
             defaultValue={profile?.email ?? ctx.email}
             disabled
           />
+          <p className="text-[11px] text-muted">
+            Email is managed by your sign-in provider and cannot be changed
+            here.
+          </p>
         </div>
-        <Button type="submit">Save profile</Button>
+        <PendingSubmitButton type="submit" pendingLabel="Saving…">
+          Save profile
+        </PendingSubmitButton>
       </form>
     </div>
   );

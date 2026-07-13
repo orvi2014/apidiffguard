@@ -25,10 +25,11 @@ export function LoginForm() {
 
       <form
         className="mt-8"
-        action={async () => {
+        action={async (fd) => {
           setPending(true);
           setError(null);
-          const result = await signInWithGitHub();
+          fd.set("next", next);
+          const result = await signInWithGitHub(fd);
           if (result?.error) {
             setError(result.error);
             setPending(false);
@@ -101,7 +102,10 @@ export function LoginForm() {
 
       <p className="mt-6 text-center text-sm text-muted">
         No account?{" "}
-        <Link href="/register" className="text-foreground hover:underline">
+        <Link
+          href={`/register?next=${encodeURIComponent(next)}`}
+          className="text-foreground hover:underline"
+        >
           Create one
         </Link>
       </p>

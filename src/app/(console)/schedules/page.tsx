@@ -44,7 +44,7 @@ export default async function SchedulesPage({
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Schedules</h1>
             <p className="mt-1 text-sm text-muted">
-              Recurring checks for your monitored endpoints.
+              Recurring checks run every few minutes via cron when due.
             </p>
           </div>
           <Button asChild size="sm" className="min-h-9">
