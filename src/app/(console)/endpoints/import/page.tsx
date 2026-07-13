@@ -269,6 +269,7 @@ function OpenAPIImportWizard() {
           tags: [...ep.tags, "openapi"],
           // Credentials are not in the spec — import as unauthenticated.
           authType: "none",
+          responseSchema: ep.responseSchema ?? null,
         }));
 
       const result = await importEndpoints(payload);

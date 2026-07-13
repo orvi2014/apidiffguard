@@ -18,7 +18,7 @@ Whenever you **commit and push** product changes to `main` (this repo’s defaul
 
 ## Brand
 
-- Official mark: [`public/brand/logo-mark.svg`](./public/brand/logo-mark.svg) (diff panes on accent tile).
+- Official mark: [`public/brand/logo-mark.svg`](./public/brand/logo-mark.svg) (Split — solid + outlined panes on accent tile).
 - Wordmark lockup: [`public/brand/logo.svg`](./public/brand/logo.svg).
 - Use [`BrandLogo`](./src/components/brand/logo.tsx) in UI — do not reintroduce the old “A” letter tile.
 

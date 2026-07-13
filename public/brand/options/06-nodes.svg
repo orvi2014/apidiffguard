@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Nodes: PostHog-ish playful graph of API paths -->
+  <rect width="32" height="32" rx="8" fill="#4F7FFF"/>
+  <circle cx="9" cy="10" r="3" fill="#fff"/>
+  <circle cx="23" cy="12" r="3" fill="#fff" opacity="0.55"/>
+  <circle cx="16" cy="23" r="3" fill="#fff"/>
+  <path d="M11.5 11.5 L20.5 12.5 M10.2 12.8 L14.5 20.5 M20.5 14.2 L17.5 20.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+</svg>

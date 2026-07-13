@@ -3,6 +3,10 @@
 import * as React from "react";
 import { AlertTriangle, Check, Copy, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ExpandOverlayShell,
+  ExpandToggleButton,
+} from "@/components/tools/expandable-panel";
 import { cn, formatBytes } from "@/lib/utils";
 
 /** Soft warn — UI still diffs, but we flag large payloads. */
@@ -14,6 +18,86 @@ export function byteLength(value: string): number {
   return new TextEncoder().encode(value).length;
 }
 
+function EditorChrome({
+  label,
+  textareaId,
+  size,
+  sizeTone,
+  expanded,
+  onToggleExpand,
+  onClear,
+  onCopy,
+  copied,
+  value,
+  hideExpand,
+}: {
+  label: string;
+  textareaId: string;
+  size: number;
+  sizeTone?: "ok" | "warn" | "block";
+  expanded: boolean;
+  onToggleExpand: () => void;
+  onClear: () => void;
+  onCopy: () => void;
+  copied: boolean;
+  value: string;
+  hideExpand?: boolean;
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="flex min-w-0 items-baseline gap-2">
+        <label
+          htmlFor={textareaId}
+          className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+        >
+          {label}
+        </label>
+        <span
+          className={cn(
+            "font-mono text-[11px] tabular-nums",
+            sizeTone === "block" && "text-danger",
+            sizeTone === "warn" && "text-warning",
+            (!sizeTone || sizeTone === "ok") && "text-muted-foreground"
+          )}
+        >
+          {formatBytes(size)}
+        </span>
+      </div>
+      <div className="flex shrink-0 gap-1">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-xs"
+          onClick={onClear}
+          disabled={!value}
+        >
+          <Eraser className="size-3.5" />
+          Clear
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-xs"
+          onClick={onCopy}
+          disabled={!value}
+        >
+          {copied ? (
+            <Check className="size-3.5 text-success" />
+          ) : (
+            <Copy className="size-3.5" />
+          )}
+          Copy
+        </Button>
+        {!hideExpand ? (
+          <ExpandToggleButton expanded={expanded} onToggle={onToggleExpand} />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function JsonTextarea({
   label,
   value,
@@ -22,6 +106,11 @@ export function JsonTextarea({
   className,
   sizeBytes,
   sizeTone,
+  /** When true, skip built-in expand (parent owns a dual expand). */
+  hideExpand,
+  /** Controlled expand from parent (e.g. expand-both). */
+  expanded: expandedProp,
+  onExpandedChange,
 }: {
   label: string;
   value: string;
@@ -30,10 +119,16 @@ export function JsonTextarea({
   className?: string;
   sizeBytes?: number;
   sizeTone?: "ok" | "warn" | "block";
+  hideExpand?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }) {
   const [copied, setCopied] = React.useState(false);
+  const [internalExpanded, setInternalExpanded] = React.useState(false);
   const size = sizeBytes ?? byteLength(value);
   const textareaId = React.useId();
+  const expanded = expandedProp ?? internalExpanded;
+  const setExpanded = onExpandedChange ?? setInternalExpanded;
 
   const copy = async () => {
     await navigator.clipboard.writeText(value);
@@ -41,77 +136,17 @@ export function JsonTextarea({
     setTimeout(() => setCopied(false), 1200);
   };
 
-  return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="flex items-baseline gap-2">
-          <label
-            htmlFor={textareaId}
-            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
-          >
-            {label}
-          </label>
-          <span
-            className={cn(
-              "font-mono text-[11px] tabular-nums",
-              sizeTone === "block" && "text-danger",
-              sizeTone === "warn" && "text-warning",
-              (!sizeTone || sizeTone === "ok") && "text-muted-foreground"
-            )}
-          >
-            {formatBytes(size)}
-          </span>
-        </div>
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs"
-            onClick={() => onChange("")}
-            disabled={!value}
-          >
-            <Eraser className="size-3.5" />
-            Clear
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs"
-            onClick={() => void copy()}
-            disabled={!value}
-          >
-            {copied ? (
-              <Check className="size-3.5 text-success" />
-            ) : (
-              <Copy className="size-3.5" />
-            )}
-            Copy
-          </Button>
-        </div>
-      </div>
-      <textarea
-        id={textareaId}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        spellCheck={false}
-        placeholder='{\n  "hello": "world"\n}'
-        aria-invalid={Boolean(error) || sizeTone === "block"}
-        aria-describedby={
-          error || sizeTone === "warn" || sizeTone === "block"
-            ? `${textareaId}-status`
-            : undefined
-        }
-        className={cn(
-          "min-h-[280px] flex-1 resize-y rounded-lg border bg-surface px-3 py-3 font-mono text-xs leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-ring",
-          error || sizeTone === "block"
-            ? "border-danger"
-            : sizeTone === "warn"
-              ? "border-warning/50"
-              : "border-border"
-        )}
-      />
+  const fieldClass = cn(
+    "w-full rounded-lg border bg-surface px-3 py-3 font-mono text-xs leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-ring",
+    error || sizeTone === "block"
+      ? "border-danger"
+      : sizeTone === "warn"
+        ? "border-warning/50"
+        : "border-border"
+  );
+
+  const status = (
+    <>
       {sizeTone === "warn" ? (
         <p
           id={`${textareaId}-status`}
@@ -130,8 +165,9 @@ export function JsonTextarea({
           className="mt-2 flex items-start gap-1.5 text-xs text-danger"
         >
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          Too large ({formatBytes(size)}). Max is {formatBytes(JSON_SIZE_BLOCK_BYTES)}{" "}
-          per side — trim the JSON or use APIDiffGuard for stored baselines.
+          Too large ({formatBytes(size)}). Max is{" "}
+          {formatBytes(JSON_SIZE_BLOCK_BYTES)} per side — trim the JSON or use
+          APIDiffGuard for stored baselines.
         </p>
       ) : null}
       {error && sizeTone !== "block" ? (
@@ -142,6 +178,58 @@ export function JsonTextarea({
         >
           {error}
         </p>
+      ) : null}
+    </>
+  );
+
+  return (
+    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+      <EditorChrome
+        label={label}
+        textareaId={textareaId}
+        size={size}
+        sizeTone={sizeTone}
+        expanded={expanded}
+        onToggleExpand={() => setExpanded(!expanded)}
+        onClear={() => onChange("")}
+        onCopy={() => void copy()}
+        copied={copied}
+        value={value}
+        hideExpand={hideExpand}
+      />
+      <textarea
+        id={textareaId}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        spellCheck={false}
+        placeholder={'{\n  "hello": "world"\n}'}
+        aria-invalid={Boolean(error) || sizeTone === "block"}
+        aria-describedby={
+          error || sizeTone === "warn" || sizeTone === "block"
+            ? `${textareaId}-status`
+            : undefined
+        }
+        className={cn(
+          fieldClass,
+          hideExpand
+            ? "min-h-0 flex-1 resize-none"
+            : "min-h-[min(52vh,560px)] flex-1 resize-y"
+        )}
+      />
+      {status}
+
+      {expanded && !hideExpand ? (
+        <ExpandOverlayShell title={label} onClose={() => setExpanded(false)}>
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            spellCheck={false}
+            autoFocus
+            aria-label={`${label} expanded`}
+            className={cn(fieldClass, "min-h-0 flex-1 resize-none")}
+          />
+          <div className="shrink-0">{status}</div>
+        </ExpandOverlayShell>
       ) : null}
     </div>
   );

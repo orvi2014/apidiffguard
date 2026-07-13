@@ -20,6 +20,7 @@ export type DbEndpoint = {
   baseline_version: number | null;
   breaking_count: number | null;
   warning_count: number | null;
+  diff_mode?: string | null;
 };
 
 export function toUiHealth(health: string): HealthStatus {
@@ -45,6 +46,7 @@ export function mapEndpoint(row: DbEndpoint): Endpoint {
     description: row.description ?? undefined,
     health: toUiHealth(row.health),
     authType: toUiAuth(row.auth_type),
+    diffMode: row.diff_mode === "full" ? "full" : "schema",
     lastCheckedAt: row.last_checked_at ?? undefined,
     responseTime: row.response_time ?? undefined,
     baselineVersion: row.baseline_version ?? undefined,

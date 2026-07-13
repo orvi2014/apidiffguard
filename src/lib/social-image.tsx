@@ -64,28 +64,32 @@ export function createSocialImage() {
               style={{
                 width: 48,
                 height: 48,
-                borderRadius: 10,
+                borderRadius: 12,
                 background: "#4F7FFF",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 4,
+                gap: 0,
+                paddingLeft: 8,
+                paddingRight: 8,
               }}
             >
               <div
                 style={{
-                  width: 12,
+                  width: 15,
                   height: 28,
-                  borderRadius: 3,
-                  background: "rgba(255,255,255,0.95)",
+                  borderRadius: 4,
+                  background: "#fff",
                 }}
               />
               <div
                 style={{
-                  width: 12,
+                  width: 15,
                   height: 28,
-                  borderRadius: 3,
-                  background: "rgba(255,255,255,0.35)",
+                  borderRadius: 4,
+                  background: "rgba(255,255,255,0.28)",
+                  border: "2px solid #fff",
+                  boxSizing: "border-box",
                 }}
               />
             </div>

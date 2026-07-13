@@ -4,6 +4,11 @@ import * as React from "react";
 import { SeverityBadge } from "@/components/domain/badges";
 import { Button } from "@/components/ui/button";
 import {
+  ExpandOverlayShell,
+  ExpandToggleButton,
+  ExpandablePanel,
+} from "@/components/tools/expandable-panel";
+import {
   JsonTextarea,
   byteLength,
   parseJsonSafe,
@@ -37,7 +42,9 @@ const SAMPLE_NEW = `{
 export function JsonDiffTool() {
   const [left, setLeft] = React.useState(SAMPLE_OLD);
   const [right, setRight] = React.useState(SAMPLE_NEW);
+  const [schemaOnly, setSchemaOnly] = React.useState(false);
   const [selectedPath, setSelectedPath] = React.useState<string | null>(null);
+  const [expandBoth, setExpandBoth] = React.useState(false);
 
   const leftBytes = React.useMemo(() => byteLength(left), [left]);
   const rightBytes = React.useMemo(() => byteLength(right), [right]);
@@ -77,7 +84,10 @@ export function JsonDiffTool() {
       }
 
       const started = performance.now();
-      const nextChanges = compareJson(leftParsed.value, rightParsed.value);
+      const nextChanges = compareJson(leftParsed.value, rightParsed.value, {
+        schemaOnly,
+        arrayIdentity: true,
+      });
       const elapsed = performance.now() - started;
       const map = changesToMap(nextChanges);
 
@@ -91,12 +101,12 @@ export function JsonDiffTool() {
         rightError: null,
         canDiff: true,
       };
-    }, [blocked, left, right]);
+    }, [blocked, left, right, schemaOnly]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             size="sm"
@@ -119,6 +129,20 @@ export function JsonDiffTool() {
           >
             Clear both
           </Button>
+          <ExpandToggleButton
+            expanded={expandBoth}
+            onToggle={() => setExpandBoth((v) => !v)}
+            label="Expand both"
+          />
+          <label className="ml-1 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              className="size-3.5 rounded border-border"
+              checked={schemaOnly}
+              onChange={(e) => setSchemaOnly(e.target.checked)}
+            />
+            Schema only
+          </label>
         </div>
         <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
           Limit {formatBytes(2 * 1024 * 1024)} / side · warn at{" "}
@@ -144,6 +168,36 @@ export function JsonDiffTool() {
           sizeTone={rightTone}
         />
       </div>
+
+      {expandBoth ? (
+        <ExpandOverlayShell
+          title="Compare JSON"
+          onClose={() => setExpandBoth(false)}
+        >
+          <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
+            <JsonTextarea
+              label="Original JSON"
+              value={left}
+              onChange={setLeft}
+              error={leftTone !== "block" ? leftError : null}
+              sizeBytes={leftBytes}
+              sizeTone={leftTone}
+              hideExpand
+              className="min-h-0"
+            />
+            <JsonTextarea
+              label="New JSON"
+              value={right}
+              onChange={setRight}
+              error={rightTone !== "block" ? rightError : null}
+              sizeBytes={rightBytes}
+              sizeTone={rightTone}
+              hideExpand
+              className="min-h-0"
+            />
+          </div>
+        </ExpandOverlayShell>
+      ) : null}
 
       {blocked ? (
         <p className="rounded-lg border border-danger/30 bg-danger-muted px-4 py-3 text-sm text-danger">
@@ -183,10 +237,10 @@ export function JsonDiffTool() {
             </p>
           ) : (
             <div className="grid gap-4 lg:grid-cols-[280px_1fr_1fr]">
-              <div className="max-h-[480px] overflow-auto rounded-lg border border-border">
-                <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-                  Changes
-                </div>
+              <ExpandablePanel
+                title="Changes"
+                className="max-h-[min(60vh,640px)]"
+              >
                 <ul>
                   {changes.map((c) => (
                     <li key={c.id}>
@@ -206,30 +260,30 @@ export function JsonDiffTool() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </ExpandablePanel>
               {leftTree ? (
-                <div className="max-h-[480px] overflow-auto rounded-lg border border-border">
-                  <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Original
-                  </div>
+                <ExpandablePanel
+                  title="Original"
+                  className="max-h-[min(60vh,640px)]"
+                >
                   <DiffTree
                     tree={leftTree}
                     changes={changes}
                     search={selectedPath ?? ""}
                   />
-                </div>
+                </ExpandablePanel>
               ) : null}
               {rightTree ? (
-                <div className="max-h-[480px] overflow-auto rounded-lg border border-border">
-                  <div className="border-b border-border px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-                    New
-                  </div>
+                <ExpandablePanel
+                  title="New"
+                  className="max-h-[min(60vh,640px)]"
+                >
                   <DiffTree
                     tree={rightTree}
                     changes={changes}
                     search={selectedPath ?? ""}
                   />
-                </div>
+                </ExpandablePanel>
               ) : null}
             </div>
           )}

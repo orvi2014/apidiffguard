@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-/** Apple touch / home-screen icon. */
+/** Apple touch / home-screen icon — Split mark. */
 export default function AppleIcon() {
   return new ImageResponse(
     (
@@ -16,56 +16,30 @@ export default function AppleIcon() {
           justifyContent: "center",
           background: "#4F7FFF",
           borderRadius: 40,
+          gap: 0,
+          paddingLeft: 28,
+          paddingRight: 28,
         }}
       >
-        <div style={{ display: "flex", gap: 14 }}>
-          <div
-            style={{
-              width: 42,
-              height: 96,
-              borderRadius: 10,
-              background: "rgba(255,255,255,0.95)",
-            }}
-          />
-          <div
-            style={{
-              width: 42,
-              height: 96,
-              borderRadius: 10,
-              background: "rgba(255,255,255,0.35)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: 10,
-              paddingLeft: 8,
-            }}
-          >
-            <div
-              style={{
-                width: 24,
-                height: 8,
-                borderRadius: 4,
-                background: "#fff",
-              }}
-            />
-            <div
-              style={{
-                width: 24,
-                height: 8,
-                borderRadius: 4,
-                background: "rgba(255,255,255,0.7)",
-              }}
-            />
-            <div
-              style={{
-                width: 16,
-                height: 8,
-                borderRadius: 4,
-                background: "rgba(255,255,255,0.45)",
-              }}
-            />
-          </div>
-        </div>
+        <div
+          style={{
+            width: 58,
+            height: 96,
+            borderRadius: 14,
+            background: "#fff",
+          }}
+        />
+        <div
+          style={{
+            width: 58,
+            height: 96,
+            borderRadius: 14,
+            background: "rgba(255,255,255,0.28)",
+            border: "5px solid #fff",
+            boxSizing: "border-box",
+            marginLeft: 0,
+          }}
+        />
       </div>
     ),
     { ...size }

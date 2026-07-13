@@ -7,6 +7,9 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 
 ## [Unreleased]
 
+### Changed
+- Brand mark set to Split (solid + outlined before/after panes) across UI, favicon, Apple icon, and social cards
+
 ## [0.2.0] — 2026-07-13
 
 ### Added

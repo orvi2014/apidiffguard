@@ -148,6 +148,8 @@ model Endpoint {
   description String?
   health      HealthStatus @default(UNKNOWN)
   timeoutMs   Int          @default(10000)
+  diffMode    String       @default("schema")
+  responseSchema Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   workspaceId String

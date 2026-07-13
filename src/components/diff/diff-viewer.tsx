@@ -17,6 +17,10 @@ import { Kbd } from "@/components/ui/kbd";
 import { SeverityBadge } from "@/components/domain/badges";
 import { DiffTree, JSONViewer } from "@/components/diff/diff-tree";
 import {
+  ExpandOverlayShell,
+  ExpandToggleButton,
+} from "@/components/tools/expandable-panel";
+import {
   buildJsonTree,
   changesToMap,
   summarizeChanges,
@@ -53,6 +57,9 @@ export function DiffViewer({
   const [acceptPending, setAcceptPending] = React.useState(false);
   const [acceptError, setAcceptError] = React.useState<string | null>(null);
   const [accepted, setAccepted] = React.useState(diff.accepted);
+  const [expandedView, setExpandedView] = React.useState<
+    null | "side-by-side" | "raw" | "old-tree" | "new-tree" | "old-raw" | "new-raw"
+  >(null);
 
   const summary = summarizeChanges(diff.changes);
   const changeMap = React.useMemo(
@@ -391,12 +398,29 @@ export function DiffViewer({
             onValueChange={setTab}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <div className="flex items-center justify-between border-b border-border-subtle px-3 py-2">
+            <div className="flex items-center justify-between gap-2 border-b border-border-subtle px-3 py-2">
               <TabsList>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
                 <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
                 <TabsTrigger value="raw">Raw JSON</TabsTrigger>
               </TabsList>
+              {tab === "side-by-side" || tab === "raw" ? (
+                <ExpandToggleButton
+                  expanded={
+                    expandedView === tab ||
+                    expandedView === "old-tree" ||
+                    expandedView === "new-tree" ||
+                    expandedView === "old-raw" ||
+                    expandedView === "new-raw"
+                  }
+                  onToggle={() =>
+                    setExpandedView((v) =>
+                      v === tab ? null : (tab as "side-by-side" | "raw")
+                    )
+                  }
+                  label="Expand view"
+                />
+              ) : null}
             </div>
 
             <TabsContent value="summary" className="flex-1 overflow-auto p-4">
@@ -411,11 +435,12 @@ export function DiffViewer({
                 bodiesPlaceholder
               ) : (
                 <>
-                  <div className="flex min-h-[280px] min-w-0 flex-1 flex-col border-b border-border lg:border-b-0 lg:border-r">
+                  <div className="flex min-h-[min(40vh,420px)] min-w-0 flex-1 flex-col border-b border-border lg:border-b-0 lg:border-r">
                     <PaneHeader
                       title="Old response"
                       meta={`baseline v${diff.baseline.version}`}
                       tone="old"
+                      onExpand={() => setExpandedView("old-tree")}
                     />
                     <DiffTree
                       tree={oldTree}
@@ -438,11 +463,12 @@ export function DiffViewer({
                       />
                     ))}
                   </div>
-                  <div className="flex min-h-[280px] min-w-0 flex-1 flex-col">
+                  <div className="flex min-h-[min(40vh,420px)] min-w-0 flex-1 flex-col">
                     <PaneHeader
                       title="New response"
                       meta="current check"
                       tone="new"
+                      onExpand={() => setExpandedView("new-tree")}
                     />
                     <DiffTree
                       tree={newTree}
@@ -478,15 +504,25 @@ export function DiffViewer({
                 </div>
               ) : (
                 <>
-                  <div className="min-h-[280px] flex-1 border-b border-border lg:border-b-0 lg:border-r">
-                    <PaneHeader title="Old JSON" meta="baseline" tone="old" />
+                  <div className="min-h-[min(40vh,420px)] flex-1 border-b border-border lg:border-b-0 lg:border-r">
+                    <PaneHeader
+                      title="Old JSON"
+                      meta="baseline"
+                      tone="old"
+                      onExpand={() => setExpandedView("old-raw")}
+                    />
                     <JSONViewer
                       data={bodies.baselineBody}
                       className="h-[calc(100%-36px)]"
                     />
                   </div>
-                  <div className="min-h-[280px] flex-1">
-                    <PaneHeader title="New JSON" meta="current" tone="new" />
+                  <div className="min-h-[min(40vh,420px)] flex-1">
+                    <PaneHeader
+                      title="New JSON"
+                      meta="current"
+                      tone="new"
+                      onExpand={() => setExpandedView("new-raw")}
+                    />
                     <JSONViewer
                       data={bodies.currentBody}
                       className="h-[calc(100%-36px)]"
@@ -498,6 +534,98 @@ export function DiffViewer({
           </Tabs>
         </div>
       </div>
+
+      {expandedView && bodies ? (
+        <ExpandOverlayShell
+          title={
+            expandedView === "side-by-side"
+              ? "Side by side"
+              : expandedView === "raw"
+                ? "Raw JSON"
+                : expandedView === "old-tree"
+                  ? "Old response"
+                  : expandedView === "new-tree"
+                    ? "New response"
+                    : expandedView === "old-raw"
+                      ? "Old JSON"
+                      : "New JSON"
+          }
+          onClose={() => setExpandedView(null)}
+        >
+          {expandedView === "side-by-side" && oldTree && newTree ? (
+            <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
+              <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border">
+                <PaneHeader
+                  title="Old response"
+                  meta={`baseline v${diff.baseline.version}`}
+                  tone="old"
+                />
+                <DiffTree
+                  tree={oldTree}
+                  changes={diff.changes}
+                  search={activePath || search}
+                  className="min-h-0 flex-1"
+                />
+              </div>
+              <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border">
+                <PaneHeader
+                  title="New response"
+                  meta="current check"
+                  tone="new"
+                />
+                <DiffTree
+                  tree={newTree}
+                  changes={diff.changes}
+                  search={activePath || search}
+                  className="min-h-0 flex-1"
+                />
+              </div>
+            </div>
+          ) : null}
+          {expandedView === "raw" ? (
+            <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
+              <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border">
+                <PaneHeader title="Old JSON" meta="baseline" tone="old" />
+                <JSONViewer data={bodies.baselineBody} className="min-h-0 flex-1" />
+              </div>
+              <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border">
+                <PaneHeader title="New JSON" meta="current" tone="new" />
+                <JSONViewer data={bodies.currentBody} className="min-h-0 flex-1" />
+              </div>
+            </div>
+          ) : null}
+          {expandedView === "old-tree" && oldTree ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
+              <DiffTree
+                tree={oldTree}
+                changes={diff.changes}
+                search={activePath || search}
+                className="min-h-0 flex-1"
+              />
+            </div>
+          ) : null}
+          {expandedView === "new-tree" && newTree ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
+              <DiffTree
+                tree={newTree}
+                changes={diff.changes}
+                search={activePath || search}
+                className="min-h-0 flex-1"
+              />
+            </div>
+          ) : null}
+          {expandedView === "old-raw" ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
+              <JSONViewer data={bodies.baselineBody} className="min-h-0 flex-1" />
+            </div>
+          ) : null}
+          {expandedView === "new-raw" ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
+              <JSONViewer data={bodies.currentBody} className="min-h-0 flex-1" />
+            </div>
+          ) : null}
+        </ExpandOverlayShell>
+      ) : null}
     </div>
   );
 }
@@ -506,22 +634,29 @@ function PaneHeader({
   title,
   meta,
   tone,
+  onExpand,
 }: {
   title: string;
   meta: string;
   tone: "old" | "new";
+  onExpand?: () => void;
 }) {
   return (
-    <div className="flex h-9 items-center justify-between border-b border-border-subtle bg-surface px-3">
+    <div className="flex h-9 items-center justify-between gap-2 border-b border-border-subtle bg-surface px-3">
       <span className="text-xs font-medium">{title}</span>
-      <span
-        className={cn(
-          "text-[11px] font-mono",
-          tone === "old" ? "text-danger/80" : "text-success/80"
-        )}
-      >
-        {meta}
-      </span>
+      <div className="flex items-center gap-1">
+        <span
+          className={cn(
+            "text-[11px] font-mono",
+            tone === "old" ? "text-danger/80" : "text-success/80"
+          )}
+        >
+          {meta}
+        </span>
+        {onExpand ? (
+          <ExpandToggleButton expanded={false} onToggle={onExpand} label="Expand" />
+        ) : null}
+      </div>
     </div>
   );
 }

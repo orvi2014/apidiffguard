@@ -261,6 +261,7 @@ export async function importEndpoints(
     description?: string;
     tags?: string[];
     authType?: string;
+    responseSchema?: Record<string, unknown> | null;
   }>
 ) {
   const ctx = await getWorkspaceContext();
@@ -307,6 +308,8 @@ export async function importEndpoints(
     auth_type: "NONE" as const,
     workspace_id: ctx.workspaceId,
     environment: "production",
+    diff_mode: "schema" as const,
+    response_schema: ep.responseSchema ?? null,
   }));
 
   const { data, error } = await supabase
@@ -506,6 +509,10 @@ export async function updateEndpoint(formData: FormData) {
   const environment = String(formData.get("env") ?? "production").trim();
   const authType = mapAuth(String(formData.get("auth") ?? "none"));
   const description = String(formData.get("desc") ?? "").trim() || null;
+  const diffMode =
+    String(formData.get("diff_mode") ?? "schema").trim() === "full"
+      ? "full"
+      : "schema";
   const authConfig = buildAuthConfig(authType, formData);
   const requestBody = String(formData.get("request_body") ?? "").trim();
   const contentType = String(formData.get("content_type") ?? "application/json").trim();
@@ -580,6 +587,7 @@ export async function updateEndpoint(formData: FormData) {
       auth_config: authType === "NONE" ? {} : nextAuthConfig,
       headers,
       description,
+      diff_mode: diffMode,
     })
     .eq("id", endpointId)
     .eq("workspace_id", ctx.workspaceId);

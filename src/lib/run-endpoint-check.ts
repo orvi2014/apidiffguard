@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { validateAgainstSchema } from "@/lib/contract-validate";
 import {
   compareHeaders,
   compareJson,
+  compareStatusCodes,
   summarizeChanges,
 } from "@/lib/diff-engine";
 import {
@@ -96,24 +98,33 @@ export async function runEndpointCheck(
     .select("id")
     .single();
 
+  const diffMode =
+    endpoint.diff_mode === "full" ? ("full" as const) : ("schema" as const);
+  const schemaOnly = diffMode === "schema";
+
   const changes = [
-    ...compareJson(baseline.body, result.body, { ignorePaths }),
+    ...compareJson(baseline.body, result.body, {
+      ignorePaths,
+      schemaOnly,
+      arrayIdentity: true,
+    }),
     ...compareHeaders(
       (baseline.headers ?? {}) as Record<string, string>,
       result.headers
     ),
   ];
-  if (baseline.status_code !== result.statusCode) {
-    changes.unshift({
-      id: "chg_status",
-      path: "$status",
-      type: "status_changed",
-      severity: "breaking",
-      oldValue: baseline.status_code,
-      newValue: result.statusCode,
-      message: `HTTP status changed ${baseline.status_code} → ${result.statusCode}`,
-    });
+
+  if (endpoint.response_schema) {
+    changes.push(
+      ...validateAgainstSchema(result.body, endpoint.response_schema)
+    );
   }
+
+  const statusChange = compareStatusCodes(
+    baseline.status_code,
+    result.statusCode
+  );
+  if (statusChange) changes.unshift(statusChange);
 
   const summary = summarizeChanges(changes);
   const health =

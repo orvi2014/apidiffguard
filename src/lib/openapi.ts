@@ -1,4 +1,8 @@
 import { parse as parseYaml } from "yaml";
+import {
+  extractOperationResponseSchema,
+  type JsonSchema,
+} from "./contract-validate";
 import type { AuthType, HttpMethod } from "./types";
 
 const HTTP_METHODS = new Set([
@@ -64,6 +68,8 @@ export interface ParsedOpenAPIEndpoint {
   deprecated: boolean;
   authType: AuthType;
   server: string;
+  /** Primary JSON response schema when present in the OpenAPI operation. */
+  responseSchema?: JsonSchema | null;
 }
 
 export interface ParsedOpenAPISpec {
@@ -416,6 +422,7 @@ export function extractEndpointsFromOpenAPI(
         deprecated: Boolean(op.deprecated),
         authType: operationAuth(op, docAuth, doc),
         server: selectedServer,
+        responseSchema: extractOperationResponseSchema(op, doc),
       });
     }
   }

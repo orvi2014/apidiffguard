@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="APIDiffGuard">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Split: before/after panes on accent tile -->
   <rect width="32" height="32" rx="8" fill="#4F7FFF"/>
   <rect x="5" y="7" width="11" height="18" rx="2.5" fill="#fff"/>
   <rect x="16" y="7" width="11" height="18" rx="2.5" fill="#fff" opacity="0.28"/>

@@ -26,8 +26,10 @@ const changeColors: Record<DiffChangeType, string> = {
   removed: "text-danger",
   changed: "text-warning",
   type_changed: "text-danger",
+  nullability_changed: "text-danger",
   status_changed: "text-danger",
   header_changed: "text-warning",
+  contract_violation: "text-danger",
 };
 
 const severityBorder: Record<Severity, string> = {

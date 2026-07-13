@@ -29,8 +29,13 @@ export type DiffChangeType =
   | "removed"
   | "changed"
   | "type_changed"
+  | "nullability_changed"
   | "status_changed"
-  | "header_changed";
+  | "header_changed"
+  | "contract_violation";
+
+/** How endpoint checks classify body drift. */
+export type DiffMode = "schema" | "full";
 
 export interface Endpoint {
   id: string;
@@ -42,6 +47,8 @@ export interface Endpoint {
   description?: string;
   health: HealthStatus;
   authType: AuthType;
+  /** schema = ignore leaf values; full = include value changes */
+  diffMode?: DiffMode;
   lastCheckedAt?: string;
   responseTime?: number;
   baselineVersion?: number;

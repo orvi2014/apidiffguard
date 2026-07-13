@@ -102,6 +102,22 @@ export function EndpointEditForm({
           </select>
         </div>
       </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-diff-mode">Diff mode</Label>
+        <select
+          id="edit-diff-mode"
+          name="diff_mode"
+          className="flex h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+          defaultValue={endpoint.diffMode ?? "schema"}
+        >
+          <option value="schema">Schema only (ignore value churn)</option>
+          <option value="full">Full (include value changes)</option>
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Schema mode flags structure, types, nullability, and status class —
+          not leaf value noise.
+        </p>
+      </div>
 
       {auth === "bearer" || auth === "oauth" ? (
         <div className="space-y-1.5">

@@ -10,7 +10,7 @@ type BrandLogoProps = {
   priority?: boolean;
 };
 
-/** Official APIDiffGuard mark — side-by-side diff panes on accent tile. */
+/** Official APIDiffGuard mark — Split (before/after panes) on accent tile. */
 export function BrandLogo({
   className,
   withWordmark = false,
