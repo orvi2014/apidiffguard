@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isPlanId } from "@/lib/plans";
+import {
+  AUTH_USER_HEADER,
+  AUTH_VERIFIED_HEADER,
+} from "@/lib/auth-headers";
 
 function hasSupabaseAuthCookie(request: NextRequest): boolean {
   return request.cookies
@@ -10,6 +14,23 @@ function hasSupabaseAuthCookie(request: NextRequest): boolean {
         c.name.includes("auth-token") ||
         (c.name.startsWith("sb-") && c.name.includes("auth"))
     );
+}
+
+function nextWithAuthHeaders(
+  request: NextRequest,
+  userId?: string | null
+) {
+  const requestHeaders = new Headers(request.headers);
+  if (userId) {
+    requestHeaders.set(AUTH_VERIFIED_HEADER, "1");
+    requestHeaders.set(AUTH_USER_HEADER, userId);
+  } else {
+    requestHeaders.delete(AUTH_VERIFIED_HEADER);
+    requestHeaders.delete(AUTH_USER_HEADER);
+  }
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export async function updateSession(request: NextRequest) {
@@ -31,7 +52,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  let supabaseResponse = NextResponse.next({ request });
+  let userId: string | null = null;
+  let supabaseResponse = nextWithAuthHeaders(request, null);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,7 +67,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = nextWithAuthHeaders(request, userId);
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -57,6 +79,10 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  userId = user?.id ?? null;
+  supabaseResponse = nextWithAuthHeaders(request, userId);
+  // Re-apply cookies if setAll already ran — setAll will refresh on next write.
+  // Ensure verified headers exist on the final response request clone.
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();

@@ -1,6 +1,11 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePlan, type PlanId } from "@/lib/plans";
+import {
+  AUTH_USER_HEADER,
+  AUTH_VERIFIED_HEADER,
+} from "@/lib/auth-headers";
 
 export type WorkspaceContext = {
   userId: string;
@@ -15,6 +20,20 @@ export type WorkspaceContext = {
 
 export async function requireUser() {
   const supabase = await createClient();
+  const h = await headers();
+  const verified = h.get(AUTH_VERIFIED_HEADER) === "1";
+  const verifiedUserId = h.get(AUTH_USER_HEADER);
+
+  // Middleware already validated the JWT — reuse the local session when it matches.
+  if (verified && verifiedUserId) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user?.id === verifiedUserId) {
+      return { supabase, user: session.user };
+    }
+  }
+
   const {
     data: { user },
     error,

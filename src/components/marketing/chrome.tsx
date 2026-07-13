@@ -1,9 +1,26 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { MarketingHeaderClient } from "@/components/marketing/header-client";
 
+function hasAuthCookie(
+  jar: Awaited<ReturnType<typeof cookies>>
+): boolean {
+  return jar
+    .getAll()
+    .some(
+      (c) =>
+        c.name.includes("auth-token") ||
+        (c.name.startsWith("sb-") && c.name.includes("auth"))
+    );
+}
+
 export async function MarketingHeader() {
+  const jar = await cookies();
+  if (!hasAuthCookie(jar)) {
+    return <MarketingHeaderClient signedIn={false} email={null} />;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

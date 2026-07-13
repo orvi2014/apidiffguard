@@ -30,7 +30,7 @@ export default async function EndpointDetailPage({
     supabase
       .from("baselines")
       .select(
-        "id, version, status_code, headers, body, response_time, content_size, notes, approved, is_active, created_at, endpoint_id"
+        "id, version, status_code, response_time, content_size, notes, approved, is_active, created_at, endpoint_id"
       )
       .eq("endpoint_id", id)
       .order("version", { ascending: false })
@@ -49,8 +49,8 @@ export default async function EndpointDetailPage({
       id: b.id,
       version: b.version,
       statusCode: b.status_code,
-      headers: (b.headers as Record<string, string>) ?? {},
-      body: b.body,
+      headers: {},
+      body: null,
       responseTime: b.response_time,
       contentSize: b.content_size,
       notes: b.notes ?? undefined,

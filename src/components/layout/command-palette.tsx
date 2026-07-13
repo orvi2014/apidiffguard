@@ -40,26 +40,27 @@ const actionCommands = [
 ];
 
 export function CommandPalette({
-  endpoints = [],
   open,
   onOpenChange,
 }: {
-  endpoints?: PaletteEndpoint[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const [endpoints, setEndpoints] = React.useState<PaletteEndpoint[]>([]);
+  const [loadingEndpoints, setLoadingEndpoints] = React.useState(false);
 
   React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        onOpenChange(!open);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onOpenChange]);
+    if (!open || endpoints.length > 0 || loadingEndpoints) return;
+    setLoadingEndpoints(true);
+    void fetch("/api/workspace/endpoints")
+      .then((r) => (r.ok ? r.json() : { endpoints: [] }))
+      .then((data: { endpoints?: PaletteEndpoint[] }) => {
+        setEndpoints(data.endpoints ?? []);
+      })
+      .catch(() => setEndpoints([]))
+      .finally(() => setLoadingEndpoints(false));
+  }, [open, endpoints.length, loadingEndpoints]);
 
   const run = (href: string) => {
     onOpenChange(false);
@@ -70,7 +71,9 @@ export function CommandPalette({
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput placeholder="Jump to endpoint, run action…" />
       <CommandList>
-        <CommandEmpty>No results</CommandEmpty>
+        <CommandEmpty>
+          {loadingEndpoints ? "Loading…" : "No results"}
+        </CommandEmpty>
         <CommandGroup heading="Navigation">
           {navCommands.map((cmd) => (
             <CommandItem
@@ -123,6 +126,17 @@ export function CommandPaletteTrigger({
 }: {
   onOpen: () => void;
 }) {
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        onOpen();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onOpen]);
+
   return (
     <button
       type="button"

@@ -47,24 +47,39 @@ export default async function AlertsPage({
 
   const enabledCount = configs?.filter((c) => c.enabled).length ?? 0;
   const configIds = configs?.map((c) => c.id) ?? [];
-  const { data: history } = configIds.length
-    ? await supabase
-        .from("alert_history")
-        .select("*")
-        .in("alert_config_id", configIds)
-        .order("created_at", { ascending: false })
-        .limit(50)
-    : { data: [] as never[] };
 
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
-  const sentToday =
-    history?.filter(
-      (h) =>
-        h.status === "SENT" &&
-        new Date(h.created_at).getTime() >= dayStart.getTime()
-    ).length ?? 0;
-  const failed = history?.filter((h) => h.status === "FAILED").length ?? 0;
+  const dayStartIso = dayStart.toISOString();
+
+  const [{ data: history }, { count: sentTodayCount }, { count: failed }] =
+    await Promise.all([
+      configIds.length
+        ? supabase
+            .from("alert_history")
+            .select(
+              "id, alert_config_id, status, severity, message, created_at"
+            )
+            .in("alert_config_id", configIds)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        : Promise.resolve({ data: [] as never[] }),
+      configIds.length
+        ? supabase
+            .from("alert_history")
+            .select("id", { count: "exact", head: true })
+            .in("alert_config_id", configIds)
+            .eq("status", "SENT")
+            .gte("created_at", dayStartIso)
+        : Promise.resolve({ count: 0 }),
+      configIds.length
+        ? supabase
+            .from("alert_history")
+            .select("id", { count: "exact", head: true })
+            .in("alert_config_id", configIds)
+            .eq("status", "FAILED")
+        : Promise.resolve({ count: 0 }),
+    ]);
 
   const minSeverity =
     configs && configs.length
@@ -126,10 +141,10 @@ export default async function AlertsPage({
         <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             { label: "Channels", value: String(configs?.length ?? 0) },
-            { label: "Sent today", value: String(sentToday) },
+            { label: "Sent today", value: String(sentTodayCount ?? 0) },
             {
               label: "Failed",
-              value: String(failed),
+              value: String(failed ?? 0),
               tone: failed ? "text-danger" : undefined,
             },
             {

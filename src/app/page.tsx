@@ -1,4 +1,5 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   ArrowRight,
   Bell,
@@ -11,9 +12,7 @@ import {
   Webhook,
 } from "lucide-react";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
-import { ProductDemo } from "@/components/marketing/product-demo";
 import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
-import { BlurFade } from "@/components/ui/blur-fade";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,16 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { AnswerBlock } from "@/components/seo/answer-block";
 import { buildMetadata, faqJsonLd, webPageSpeakableJsonLd } from "@/lib/seo";
 import type { Metadata } from "next";
+
+const ProductDemo = dynamic(
+  () =>
+    import("@/components/marketing/product-demo").then((m) => m.ProductDemo),
+  {
+    loading: () => (
+      <div className="mx-auto mt-14 h-64 w-full max-w-5xl animate-pulse rounded-xl bg-surface" />
+    ),
+  }
+);
 
 export const metadata: Metadata = buildMetadata({
   title: "API Breaking Change Detection & Schema Drift Monitoring",
@@ -66,25 +75,19 @@ export default function LandingPage() {
             }}
           />
           <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-20 sm:pt-28">
-            <BlurFade delay={0.05}>
-              <AnimatedShinyText className="mb-6 inline-flex font-mono text-[11px] uppercase tracking-[0.2em] text-accent dark:text-accent">
-                APIDiffGuard
-              </AnimatedShinyText>
-            </BlurFade>
-            <BlurFade delay={0.1}>
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-[1.08] lg:text-6xl">
-                Catch breaking API changes before production.
-              </h1>
-            </BlurFade>
-            <BlurFade delay={0.15}>
-              <p className="aeo-answer mt-5 max-w-xl text-base text-muted leading-relaxed sm:text-lg">
-                APIDiffGuard monitors live API responses against versioned
-                baselines, detects JSON schema drift and breaking field changes,
-                and helps teams catch contract breaks before production — with
-                free JSON Diff tools in the browser.
-              </p>
-            </BlurFade>
-            <BlurFade delay={0.2} className="mt-8 flex flex-wrap items-center gap-3">
+            <AnimatedShinyText className="mb-6 inline-flex font-mono text-[11px] uppercase tracking-[0.2em] text-accent dark:text-accent">
+              APIDiffGuard
+            </AnimatedShinyText>
+            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-[1.08] lg:text-6xl">
+              Catch breaking API changes before production.
+            </h1>
+            <p className="aeo-answer mt-5 max-w-xl text-base text-muted leading-relaxed sm:text-lg">
+              APIDiffGuard monitors live API responses against versioned
+              baselines, detects JSON schema drift and breaking field changes,
+              and helps teams catch contract breaks before production — with
+              free JSON Diff tools in the browser.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/register">
                 <ShimmerButton
                   className="h-10 gap-2 rounded-lg px-5 text-sm font-medium shadow-none"
@@ -101,14 +104,14 @@ export default function LandingPage() {
                   Free JSON Diff
                 </Button>
               </Link>
-            </BlurFade>
+            </div>
             <ProductDemo />
           </div>
         </section>
 
         <section id="features" className="border-b border-border">
           <div className="mx-auto max-w-6xl px-5 py-24">
-            <BlurFade>
+            <div>
               <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
                 Built around the diff — not another status board.
               </h2>
@@ -116,7 +119,7 @@ export default function LandingPage() {
                 Capture baselines, schedule checks, and inspect every field change
                 with the precision of an IDE.
               </p>
-            </BlurFade>
+            </div>
 
             <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
@@ -150,9 +153,8 @@ export default function LandingPage() {
                   title: "CLI & REST API",
                   body: "apidiff check in CI. Same engine as the console, authenticated with API tokens.",
                 },
-              ].map((f, i) => (
-                <BlurFade key={f.title} delay={0.05 * i}>
-                  <div className="relative h-full overflow-hidden rounded-lg border border-border bg-background p-6 sm:p-8">
+              ].map((f) => (
+                  <div key={f.title} className="relative h-full overflow-hidden rounded-lg border border-border bg-background p-6 sm:p-8">
                     <ShineBorder
                       shineColor={["#4F7FFF", "#22c55e", "#4F7FFF"]}
                       duration={12}
@@ -164,7 +166,6 @@ export default function LandingPage() {
                       {f.body}
                     </p>
                   </div>
-                </BlurFade>
               ))}
             </div>
           </div>
@@ -172,7 +173,7 @@ export default function LandingPage() {
 
         <section className="border-b border-border">
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-24 lg:grid-cols-2">
-            <BlurFade>
+            <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                 Same checks in CI and the console.
               </h2>
@@ -187,25 +188,23 @@ export default function LandingPage() {
                 CLI documentation
                 <ArrowRight className="size-3.5" />
               </Link>
-            </BlurFade>
-            <BlurFade delay={0.1}>
-              <pre className="overflow-x-auto rounded-lg border border-border bg-surface p-5 font-mono text-[13px] leading-relaxed text-muted">
-                <code>
-                  <span className="text-muted-foreground">$</span>{" "}
-                  <span className="text-foreground">npx apidiff check</span>
-                  {"\n"}
-                  <span className="text-success">✓</span> GET /v1/products — healthy
-                  {"\n"}
-                  <span className="text-warning">!</span> POST /v1/orders — 2 warnings
-                  {"\n"}
-                  <span className="text-danger">✗</span> GET /v1/users — 2 breaking
-                  {"\n\n"}
-                  <span className="text-muted-foreground">
-                    Exit code 1 · see diff in console
-                  </span>
-                </code>
-              </pre>
-            </BlurFade>
+            </div>
+            <pre className="overflow-x-auto rounded-lg border border-border bg-surface p-5 font-mono text-[13px] leading-relaxed text-muted">
+              <code>
+                <span className="text-muted-foreground">$</span>{" "}
+                <span className="text-foreground">npx apidiff check</span>
+                {"\n"}
+                <span className="text-success">✓</span> GET /v1/products — healthy
+                {"\n"}
+                <span className="text-warning">!</span> POST /v1/orders — 2 warnings
+                {"\n"}
+                <span className="text-danger">✗</span> GET /v1/users — 2 breaking
+                {"\n\n"}
+                <span className="text-muted-foreground">
+                  Exit code 1 · see diff in console
+                </span>
+              </code>
+            </pre>
           </div>
         </section>
 

@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import type { ActivityItem } from "@/lib/types";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { NumberTicker } from "@/components/ui/number-ticker";
 
 const icons: Record<ActivityItem["type"], ReactNode> = {
   baseline_created: <Shield className="size-3.5" />,
@@ -170,11 +169,7 @@ export function MetricStrip({
               item.tone
             )}
           >
-            {typeof item.value === "number" ? (
-              <NumberTicker value={item.value} className={item.tone} />
-            ) : (
-              item.value
-            )}
+            {item.value}
           </div>
           <div className="mt-1 text-[11px] uppercase tracking-wider text-muted">
             {item.label}

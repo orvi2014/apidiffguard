@@ -12,6 +12,10 @@ import { DriftAttentionCard } from "@/components/domain/drift-attention-card";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
+import {
+  countChecksToday,
+  listWorkspaceEndpointsForDashboard,
+} from "@/lib/workspace-data";
 import { mapEndpoint, type DbEndpoint } from "@/lib/mappers";
 import type { ActivityItem } from "@/lib/types";
 import { formatRelativeTime } from "@/lib/utils";
@@ -24,21 +28,11 @@ export default async function DashboardPage() {
 
   const supabase = await createClient();
 
-  const { data: endpointRows } = await supabase
-    .from("endpoints")
-    .select(
-      "id, name, url, method, environment, tags, description, health, auth_type, last_checked_at, response_time, baseline_version, breaking_count, warning_count"
-    )
-    .eq("workspace_id", ctx.workspaceId)
-    .order("updated_at", { ascending: false })
-    .limit(50);
-
-  const endpoints = (endpointRows as DbEndpoint[] | null)?.map(mapEndpoint) ?? [];
+  const endpointRows = await listWorkspaceEndpointsForDashboard(ctx.workspaceId);
+  const endpoints = (endpointRows as DbEndpoint[]).map(mapEndpoint);
   const endpointIds = endpoints.map((e) => e.id);
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
 
-  const [{ data: activityRows }, { data: latestDiff }, { count: checksToday }] =
+  const [{ data: activityRows }, { data: latestDiff }, checksToday] =
     await Promise.all([
       supabase
         .from("activities")
@@ -57,13 +51,7 @@ export default async function DashboardPage() {
             .limit(1)
             .maybeSingle()
         : Promise.resolve({ data: null }),
-      endpointIds.length
-        ? supabase
-            .from("checks")
-            .select("id", { count: "exact", head: true })
-            .in("endpoint_id", endpointIds)
-            .gte("started_at", dayStart.toISOString())
-        : Promise.resolve({ count: 0 }),
+      countChecksToday(ctx.workspaceId),
     ]);
   const drifting = endpoints.filter(
     (e) => e.health === "breaking" || e.health === "warning"

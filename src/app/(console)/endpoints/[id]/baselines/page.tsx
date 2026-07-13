@@ -26,7 +26,9 @@ export default async function BaselinesPage({
 
   const { data: list } = await supabase
     .from("baselines")
-    .select("*")
+    .select(
+      "id, version, status_code, response_time, content_size, notes, approved, is_active, created_at"
+    )
     .eq("endpoint_id", id)
     .order("version", { ascending: false });
 

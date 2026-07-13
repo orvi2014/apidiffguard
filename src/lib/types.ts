@@ -89,13 +89,13 @@ export interface DiffResult {
   baseline: {
     version: number;
     statusCode: number;
-    body: unknown;
+    body?: unknown;
     responseTime: number;
     contentSize: number;
   };
   current: {
     statusCode: number;
-    body: unknown;
+    body?: unknown;
     responseTime: number;
     contentSize: number;
   };

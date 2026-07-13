@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { ChecksTodayCount } from "@/components/layout/console-chrome-data";
 import { getWorkspaceContext } from "@/lib/workspace";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function ConsoleLayout({
   children,
@@ -13,20 +12,11 @@ export default async function ConsoleLayout({
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
 
-  const supabase = await createClient();
-  const { data: endpoints } = await supabase
-    .from("endpoints")
-    .select("id, name")
-    .eq("workspace_id", ctx.workspaceId)
-    .order("name")
-    .limit(40);
-
   return (
     <AppShell
       workspaceName={ctx.workspaceName}
       workspaceSlug={ctx.workspaceSlug}
       email={ctx.email}
-      endpoints={endpoints ?? []}
       checksTodaySlot={
         <Suspense
           fallback={
@@ -35,9 +25,7 @@ export default async function ConsoleLayout({
             </span>
           }
         >
-          <ChecksTodayCount
-            endpointIds={(endpoints ?? []).map((e) => e.id)}
-          />
+          <ChecksTodayCount workspaceId={ctx.workspaceId} />
         </Suspense>
       }
     >

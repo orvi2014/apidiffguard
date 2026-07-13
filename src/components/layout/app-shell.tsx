@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,12 +14,15 @@ import {
   Webhook,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  CommandPalette,
-  CommandPaletteTrigger,
-} from "@/components/layout/command-palette";
+import { CommandPaletteTrigger } from "@/components/layout/command-palette";
 import { ConsoleNavLink } from "@/components/layout/console-nav-link";
 import { signOut } from "@/app/actions/auth";
+
+const CommandPalette = dynamic(
+  () =>
+    import("@/components/layout/command-palette").then((m) => m.CommandPalette),
+  { ssr: false }
+);
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -34,14 +38,12 @@ export function AppShell({
   workspaceSlug,
   email,
   checksTodaySlot,
-  endpoints,
 }: {
   children: React.ReactNode;
   workspaceName: string;
   workspaceSlug: string;
   email: string;
   checksTodaySlot: React.ReactNode;
-  endpoints: Array<{ id: string; name: string }>;
 }) {
   const pathname = usePathname();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -127,11 +129,9 @@ export function AppShell({
         {checksTodaySlot}
       </footer>
 
-      <CommandPalette
-        endpoints={endpoints}
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-      />
+      {paletteOpen ? (
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      ) : null}
     </div>
   );
 }

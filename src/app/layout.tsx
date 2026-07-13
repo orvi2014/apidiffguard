@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
-import { RootProvider } from "fumadocs-ui/provider/next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -95,17 +94,10 @@ export default function RootLayout({
     >
       <body className="flex min-h-screen flex-col bg-background font-sans text-foreground">
         <JsonLd data={[organizationJsonLd(), websiteJsonLd(), softwareJsonLd()]} />
-        <RootProvider
-          theme={{
-            enabled: false,
-            defaultTheme: "dark",
-          }}
-        >
-          <TooltipProvider>
-            {children}
-            <Toaster richColors theme="dark" position="bottom-right" />
-          </TooltipProvider>
-        </RootProvider>
+        <TooltipProvider>
+          {children}
+          <Toaster richColors theme="dark" position="bottom-right" />
+        </TooltipProvider>
       </body>
     </html>
   );

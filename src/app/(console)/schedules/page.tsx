@@ -6,6 +6,7 @@ import { AddScheduleForm } from "@/components/schedules/add-schedule-form";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { listWorkspaceEndpointsForPalette } from "@/lib/workspace-data";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 export const metadata = { title: "Schedules" };
@@ -24,17 +25,15 @@ export default async function SchedulesPage({
   if (!ctx) redirect("/login");
 
   const supabase = await createClient();
-  const [{ data: schedules }, { data: endpoints }] = await Promise.all([
+  const [{ data: schedules }, endpoints] = await Promise.all([
     supabase
       .from("schedules")
-      .select("*, endpoints(id, name)")
+      .select(
+        "id, frequency, enabled, last_run_at, next_run_at, endpoint_id, endpoints(id, name)"
+      )
       .eq("workspace_id", ctx.workspaceId)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("endpoints")
-      .select("id, name")
-      .eq("workspace_id", ctx.workspaceId)
-      .order("name", { ascending: true }),
+    listWorkspaceEndpointsForPalette(ctx.workspaceId),
   ]);
 
   return (

@@ -16,7 +16,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Kbd } from "@/components/ui/kbd";
 import { SeverityBadge } from "@/components/domain/badges";
 import { DiffTree, JSONViewer } from "@/components/diff/diff-tree";
-import { buildJsonTree, changesToMap, summarizeChanges } from "@/lib/diff-engine";
+import {
+  buildJsonTree,
+  changesToMap,
+  summarizeChanges,
+  type JsonTreeNode,
+} from "@/lib/diff-engine";
 import type { DiffResult } from "@/lib/types";
 import { cn, formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
 
@@ -24,10 +29,62 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
   const [search, setSearch] = React.useState("");
   const [changeIndex, setChangeIndex] = React.useState(0);
   const [copied, setCopied] = React.useState(false);
+  const [tab, setTab] = React.useState("summary");
+  const [bodies, setBodies] = React.useState<{
+    baselineBody: unknown;
+    currentBody: unknown;
+  } | null>(diff.baseline.body != null && diff.current.body != null
+    ? { baselineBody: diff.baseline.body, currentBody: diff.current.body }
+    : null);
+  const [bodiesError, setBodiesError] = React.useState<string | null>(null);
+  const [bodiesLoading, setBodiesLoading] = React.useState(false);
+
   const summary = summarizeChanges(diff.changes);
-  const changeMap = changesToMap(diff.changes);
-  const oldTree = buildJsonTree(diff.baseline.body, "", "root", changeMap);
-  const newTree = buildJsonTree(diff.current.body, "", "root", changeMap);
+  const changeMap = React.useMemo(
+    () => changesToMap(diff.changes),
+    [diff.changes]
+  );
+
+  const oldTree: JsonTreeNode | null = React.useMemo(
+    () =>
+      bodies
+        ? buildJsonTree(bodies.baselineBody, "", "root", changeMap)
+        : null,
+    [bodies, changeMap]
+  );
+  const newTree: JsonTreeNode | null = React.useMemo(
+    () =>
+      bodies
+        ? buildJsonTree(bodies.currentBody, "", "root", changeMap)
+        : null,
+    [bodies, changeMap]
+  );
+
+  React.useEffect(() => {
+    if (tab === "summary" || bodies || bodiesLoading) return;
+    setBodiesLoading(true);
+    setBodiesError(null);
+    void fetch(`/api/diffs/${diff.id}/bodies`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Could not load response bodies");
+        return r.json() as Promise<{
+          baselineBody: unknown;
+          currentBody: unknown;
+        }>;
+      })
+      .then((data) => {
+        setBodies({
+          baselineBody: data.baselineBody,
+          currentBody: data.currentBody,
+        });
+      })
+      .catch((err: unknown) => {
+        setBodiesError(
+          err instanceof Error ? err.message : "Could not load response bodies"
+        );
+      })
+      .finally(() => setBodiesLoading(false));
+  }, [tab, bodies, bodiesLoading, diff.id]);
 
   const jump = (dir: 1 | -1) => {
     if (!diff.changes.length) return;
@@ -199,7 +256,11 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
 
         {/* Main panes */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <Tabs defaultValue="side-by-side" className="flex min-h-0 flex-1 flex-col">
+          <Tabs
+            value={tab}
+            onValueChange={setTab}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className="flex items-center justify-between border-b border-border-subtle px-3 py-2">
               <TabsList>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -216,6 +277,12 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
               value="side-by-side"
               className="flex min-h-0 flex-1 flex-col lg:flex-row"
             >
+              {bodiesLoading || !oldTree || !newTree ? (
+                <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted">
+                  {bodiesError ?? "Loading response trees…"}
+                </div>
+              ) : (
+                <>
               <div className="flex min-h-[280px] min-w-0 flex-1 flex-col border-b border-border lg:border-b-0 lg:border-r">
                 <PaneHeader
                   title="Old response"
@@ -256,20 +323,30 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
                   className="flex-1"
                 />
               </div>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent
               value="raw"
               className="flex min-h-0 flex-1 flex-col lg:flex-row"
             >
+              {bodiesLoading || !bodies ? (
+                <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted">
+                  {bodiesError ?? "Loading raw JSON…"}
+                </div>
+              ) : (
+                <>
               <div className="min-h-[280px] flex-1 border-b border-border lg:border-b-0 lg:border-r">
                 <PaneHeader title="Old JSON" meta="baseline" tone="old" />
-                <JSONViewer data={diff.baseline.body} className="h-[calc(100%-36px)]" />
+                <JSONViewer data={bodies.baselineBody} className="h-[calc(100%-36px)]" />
               </div>
               <div className="min-h-[280px] flex-1">
                 <PaneHeader title="New JSON" meta="current" tone="new" />
-                <JSONViewer data={diff.current.body} className="h-[calc(100%-36px)]" />
+                <JSONViewer data={bodies.currentBody} className="h-[calc(100%-36px)]" />
               </div>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </div>
