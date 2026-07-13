@@ -68,12 +68,28 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: `${SITE_NAME} — Catch breaking API changes before production`,
     description: DEFAULT_DESCRIPTION,
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} — Catch breaking API changes before production`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE_NAME} — Catch breaking API changes before production`,
     description: DEFAULT_DESCRIPTION,
+    images: ["/twitter-image"],
   },
+  icons: {
+    icon: [
+      { url: "/icon", type: "image/png", sizes: "32x32" },
+    ],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  },
+  manifest: "/manifest.webmanifest",
   verification: {
     // Add Search Console / Bing codes when available:
     // google: "...",

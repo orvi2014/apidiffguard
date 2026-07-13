@@ -87,7 +87,8 @@ export function organizationJsonLd() {
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
-    logo: absoluteUrl("/icon"),
+    logo: absoluteUrl("/apple-icon"),
+    image: absoluteUrl("/opengraph-image"),
     sameAs: ["https://github.com/orvi2014/apidiffguard"],
     description: DEFAULT_DESCRIPTION,
     knowsAbout: [
@@ -120,6 +121,7 @@ export function softwareJsonLd() {
     operatingSystem: "Web",
     url: SITE_URL,
     description: DEFAULT_DESCRIPTION,
+    image: absoluteUrl("/opengraph-image"),
     offers: {
       "@type": "Offer",
       price: "0",

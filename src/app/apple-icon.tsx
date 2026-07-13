@@ -1,10 +1,10 @@
 import { ImageResponse } from "next/og";
 
-export const size = { width: 32, height: 32 };
+export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-/** Tab favicon — accent tile with brand mark. */
-export default function Icon() {
+/** Apple touch icon / home-screen mark. */
+export default function AppleIcon() {
   return new ImageResponse(
     (
       <div
@@ -15,16 +15,16 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#4F7FFF",
-          borderRadius: 7,
+          borderRadius: 40,
         }}
       >
         <div
           style={{
             display: "flex",
             color: "#ffffff",
-            fontSize: 18,
+            fontSize: 96,
             fontWeight: 700,
-            letterSpacing: -0.5,
+            letterSpacing: -2,
             fontFamily: "ui-sans-serif, system-ui, sans-serif",
           }}
         >
