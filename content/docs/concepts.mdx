@@ -15,17 +15,23 @@ Only one baseline is **active** per endpoint. New captures bump the version and 
 
 ## Check
 
-A **check** fetches the endpoint again and stores the live response. Checks can be triggered from the console or a schedule. A published CLI and public API are on the roadmap.
+A **check** fetches the endpoint again and stores the live response. Checks can be triggered from the console, a schedule, or the CLI (`apidiff check` against files or a URL). A public REST API is on the roadmap.
 
 ## Diff
 
-A **diff** compares the active baseline body (and status) to a check result. Changes are classified by severity:
+A **diff** compares the active baseline body (and status) to a check result. Hosted checks default to **schema mode**: leaf value churn is ignored so alerts stay on contract changes. Switch an endpoint to **full** mode to include value changes.
+
+Changes are classified by severity:
 
 | Severity | Examples |
 | --- | --- |
-| **Breaking** | Field removed, type changed, status class change |
-| **Warning** | Value changed (non-ignored paths), response header changed |
+| **Breaking** | Field removed, type changed, nullability changed, status **class** change (2xx→4xx), OpenAPI contract violation |
+| **Warning** | Value changed (full mode), response header changed, status change within the same class (200→201) |
 | **Info** | Field added, other non-breaking churn |
+
+Array items with stable identity keys (`id`, `_id`, `uuid`, `key`, `slug`, `name`) are matched by identity so reordering does not look like mass field churn.
+
+When an endpoint was imported from OpenAPI with a response schema, live bodies are also validated against that contract.
 
 ## Ignore rules
 

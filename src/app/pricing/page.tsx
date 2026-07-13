@@ -29,7 +29,7 @@ const faqs = [
   },
   {
     q: "Is there a CLI?",
-    a: "Not published yet. Use the console and schedules for monitoring; see the CLI docs for current status.",
+    a: "Yes. Use apidiff check from packages/cli in this repo (or npm link) to compare JSON files or a live URL and fail CI on breaking changes. Hosted endpoint login remains on the roadmap — see the CLI docs.",
   },
   {
     q: "What auth types are supported?",

@@ -16,6 +16,7 @@ import {
   Webhook,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/logo";
 import { CommandPaletteTrigger } from "@/components/layout/command-palette";
 import { ConsoleNavLink } from "@/components/layout/console-nav-link";
 import { signOut } from "@/app/actions/auth";
@@ -66,9 +67,7 @@ export function AppShell({
           prefetch
           className="mr-2 flex items-center gap-2 px-2 py-1.5 text-sm font-semibold tracking-tight"
         >
-          <span className="flex size-5 items-center justify-center rounded-[4px] bg-accent text-[10px] font-bold text-white">
-            A
-          </span>
+          <BrandLogo size={20} />
           <span className="hidden sm:inline">APIDiffGuard</span>
         </Link>
 

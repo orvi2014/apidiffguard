@@ -69,12 +69,25 @@ export function createSocialImage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#ffffff",
-                fontSize: 26,
-                fontWeight: 700,
+                gap: 4,
               }}
             >
-              A
+              <div
+                style={{
+                  width: 12,
+                  height: 28,
+                  borderRadius: 3,
+                  background: "rgba(255,255,255,0.95)",
+                }}
+              />
+              <div
+                style={{
+                  width: 12,
+                  height: 28,
+                  borderRadius: 3,
+                  background: "rgba(255,255,255,0.35)",
+                }}
+              />
             </div>
             <div
               style={{

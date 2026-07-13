@@ -54,3 +54,5 @@ next-env.d.ts
 
 # agent memory
 .agents/
+packages/diff-engine/node_modules
+packages/cli/node_modules

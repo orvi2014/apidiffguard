@@ -150,8 +150,8 @@ export default function LandingPage() {
                 },
                 {
                   icon: Terminal,
-                  title: "Console-first monitoring",
-                  body: "Capture baselines and run checks in the console today. CLI and public API are on the roadmap.",
+                  title: "CLI for CI",
+                  body: "apidiff check diffs JSON files or a live URL and exits non-zero on breaking changes.",
                 },
               ].map((f) => (
                   <div key={f.title} className="relative h-full overflow-hidden rounded-lg border border-border bg-background p-6 sm:p-8">
@@ -175,32 +175,40 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-24 lg:grid-cols-2">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Same engine in the console — CI CLI coming soon.
+                Same engine in the console and in CI.
               </h2>
               <p className="mt-4 text-muted leading-relaxed">
-                Review schema drift in the Diff Viewer today. A published CLI
-                for failing pipelines is on the roadmap.
+                Review schema drift in the Diff Viewer, or run{" "}
+                <code className="text-sm text-foreground">apidiff check</code>{" "}
+                in your pipeline against a baseline file or live URL.
               </p>
               <Link
                 href="/docs/cli"
                 className="mt-6 inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
               >
-                CLI status
+                CLI docs
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
             <pre className="overflow-x-auto rounded-lg border border-border bg-surface p-5 font-mono text-[13px] leading-relaxed text-muted">
               <code>
-                <span className="text-muted-foreground"># Console · Run check</span>
-                {"\n"}
-                <span className="text-success">✓</span> GET /v1/products — healthy
-                {"\n"}
-                <span className="text-warning">!</span> POST /v1/orders — 2 warnings
-                {"\n"}
-                <span className="text-danger">✗</span> GET /v1/users — 2 breaking
-                {"\n\n"}
                 <span className="text-muted-foreground">
-                  Open the Diff Viewer to review field changes
+                  $ apidiff check --baseline users.json --url $API/users
+                </span>
+                {"\n"}
+                breaking=2 warning=1 info=0
+                {"\n"}
+                <span className="text-danger">BREAKING</span> removed{" "}
+                data.email
+                {"\n"}
+                <span className="text-danger">BREAKING</span> type_changed{" "}
+                data.id
+                {"\n"}
+                <span className="text-warning">WARNING</span> changed{" "}
+                data.role
+                {"\n\n"}
+                <span className="text-danger">
+                  Failed: 2 change(s) at or above breaking.
                 </span>
               </code>
             </pre>
@@ -278,7 +286,7 @@ export default function LandingPage() {
             />
             <AnswerBlock
               question="How do you detect breaking API changes in CI?"
-              answer="Today, capture a baseline and run checks from the console or on a schedule; alert on breaking severity such as removed fields or type changes. A published CLI is on the roadmap — until then you can reuse @apidiffguard/diff in your own CI job, or the same engine in the free JSON Diff tool."
+              answer="Capture a known-good response as a baseline, re-fetch the same endpoint (or compare JSON fixtures), and fail the job when the JSON diff reports breaking severity. Use apidiff check from @apidiffguard/cli, the console Diff Viewer, or the free JSON Diff tool — they share the same engine."
             />
           </div>
         </section>

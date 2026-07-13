@@ -10,6 +10,8 @@
     "lint": "eslint",
     "test": "tsx --test src/lib/diff-engine.test.ts src/lib/openapi.test.ts src/lib/safe-url.test.ts",
     "test:e2e": "playwright test",
+    "build:packages": "npm run build --prefix packages/diff-engine",
+    "apidiff": "npm run build:packages && node packages/cli/bin/apidiff.js",
     "postinstall": "fumadocs-mdx",
     "db:generate": "prisma generate",
     "db:push": "prisma db push"

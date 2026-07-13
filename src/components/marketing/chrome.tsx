@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { BrandLogo } from "@/components/brand/logo";
 import { createClient } from "@/lib/supabase/server";
 import { MarketingHeaderClient } from "@/components/marketing/header-client";
 
@@ -35,10 +36,7 @@ export function MarketingFooter() {
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-5 sm:py-16 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-3">
           <div className="flex items-center gap-2 font-semibold">
-            <span className="flex size-5 items-center justify-center rounded-[4px] bg-accent text-[10px] font-bold text-white">
-              A
-            </span>
-            APIDiffGuard
+            <BrandLogo withWordmark size={20} />
           </div>
           <p className="max-w-xs text-sm text-muted leading-relaxed">
             Catch breaking API changes before production.
@@ -58,7 +56,7 @@ export function MarketingFooter() {
             title: "Developers",
             links: [
               ["Documentation", "/docs"],
-              ["CLI (soon)", "/docs/cli"],
+              ["CLI", "/docs/cli"],
               ["JSON Diff", "/tools/json-diff"],
               ["GitHub", "https://github.com/orvi2014/apidiffguard"],
             ],

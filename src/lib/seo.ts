@@ -87,7 +87,7 @@ export function organizationJsonLd() {
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
-    logo: absoluteUrl("/apple-icon"),
+    logo: absoluteUrl("/brand/logo-mark.svg"),
     image: absoluteUrl("/opengraph-image"),
     sameAs: ["https://github.com/orvi2014/apidiffguard"],
     description: DEFAULT_DESCRIPTION,

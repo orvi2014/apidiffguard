@@ -1,0 +1,40 @@
+{
+  "name": "@apidiffguard/cli",
+  "version": "0.2.0",
+  "description": "CLI for APIDiffGuard — diff API JSON responses and fail CI on breaking changes.",
+  "type": "module",
+  "bin": {
+    "apidiff": "./bin/apidiff.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "apidiff": "node ./bin/apidiff.js"
+  },
+  "dependencies": {
+    "@apidiffguard/diff": "file:../diff-engine"
+  },
+  "keywords": [
+    "api",
+    "diff",
+    "breaking-change",
+    "ci",
+    "json",
+    "apidiffguard"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orvi2014/apidiffguard.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/orvi2014/apidiffguard/tree/main/packages/cli",
+  "bugs": {
+    "url": "https://github.com/orvi2014/apidiffguard/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

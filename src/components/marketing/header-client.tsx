@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -36,10 +37,7 @@ export function MarketingHeaderClient({
           href="/"
           className="flex items-center gap-2.5 font-semibold tracking-tight"
         >
-          <span className="flex size-6 items-center justify-center rounded-[5px] bg-accent text-[11px] font-bold text-white">
-            A
-          </span>
-          APIDiffGuard
+          <BrandLogo withWordmark size={24} priority />
         </Link>
 
         <nav
