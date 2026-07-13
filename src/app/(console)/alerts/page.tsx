@@ -47,7 +47,8 @@ export default async function AlertsPage({
     .select("id, channel, enabled, min_severity")
     .eq("workspace_id", ctx.workspaceId);
 
-  const enabledCount = configs?.filter((c) => c.enabled).length ?? 0;
+  const enabledCount =
+    configs?.filter((c) => c.enabled && c.channel !== "EMAIL").length ?? 0;
   const configIds = configs?.map((c) => c.id) ?? [];
 
   const dayStart = new Date();

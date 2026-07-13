@@ -21,7 +21,7 @@ You may use, modify, and self-host the software under MIT terms.
 | --- | --- |
 | Managed auth, workspace, RLS | No ops burden |
 | Hosted baselines, checks, diffs | Always on |
-| Schedules & alerts (roadmap) | Drift while you sleep |
+| Schedules & Slack/Discord/webhook alerts | Drift while you sleep |
 | Support & upgrades | Production reliability |
 
 Self-hosting means you run Supabase, secrets, deploys, and monitoring yourself. That is allowed. Most customers prefer Cloud.

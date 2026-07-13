@@ -24,14 +24,14 @@ A **diff** compares the active baseline body (and status) to a check result. Cha
 | Severity | Examples |
 | --- | --- |
 | **Breaking** | Field removed, type changed, status class change |
-| **Warning** | Field added, enum growth (configurable) |
-| **Info** | Value-only churn on non-ignored paths |
+| **Warning** | Value changed (non-ignored paths), response header changed |
+| **Info** | Field added, other non-breaking churn |
 
 ## Ignore rules
 
-Volatile paths (`request_id`, timestamps, cursors) should eventually be ignored so alerts fire on contract changes — not every unique request.
+Volatile leaf names such as `request_id`, `timestamp`, `created_at`, `updated_at`, `etag`, `nonce`, and `uuid` are ignored by default so alerts stay on contract changes.
 
-**Status:** ignore rules are in the data model and diff engine, but the console UI to manage them is not shipped yet. Until then, prefer stable response shapes or filter noise in the Diff Viewer.
+Workspace-specific ignore rules also exist in the data model and are applied by the engine when present. A console UI to manage custom rules is not shipped yet — until then, prefer stable response shapes or filter noise in the Diff Viewer.
 
 ## Schedules
 

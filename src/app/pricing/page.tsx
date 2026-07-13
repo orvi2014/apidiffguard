@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: "Can I ignore volatile fields?",
-    a: "Ignore rules are on the roadmap. Today, review noisy paths in the Diff Viewer; stable response shapes work best.",
+    a: "Built-in defaults ignore volatile leaf names (request_id, timestamp, and similar). Custom workspace ignore rules exist in the engine but the console UI to edit them is still on the roadmap — review noisy paths in the Diff Viewer today.",
   },
   {
     q: "Is there a CLI?",

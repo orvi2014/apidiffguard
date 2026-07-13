@@ -39,12 +39,14 @@ export function AppShell({
   workspaceName,
   workspaceSlug,
   email,
+  canEdit = true,
   checksTodaySlot,
 }: {
   children: React.ReactNode;
   workspaceName: string;
   workspaceSlug: string;
   email: string;
+  canEdit?: boolean;
   checksTodaySlot: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -52,6 +54,12 @@ export function AppShell({
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-surface-elevated focus:px-3 focus:py-2 focus:text-sm"
+      >
+        Skip to content
+      </a>
       <header className="z-30 flex h-12 shrink-0 items-center gap-1 border-b border-border bg-surface px-2 sm:px-3">
         <Link
           href="/dashboard"
@@ -88,21 +96,25 @@ export function AppShell({
             <Search className="size-4" />
           </button>
           <CommandPaletteTrigger onOpen={() => setPaletteOpen(true)} />
-          <Link
-            href="/endpoints/new"
-            prefetch
-            className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface-elevated text-foreground transition-colors hover:bg-[#1f1f23] md:hidden"
-            aria-label="New endpoint"
-          >
-            <Plus className="size-4" />
-          </Link>
-          <Link
-            href="/endpoints/new"
-            prefetch
-            className="hidden h-8 items-center rounded-md border border-border bg-surface-elevated px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-[#1f1f23] md:inline-flex"
-          >
-            New endpoint
-          </Link>
+          {canEdit ? (
+            <>
+              <Link
+                href="/endpoints/new"
+                prefetch
+                className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface-elevated text-foreground transition-colors hover:bg-[#1f1f23] md:hidden"
+                aria-label="New endpoint"
+              >
+                <Plus className="size-4" />
+              </Link>
+              <Link
+                href="/endpoints/new"
+                prefetch
+                className="hidden h-8 items-center rounded-md border border-border bg-surface-elevated px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-[#1f1f23] md:inline-flex"
+              >
+                New endpoint
+              </Link>
+            </>
+          ) : null}
           <Link
             href="/settings"
             prefetch
@@ -139,7 +151,9 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+      <main id="main" className="min-h-0 flex-1 overflow-auto">
+        {children}
+      </main>
 
       <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-border bg-surface px-3 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1.5">
@@ -152,7 +166,11 @@ export function AppShell({
       </footer>
 
       {paletteOpen ? (
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          canEdit={canEdit}
+        />
       ) : null}
     </div>
   );

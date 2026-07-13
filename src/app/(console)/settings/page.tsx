@@ -16,7 +16,7 @@ export default function SettingsPage() {
           className="mt-3 rounded-md border border-border bg-surface px-3 py-2 text-xs text-muted"
         >
           Coming soon — these defaults are not persisted yet. Checks currently
-          use built-in timeouts and retries.
+          use a built-in request timeout (no automatic retries yet).
         </p>
       </div>
       <fieldset disabled className="space-y-4 opacity-70">

@@ -34,7 +34,7 @@ const ProductDemo = dynamic(
 export const metadata: Metadata = buildMetadata({
   title: "API Breaking Change Detection & Schema Drift Monitoring",
   description:
-    "Catch breaking API changes before production. Monitor responses, detect JSON schema drift, and gate CI with the same engine as our free JSON Diff tool.",
+    "Catch breaking API changes before production. Monitor responses, detect JSON schema drift, and review diffs with the same engine as our free JSON Diff tool.",
   path: "/",
 });
 
@@ -136,7 +136,7 @@ export default function LandingPage() {
                 {
                   icon: Clock,
                   title: "Scheduled monitoring",
-                  body: "Hourly to monthly checks with retries, backoff, timeouts, and rate limits.",
+                  body: "Hourly to monthly cadence with request timeouts. Failed runs requeue on the next cron pass.",
                 },
                 {
                   icon: Bell,
@@ -226,7 +226,7 @@ export default function LandingPage() {
               {[
                 {
                   title: "Baseline → check → diff",
-                  body: "Capture a known-good response, re-fetch on a schedule or in CI, and review every field change with severity.",
+                  body: "Capture a known-good response, re-fetch on a schedule or manually in the console, and review every field change with severity.",
                 },
                 {
                   title: "Alert when it matters",
@@ -278,7 +278,7 @@ export default function LandingPage() {
             />
             <AnswerBlock
               question="How do you detect breaking API changes in CI?"
-              answer="Capture a known-good response as a baseline, re-fetch the same endpoint in CI, and fail the job when the JSON diff reports breaking severity such as removed fields or type changes. APIDiffGuard uses the same engine in the console and in the free JSON Diff tool."
+              answer="Today, capture a baseline and run checks from the console or on a schedule; alert on breaking severity such as removed fields or type changes. A published CLI is on the roadmap — until then you can reuse @apidiffguard/diff in your own CI job, or the same engine in the free JSON Diff tool."
             />
           </div>
         </section>

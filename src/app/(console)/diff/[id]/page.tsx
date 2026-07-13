@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DiffViewer } from "@/components/diff/diff-viewer";
 import { EmptyState } from "@/components/domain/activity";
 import { Button } from "@/components/ui/button";
+import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { listWorkspaceEndpointIds } from "@/lib/workspace-data";
@@ -34,6 +35,7 @@ export default async function DiffPage({
   let { id } = await params;
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
 
@@ -115,5 +117,5 @@ export default async function DiffPage({
     },
   };
 
-  return <DiffViewer diff={diff} />;
+  return <DiffViewer diff={diff} canEdit={canEdit} />;
 }

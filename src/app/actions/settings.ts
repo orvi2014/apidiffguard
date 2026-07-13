@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { canManageWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
@@ -30,6 +31,9 @@ export async function updateProfile(formData: FormData) {
 export async function updateWorkspace(formData: FormData) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  if (!canManageWorkspace(ctx.role)) {
+    redirect("/settings/workspace?error=forbidden");
+  }
 
   const name = String(formData.get("name") ?? "").trim();
   const slug = String(formData.get("slug") ?? "")

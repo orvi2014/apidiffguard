@@ -58,7 +58,7 @@ export function MarketingFooter() {
             title: "Developers",
             links: [
               ["Documentation", "/docs"],
-              ["CLI", "/docs/cli"],
+              ["CLI (soon)", "/docs/cli"],
               ["JSON Diff", "/tools/json-diff"],
               ["GitHub", "https://github.com/orvi2014/apidiffguard"],
             ],

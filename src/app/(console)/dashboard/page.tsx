@@ -10,6 +10,7 @@ import { ActivityFeed, MetricStrip } from "@/components/domain/activity";
 import { EndpointCard } from "@/components/domain/endpoint-card";
 import { DriftAttentionCard } from "@/components/domain/drift-attention-card";
 import { Button } from "@/components/ui/button";
+import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import {
@@ -25,6 +26,7 @@ export const metadata = { title: "Overview" };
 export default async function DashboardPage() {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
 
@@ -108,18 +110,22 @@ export default async function DashboardPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href="/endpoints/new">
-                <Button size="sm" variant="secondary" className="gap-1.5">
-                  <Plus className="size-3.5" />
-                  Endpoint
-                </Button>
-              </Link>
-              <Link href="/endpoints/import">
-                <Button size="sm" variant="secondary" className="gap-1.5">
-                  <FileJson className="size-3.5" />
-                  Import OpenAPI
-                </Button>
-              </Link>
+              {canEdit ? (
+                <>
+                  <Link href="/endpoints/new">
+                    <Button size="sm" variant="secondary" className="gap-1.5">
+                      <Plus className="size-3.5" />
+                      Endpoint
+                    </Button>
+                  </Link>
+                  <Link href="/endpoints/import">
+                    <Button size="sm" variant="secondary" className="gap-1.5">
+                      <FileJson className="size-3.5" />
+                      Import OpenAPI
+                    </Button>
+                  </Link>
+                </>
+              ) : null}
               {primaryEndpoint ? (
                 <Link href={`/endpoints/${primaryEndpoint.id}`}>
                   <Button size="sm" className="gap-1.5">
@@ -194,11 +200,20 @@ export default async function DashboardPage() {
           </div>
           {endpoints.length === 0 ? (
             <p className="mt-3 text-sm text-muted">
-              No endpoints yet.{" "}
-              <Link href="/endpoints/import" className="text-accent hover:underline">
-                Import OpenAPI
-              </Link>{" "}
-              or create one.
+              {canEdit ? (
+                <>
+                  No endpoints yet.{" "}
+                  <Link
+                    href="/endpoints/import"
+                    className="text-accent hover:underline"
+                  >
+                    Import OpenAPI
+                  </Link>{" "}
+                  or create one.
+                </>
+              ) : (
+                "No endpoints yet. Ask an editor to add one."
+              )}
             </p>
           ) : (
             <div className="mt-3 divide-y divide-border-subtle border-y border-border-subtle">
@@ -232,23 +247,35 @@ export default async function DashboardPage() {
               {
                 href: primaryEndpoint
                   ? `/endpoints/${primaryEndpoint.id}`
-                  : "/endpoints/new",
+                  : canEdit
+                    ? "/endpoints/new"
+                    : "/endpoints",
                 label: "Open endpoint to capture",
                 icon: Shield,
               },
               {
                 href: primaryEndpoint
                   ? `/endpoints/${primaryEndpoint.id}`
-                  : "/endpoints/new",
+                  : canEdit
+                    ? "/endpoints/new"
+                    : "/endpoints",
                 label: "Open endpoint to check",
                 icon: Play,
               },
-              { href: "/endpoints/new", label: "Create endpoint", icon: Plus },
-              {
-                href: "/endpoints/import",
-                label: "Import OpenAPI",
-                icon: FileJson,
-              },
+              ...(canEdit
+                ? [
+                    {
+                      href: "/endpoints/new",
+                      label: "Create endpoint",
+                      icon: Plus,
+                    },
+                    {
+                      href: "/endpoints/import",
+                      label: "Import OpenAPI",
+                      icon: FileJson,
+                    },
+                  ]
+                : []),
             ].map((a) => (
               <Link
                 key={a.label}

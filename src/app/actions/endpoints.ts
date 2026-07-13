@@ -83,6 +83,9 @@ function authConfigValid(
 export async function acceptDiffAsBaseline(diffId: string) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot accept baselines." };
+  }
 
   const supabase = await createClient();
   const { data: diff } = await supabase
@@ -262,6 +265,9 @@ export async function importEndpoints(
 ) {
   const ctx = await getWorkspaceContext();
   if (!ctx) return { error: "Unauthorized", count: 0, skipped: 0 };
+  if (!canEditWorkspace(ctx.role)) {
+    return { error: "Viewers cannot import endpoints.", count: 0, skipped: 0 };
+  }
 
   if (!Array.isArray(endpoints) || endpoints.length === 0) {
     return { error: "No endpoints to import.", count: 0, skipped: 0 };

@@ -5,7 +5,7 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Changelog — Product Updates",
   description:
-    "Release notes for APIDiffGuard: Diff Viewer, baselines, schedules, alerts, CLI, and free JSON tools.",
+    "Release notes for APIDiffGuard: Diff Viewer, baselines, schedules, alerts, and free JSON tools.",
   path: "/changelog",
 });
 
@@ -19,7 +19,7 @@ const entries = [
       "Command palette (⌘K) and IDE-style console shell",
       "Fumadocs documentation and blog",
       "Free JSON Diff, Formatter, and Validator tools",
-      "CLI and REST API documentation",
+      "CLI and REST API docs (status pages — not published yet)",
     ],
   },
 ];

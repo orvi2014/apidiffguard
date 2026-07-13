@@ -10,6 +10,7 @@ const PRIVATE = [
   "/dashboard",
   "/endpoints",
   "/diff",
+  "/diffs",
   "/alerts",
   "/schedules",
   "/settings",

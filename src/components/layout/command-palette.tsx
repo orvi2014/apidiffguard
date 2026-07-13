@@ -43,9 +43,11 @@ const actionCommands = [
 export function CommandPalette({
   open,
   onOpenChange,
+  canEdit = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [endpoints, setEndpoints] = React.useState<PaletteEndpoint[]>([]);
@@ -99,19 +101,23 @@ export function CommandPalette({
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Actions">
-          {actionCommands.map((cmd) => (
-            <CommandItem
-              key={cmd.id}
-              value={cmd.label}
-              onSelect={() => run(cmd.href)}
-            >
-              <cmd.icon />
-              <span>{cmd.label}</span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {canEdit ? (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Actions">
+              {actionCommands.map((cmd) => (
+                <CommandItem
+                  key={cmd.id}
+                  value={cmd.label}
+                  onSelect={() => run(cmd.href)}
+                >
+                  <cmd.icon />
+                  <span>{cmd.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        ) : null}
         {endpoints.length > 0 ? (
           <>
             <CommandSeparator />

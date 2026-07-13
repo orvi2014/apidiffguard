@@ -24,7 +24,8 @@ export const PLANS: PlanDefinition[] = [
       "3 endpoints",
       "Manual checks",
       "Baseline history",
-      "Webhook test alerts",
+      "Slack + Discord + webhooks",
+      "OpenAPI import",
     ],
     endpointLimit: 3,
   },
@@ -39,6 +40,7 @@ export const PLANS: PlanDefinition[] = [
       "Scheduled checks",
       "Slack + Discord + webhooks",
       "Alert history",
+      "OpenAPI import",
     ],
     endpointLimit: 20,
   },
@@ -47,13 +49,13 @@ export const PLANS: PlanDefinition[] = [
     name: "Pro",
     priceLabel: "$49",
     period: "/month",
-    description: "The plan most teams stay on once CI is wired up.",
+    description: "More endpoints and schedules for growing monitoring needs.",
     features: [
       "100 endpoints",
-      "Unlimited baselines",
+      "Scheduled checks",
+      "Slack + Discord + webhooks",
+      "Alert history",
       "OpenAPI import",
-      "Priority alerts",
-      "Webhook channel",
     ],
     endpointLimit: 100,
     highlighted: true,
@@ -63,13 +65,13 @@ export const PLANS: PlanDefinition[] = [
     name: "Team",
     priceLabel: "Custom",
     period: "",
-    description: "Multi-workspace orgs with audit and role controls.",
+    description: "Custom limits and support. Invite/SSO controls are on the roadmap.",
     features: [
-      "Unlimited endpoints",
+      "Custom endpoint limits",
       "Priority support",
-      "Custom limits",
+      "Dedicated onboarding",
       "SSO (soon)",
-      "Dedicated support",
+      "Invite & roles (soon)",
     ],
     endpointLimit: null,
     contactOnly: true,
@@ -100,6 +102,12 @@ export function planAllowsSchedules(id: PlanId): boolean {
 export function canEditWorkspace(role: string): boolean {
   const r = role.toUpperCase();
   return r === "OWNER" || r === "ADMIN" || r === "MEMBER";
+}
+
+/** Workspace rename / billing-sensitive settings. */
+export function canManageWorkspace(role: string): boolean {
+  const r = role.toUpperCase();
+  return r === "OWNER" || r === "ADMIN";
 }
 
 export type PaidPlanId = Exclude<PlanId, "free" | "team">;

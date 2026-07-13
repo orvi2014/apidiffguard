@@ -4,6 +4,7 @@ import { FileJson, Plus } from "lucide-react";
 import { HealthBadge } from "@/components/domain/badges";
 import { EndpointsList } from "@/components/domain/endpoints-list";
 import { Button } from "@/components/ui/button";
+import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { mapEndpoint, type DbEndpoint } from "@/lib/mappers";
@@ -13,6 +14,7 @@ export const metadata = { title: "Endpoints" };
 export default async function EndpointsPage() {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -40,20 +42,24 @@ export default async function EndpointsPage() {
               {ctx.workspaceName}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/endpoints/import">
-              <Button size="sm" variant="secondary" className="gap-1.5">
-                <FileJson className="size-3.5" />
-                Import
-              </Button>
-            </Link>
-            <Link href="/endpoints/new">
-              <Button size="sm" className="gap-1.5">
-                <Plus className="size-3.5" />
-                New endpoint
-              </Button>
-            </Link>
-          </div>
+          {canEdit ? (
+            <div className="flex gap-2">
+              <Link href="/endpoints/import">
+                <Button size="sm" variant="secondary" className="gap-1.5">
+                  <FileJson className="size-3.5" />
+                  Import
+                </Button>
+              </Link>
+              <Link href="/endpoints/new">
+                <Button size="sm" className="gap-1.5">
+                  <Plus className="size-3.5" />
+                  New endpoint
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <p className="text-xs text-muted">View-only access</p>
+          )}
         </div>
       </div>
 

@@ -190,9 +190,10 @@ async function handlePaymentFailed(invoice: StripeInvoice) {
   }
   if (!workspaceId) return;
 
-  await updateWorkspaceBilling(workspaceId, "free");
+  // Keep the current plan through Stripe retries. Downgrade only when the
+  // subscription is deleted or updated to a free/canceled state.
   console.warn(
-    `[stripe] Payment failed for workspace ${workspaceId} — downgraded to free`
+    `[stripe] Payment failed for workspace ${workspaceId} — plan unchanged pending retry or cancellation`
   );
 }
 

@@ -15,7 +15,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen">
       <MarketingHeader />
       <main id="main" className="mx-auto max-w-3xl px-5 py-16">
-        <p className="text-xs text-muted-foreground">Last updated: July 12, 2026</p>
+        <p className="text-xs text-muted-foreground">Last updated: July 13, 2026</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Privacy Policy</h1>
         <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none text-sm leading-relaxed text-muted-foreground">
           <p>
@@ -49,9 +49,10 @@ export default function PrivacyPage() {
           </p>
           <h2>Processors</h2>
           <p>
-            We use infrastructure providers such as Vercel (hosting) and
-            Supabase (auth/database). They process data under their own terms
-            to run the service.
+            We use infrastructure and payment providers such as Vercel
+            (hosting), Supabase (auth/database), and Stripe (paid plan billing
+            and invoices). They process account and payment data under their own
+            terms to run the service.
           </p>
           <h2>Retention & deletion</h2>
           <p>

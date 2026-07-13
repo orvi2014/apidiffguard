@@ -26,7 +26,13 @@ import type { DiffResult } from "@/lib/types";
 import { cn, formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
 import { acceptDiffAsBaseline } from "@/app/actions/endpoints";
 
-export function DiffViewer({ diff }: { diff: DiffResult }) {
+export function DiffViewer({
+  diff,
+  canEdit = true,
+}: {
+  diff: DiffResult;
+  canEdit?: boolean;
+}) {
   const [search, setSearch] = React.useState("");
   const [activeChangeId, setActiveChangeId] = React.useState<string | null>(
     diff.changes[0]?.id ?? null
@@ -164,7 +170,7 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
   };
 
   const onAccept = async () => {
-    if (accepted || acceptPending) return;
+    if (!canEdit || accepted || acceptPending) return;
     if (
       !confirm(
         "Promote this response to the active baseline? Future checks will compare against it."
@@ -261,7 +267,14 @@ export function DiffViewer({ diff }: { diff: DiffResult }) {
             </Button>
             <Button
               size="sm"
-              disabled={accepted || acceptPending}
+              disabled={!canEdit || accepted || acceptPending}
+              title={
+                !canEdit
+                  ? "Viewers cannot accept baselines"
+                  : accepted
+                    ? "Already accepted"
+                    : undefined
+              }
               onClick={() => void onAccept()}
             >
               {accepted
