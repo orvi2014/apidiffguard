@@ -7,7 +7,12 @@ import {
 import { safeFetch } from "@/lib/safe-fetch";
 import { parseAndAssertPublicUrl } from "@/lib/safe-url";
 
-export type DeliverableChannel = "EMAIL" | "SLACK" | "DISCORD" | "WEBHOOK";
+export type DeliverableChannel =
+  | "EMAIL"
+  | "SLACK"
+  | "DISCORD"
+  | "MATTERMOST"
+  | "WEBHOOK";
 
 export type DeliveryResult = {
   ok: boolean;
@@ -23,12 +28,37 @@ function targetFromConfig(
   if (channel === "EMAIL" && typeof config.email === "string") return config.email;
   if (channel === "WEBHOOK" && typeof config.url === "string") return config.url;
   if (
-    (channel === "SLACK" || channel === "DISCORD") &&
+    (channel === "SLACK" ||
+      channel === "DISCORD" ||
+      channel === "MATTERMOST") &&
     typeof config.webhookUrl === "string"
   ) {
     return config.webhookUrl;
   }
   return null;
+}
+
+/**
+ * The body each chat platform expects.
+ *
+ * Mattermost incoming webhooks accept Slack's shape verbatim — a `text` field,
+ * single-asterisk bold — so the two share a branch rather than a transport.
+ * A generic WEBHOOK gets the structured payload instead, which is why pointing
+ * a Mattermost URL at that channel fails: Mattermost rejects a body with no
+ * `text` key.
+ */
+export function renderChannelPayload(
+  channel: DeliverableChannel,
+  message: string,
+  structured: Record<string, unknown>
+): Record<string, unknown> {
+  if (channel === "SLACK" || channel === "MATTERMOST") {
+    return { text: `*APIDiffGuard*\n${message}` };
+  }
+  if (channel === "DISCORD") {
+    return { content: `**APIDiffGuard**\n${message}` };
+  }
+  return structured;
 }
 
 export async function deliverAlert(opts: {
@@ -126,12 +156,7 @@ export async function deliverAlert(opts: {
   }
 
   try {
-    const payload =
-      opts.channel === "SLACK"
-        ? { text: `*APIDiffGuard*\n${opts.message}` }
-        : opts.channel === "DISCORD"
-          ? { content: `**APIDiffGuard**\n${opts.message}` }
-          : body;
+    const payload = renderChannelPayload(opts.channel, opts.message, body);
 
     const res = await safeFetch(target, {
       method: "POST",

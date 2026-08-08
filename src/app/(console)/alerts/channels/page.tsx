@@ -19,6 +19,7 @@ const channelMeta: Record<string, { label: string }> = {
   EMAIL: { label: "Email" },
   SLACK: { label: "Slack" },
   DISCORD: { label: "Discord" },
+  MATTERMOST: { label: "Mattermost" },
   WEBHOOK: { label: "Webhook" },
 };
 
@@ -69,8 +70,8 @@ export default async function AlertChannelsPage({
             Alert channels
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Route breaking and warning drift to Slack, Discord, email, or a
-            webhook.
+            Route breaking and warning drift to Slack, Discord, Mattermost,
+            email, or a webhook.
           </p>
         </div>
       </div>
@@ -153,7 +154,7 @@ export default async function AlertChannelsPage({
         <div className="mt-3 divide-y divide-border border border-border">
           {!channels?.length ? (
             <p className="px-4 py-8 text-center text-sm text-muted">
-              No channels yet. Add Slack, Discord, or a webhook above.
+              No channels yet. Add Slack, Discord, Mattermost, or a webhook above.
             </p>
           ) : (
             channels.map((row) => (

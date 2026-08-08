@@ -12,7 +12,7 @@ APIDiffGuard watches your endpoints, captures baselines, and flags breaking resp
 - Run **checks** from the console or on a **schedule** (Starter+)
 - Review **diffs** with severity (breaking / warning / info)
 - Import endpoints from **OpenAPI** / Swagger UI
-- Alert the team when contracts drift (Slack, Discord, webhooks)
+- Alert the team when contracts drift (Slack, Discord, Mattermost, email, webhooks)
 
 A published [REST API](/docs/api) accepts workspace tokens for `POST /api/v1/endpoints/:id/check`. The [CLI](/docs/cli) (`apidiff check`) works for local and CI JSON diffs (including `--header` for private APIs).
 

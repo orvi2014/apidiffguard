@@ -27,6 +27,12 @@ const channelMeta: Record<string, ChannelMeta> = {
     hint: "Webhook URL",
     mono: true,
   },
+  MATTERMOST: {
+    label: "Mattermost",
+    placeholder: "https://mattermost.yourcompany.com/hooks/…",
+    hint: "Incoming webhook URL. The server must be reachable from the public internet.",
+    mono: true,
+  },
   WEBHOOK: {
     label: "Webhook",
     placeholder: "https://example.com/hooks/apidiff",

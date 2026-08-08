@@ -81,7 +81,7 @@ export default function AboutPage() {
               },
               {
                 name: "Alert on breaking changes",
-                text: "Route Slack, Discord, or webhook alerts when severity includes breaking changes such as removed fields or type changes.",
+                text: "Route Slack, Discord, Mattermost, email, or webhook alerts when severity includes breaking changes such as removed fields or type changes.",
               },
             ],
           }),
