@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
+import { PLANS, planMonthlyPrice } from "@/lib/plans";
+import pkg from "../../package.json";
+
+/** Single source of truth for the version shown in the UI. */
+export const APP_VERSION = pkg.version;
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
@@ -89,7 +94,11 @@ export function organizationJsonLd() {
     url: SITE_URL,
     logo: absoluteUrl("/brand/logo-mark.svg"),
     image: absoluteUrl("/opengraph-image"),
-    sameAs: ["https://github.com/orvi2014/apidiffguard"],
+    sameAs: [
+      "https://github.com/orvi2014/apidiffguard",
+      "https://www.npmjs.com/package/@apidiffguard/cli",
+      "https://www.npmjs.com/package/@apidiffguard/diff",
+    ],
     description: DEFAULT_DESCRIPTION,
     knowsAbout: [
       "API monitoring",
@@ -122,12 +131,27 @@ export function softwareJsonLd() {
     url: SITE_URL,
     description: DEFAULT_DESCRIPTION,
     image: absoluteUrl("/opengraph-image"),
-    offers: {
+    // One Offer per purchasable tier. A lone `price: "0"` made rich results
+    // advertise the product as free-only and hid the paid plans entirely.
+    offers: PLANS.filter((plan) => !plan.contactOnly).map((plan) => ({
       "@type": "Offer",
-      price: "0",
+      name: plan.name,
+      price: plan.id === "free" ? "0" : String(planMonthlyPrice(plan.id)),
       priceCurrency: "USD",
-      description: "Free tier and free JSON tools",
-    },
+      description: plan.description,
+      url: absoluteUrl("/pricing"),
+      ...(plan.id === "free"
+        ? {}
+        : {
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: String(planMonthlyPrice(plan.id)),
+              priceCurrency: "USD",
+              billingIncrement: 1,
+              unitCode: "MON",
+            },
+          }),
+    })),
   };
 }
 

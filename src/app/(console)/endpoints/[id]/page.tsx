@@ -20,7 +20,7 @@ export default async function EndpointDetailPage({
   const { data: row } = await supabase
     .from("endpoints")
     .select(
-      "id, name, url, method, environment, tags, description, health, auth_type, headers, last_checked_at, response_time, baseline_version, breaking_count, warning_count, diff_mode"
+      "id, name, url, method, environment, tags, description, health, auth_type, headers, last_checked_at, response_time, baseline_version, breaking_count, warning_count, diff_mode, response_schema"
     )
     .eq("id", id)
     .eq("workspace_id", ctx.workspaceId)
@@ -35,7 +35,11 @@ export default async function EndpointDetailPage({
   const requestBody = headers.__adg_body ?? "";
   const contentType = headers["Content-Type"] ?? "application/json";
 
-  const [{ data: baselineRows }, { data: latestDiff }] = await Promise.all([
+  const [
+    { data: baselineRows },
+    { data: latestDiff },
+    { data: ignoreRows },
+  ] = await Promise.all([
     supabase
       .from("baselines")
       .select(
@@ -51,6 +55,11 @@ export default async function EndpointDetailPage({
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("ignore_rules")
+      .select("id, path, reason")
+      .eq("endpoint_id", id)
+      .order("created_at", { ascending: true }),
   ]);
 
   const baselines: Baseline[] =
@@ -69,6 +78,13 @@ export default async function EndpointDetailPage({
       endpointId: b.endpoint_id,
     })) ?? [];
 
+  const responseSchema =
+    row.response_schema &&
+    typeof row.response_schema === "object" &&
+    !Array.isArray(row.response_schema)
+      ? (row.response_schema as Record<string, unknown>)
+      : null;
+
   return (
     <EndpointDetailLive
       endpoint={mapEndpoint(row as DbEndpoint)}
@@ -77,6 +93,8 @@ export default async function EndpointDetailPage({
       requestBody={requestBody}
       contentType={contentType}
       canEdit={canEdit}
+      ignoreRules={ignoreRows ?? []}
+      responseSchema={responseSchema}
     />
   );
 }

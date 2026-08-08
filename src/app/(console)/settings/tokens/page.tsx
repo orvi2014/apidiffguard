@@ -1,35 +1,51 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ApiTokensManager } from "@/components/settings/api-tokens-manager";
 import { Button } from "@/components/ui/button";
+import { canEditWorkspace } from "@/lib/plans";
+import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceContext } from "@/lib/workspace";
 
 export const metadata = { title: "API tokens" };
 
-export default function TokensPage() {
+export default async function TokensPage() {
+  const ctx = await getWorkspaceContext();
+  if (!ctx) redirect("/login?next=/settings/tokens");
+
+  const supabase = await createClient();
+  const { data: keys } = await supabase
+    .from("api_keys")
+    .select("id, name, prefix, created_at, last_used_at, scopes")
+    .eq("workspace_id", ctx.workspaceId)
+    // Revoked keys are kept for audit but must not look active here.
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="max-w-lg space-y-8">
       <div>
         <h2 className="text-base font-medium">API tokens</h2>
         <p className="mt-1 text-sm text-muted">
-          Authenticate a future CLI and public REST API.
+          Authenticate{" "}
+          <code className="font-mono text-[11px]">
+            POST /api/v1/endpoints/:id/check
+          </code>{" "}
+          from CI. Tokens are shown once at creation.
         </p>
       </div>
 
-      <div className="rounded-md border border-border bg-surface px-4 py-6 text-center">
-        <p className="text-sm text-muted">
-          Personal access tokens are not available yet. Use the signed-in
-          console for baselines, checks, and schedules. See{" "}
-          <Link href="/docs/api" className="text-foreground underline-offset-4 hover:underline">
-            API status
-          </Link>{" "}
-          for what exists today.
-        </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/docs/api">API docs</Link>
-          </Button>
-          <Button asChild size="sm" variant="ghost">
-            <Link href="/settings/billing">Billing</Link>
-          </Button>
-        </div>
+      <ApiTokensManager
+        keys={keys ?? []}
+        canEdit={canEditWorkspace(ctx.role)}
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <Button asChild size="sm" variant="secondary">
+          <Link href="/docs/api">API docs</Link>
+        </Button>
+        <Button asChild size="sm" variant="ghost">
+          <Link href="/docs/cli">CLI docs</Link>
+        </Button>
       </div>
     </div>
   );

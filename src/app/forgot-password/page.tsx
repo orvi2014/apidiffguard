@@ -15,7 +15,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5">
       <Link href="/" className="mb-10 flex items-center gap-2 font-semibold">
-        <BrandLogo withWordmark size={24} priority />
+        <BrandLogo withWordmark size={24} />
       </Link>
       <ForgotPasswordForm />
     </div>

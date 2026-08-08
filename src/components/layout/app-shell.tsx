@@ -7,12 +7,14 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   CalendarClock,
+  CreditCard,
   GitCompare,
   LayoutDashboard,
   LogOut,
   Plus,
   Search,
   Settings,
+  User,
   Webhook,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,23 @@ import { BrandLogo } from "@/components/brand/logo";
 import { CommandPaletteTrigger } from "@/components/layout/command-palette";
 import { ConsoleNavLink } from "@/components/layout/console-nav-link";
 import { signOut } from "@/app/actions/auth";
+import {
+  WorkspaceSwitcher,
+  type WorkspaceOption,
+} from "@/components/layout/workspace-switcher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+/** First letter of the signed-in address, for the account avatar. */
+function accountInitial(email: string): string {
+  return email.trim().charAt(0).toUpperCase() || "?";
+}
 
 const CommandPalette = dynamic(
   () =>
@@ -39,6 +58,8 @@ export function AppShell({
   children,
   workspaceName,
   workspaceSlug,
+  workspaceId,
+  workspaces = [],
   email,
   canEdit = true,
   checksTodaySlot,
@@ -46,6 +67,8 @@ export function AppShell({
   children: React.ReactNode;
   workspaceName: string;
   workspaceSlug: string;
+  workspaceId: string;
+  workspaces?: WorkspaceOption[];
   email: string;
   canEdit?: boolean;
   checksTodaySlot: React.ReactNode;
@@ -127,26 +150,67 @@ export function AppShell({
           >
             <Settings className="size-4" />
           </Link>
-          <Link
-            href="/settings/workspace"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted transition-colors hover:border-[#3f3f46] hover:text-foreground"
-            title="Workspace settings"
-          >
-            <span className="size-5 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800" />
-            <span className="hidden max-w-[120px] truncate sm:inline">
-              {workspaceName}
-            </span>
-          </Link>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-elevated hover:text-foreground cursor-pointer"
-              aria-label="Sign out"
-              title={email}
-            >
-              <LogOut className="size-3.5" />
-            </button>
-          </form>
+          <WorkspaceSwitcher
+            workspaceName={workspaceName}
+            workspaceId={workspaceId}
+            workspaces={workspaces}
+          />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-elevated hover:text-foreground cursor-pointer"
+                aria-label="Account menu"
+              >
+                <span
+                  aria-hidden
+                  className="inline-flex size-6 items-center justify-center rounded-full bg-surface-elevated text-[10px] font-semibold text-foreground"
+                >
+                  {accountInitial(email)}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <span className="block text-xs text-muted">Signed in as</span>
+                <span className="block truncate text-sm text-foreground">
+                  {email}
+                </span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/settings/profile">
+                  <User className="size-3.5" aria-hidden />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings/workspace">
+                  <Settings className="size-3.5" aria-hidden />
+                  Workspace settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings/billing">
+                  <CreditCard className="size-3.5" aria-hidden />
+                  Billing
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <form action={signOut} className="w-full">
+                  <button
+                    type="submit"
+                    className="flex w-full cursor-pointer items-center gap-2 text-left"
+                  >
+                    <LogOut className="size-3.5" aria-hidden />
+                    Sign out
+                  </button>
+                </form>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

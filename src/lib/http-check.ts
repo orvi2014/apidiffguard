@@ -1,8 +1,8 @@
+import { safeFetch } from "@/lib/safe-fetch";
 import {
   MAX_FETCH_BYTES,
   parseAndAssertPublicUrl,
   readResponseTextLimited,
-  safeFetch,
   sanitizeOutboundHeaders,
 } from "@/lib/safe-url";
 

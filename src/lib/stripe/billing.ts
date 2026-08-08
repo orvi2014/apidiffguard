@@ -23,6 +23,24 @@ export const PLAN_TO_LOOKUP_KEY: Record<PaidPlan, string> = {
 
 export { isPaidPlan };
 
+/**
+ * Resolve a plan from either vocabulary.
+ *
+ * Checkout metadata historically carried the Stripe *lookup key*
+ * (`apidiffguard_pro_monthly`) while the pricing CTA and middleware pass the
+ * app *plan id* (`pro`). Accepting both means neither side can silently drop an
+ * upgrade if the other changes what it stores.
+ */
+export function resolvePaidPlan(
+  value: string | null | undefined
+): PaidPlan | null {
+  if (!value) return null;
+  const key = value.trim().toLowerCase();
+  if (key in LOOKUP_KEY_TO_PLAN) return LOOKUP_KEY_TO_PLAN[key];
+  if (isPaidPlan(key)) return key;
+  return null;
+}
+
 async function resolvePriceId(
   stripe: Stripe,
   lookupKey: string

@@ -15,6 +15,8 @@ import {
 import { HealthBadge, MethodBadge, SeverityBadge } from "@/components/domain/badges";
 import { Timeline } from "@/components/domain/activity";
 import { EndpointEditForm } from "@/components/domain/endpoint-edit-form";
+import { IgnoreRulesPanel } from "@/components/domain/ignore-rules-panel";
+import { ContractSchemaPanel } from "@/components/domain/contract-schema-panel";
 import { Button } from "@/components/ui/button";
 import type { Baseline, Endpoint } from "@/lib/types";
 import { cn, formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
@@ -31,6 +33,8 @@ export function EndpointDetailLive({
   requestBody = "",
   contentType = "application/json",
   canEdit = true,
+  ignoreRules = [],
+  responseSchema = null,
 }: {
   endpoint: Endpoint;
   baselines: Baseline[];
@@ -38,6 +42,8 @@ export function EndpointDetailLive({
   requestBody?: string;
   contentType?: string;
   canEdit?: boolean;
+  ignoreRules?: Array<{ id: string; path: string; reason: string | null }>;
+  responseSchema?: Record<string, unknown> | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<"baseline" | "check" | "delete" | null>(
@@ -50,9 +56,15 @@ export function EndpointDetailLive({
   } | null>(null);
   const [local, setLocal] = React.useState(endpoint);
 
-  React.useEffect(() => {
+  // Re-sync when the server sends a newer row. Adjusting state during render
+  // (React's documented pattern for derived state) re-renders immediately with
+  // the right value, instead of committing a stale frame first and then
+  // cascading a second render from an effect.
+  const [syncedFrom, setSyncedFrom] = React.useState(endpoint);
+  if (syncedFrom !== endpoint) {
+    setSyncedFrom(endpoint);
     setLocal(endpoint);
-  }, [endpoint]);
+  }
 
   const onCapture = async (allowErrorStatus = false) => {
     setBusy("baseline");
@@ -249,6 +261,18 @@ export function EndpointDetailLive({
               <span className="font-mono text-foreground">{local.authType}</span>
             </span>
             <span>
+              Diff{" "}
+              <span className="font-mono text-foreground">
+                {local.diffMode ?? "schema"}
+              </span>
+            </span>
+            <span>
+              Contract{" "}
+              <span className="text-foreground">
+                {responseSchema ? "OpenAPI schema" : "none"}
+              </span>
+            </span>
+            <span>
               Baseline{" "}
               <span className="text-foreground">
                 v{local.baselineVersion ?? "—"}
@@ -285,6 +309,18 @@ export function EndpointDetailLive({
             </div>
           </section>
         ) : null}
+
+        <IgnoreRulesPanel
+          endpointId={local.id}
+          rules={ignoreRules}
+          canEdit={canEdit}
+        />
+
+        <ContractSchemaPanel
+          endpointId={local.id}
+          schema={responseSchema}
+          canEdit={canEdit}
+        />
 
         <section className="px-5 py-5">
           <div className="flex items-center justify-between">

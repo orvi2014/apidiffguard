@@ -1,6 +1,7 @@
 ---
 title: OpenAPI import
 description: Upload JSON/YAML or paste a docs URL to import endpoints in bulk.
+lastModified: "2026-07-13"
 ---
 
 ## From a file
@@ -23,4 +24,8 @@ Private network hosts are blocked. Requests require an authenticated session.
 
 Capture a baseline for critical paths first, then enable schedules. You do not need to monitor every operation on day one.
 
-When the OpenAPI operation includes a JSON response schema, APIDiffGuard stores it on the endpoint and validates live responses against that contract on each check.
+When the OpenAPI operation includes a JSON response schema, APIDiffGuard stores it on the endpoint and validates live responses against that contract on each check. Review or clear the schema on the endpoint detail page.
+
+Path parameters such as `/users/{id}` are filled with OpenAPI `example` / `default` values when present (otherwise `example-<name>`). Edit the URL after import if you need a specific resource id.
+
+Imported auth types need credentials — operations land as unauthenticated until you set Bearer / API key / Basic on the endpoint.

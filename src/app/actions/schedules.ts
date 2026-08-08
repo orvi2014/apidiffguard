@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { canEditWorkspace, planAllowsSchedules } from "@/lib/plans";
+import {
+  canEditWorkspace,
+  planAllowsSchedules,
+  planEndpointLimit,
+} from "@/lib/plans";
 import { getWorkspaceContext } from "@/lib/workspace";
 
 const FREQUENCIES = ["HOURLY", "DAILY", "WEEKLY", "MONTHLY"] as const;
@@ -13,21 +17,30 @@ function isFrequency(value: string): value is Frequency {
   return (FREQUENCIES as readonly string[]).includes(value);
 }
 
-export async function createSchedule(formData: FormData) {
+export type FormState = { error?: string; ok?: boolean };
+
+/** Returns `{ error }` instead of `?error=code` — see createAlertChannel. */
+export async function createSchedule(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/schedules");
   if (!canEditWorkspace(ctx.role)) {
-    redirect("/schedules?error=forbidden");
+    return { error: "Your role cannot manage schedules." };
   }
   if (!planAllowsSchedules(ctx.plan)) {
-    redirect("/schedules?error=plan");
+    return {
+      error:
+        "Scheduled checks need a Starter plan or above. Upgrade in Settings → Billing.",
+    };
   }
 
   const endpointId = String(formData.get("endpoint_id") ?? "").trim();
   const frequency = String(formData.get("frequency") ?? "DAILY").toUpperCase();
 
   if (!endpointId || !isFrequency(frequency)) {
-    redirect("/schedules?error=invalid");
+    return { error: "Pick an endpoint and a valid frequency." };
   }
 
   const supabase = await createClient();
@@ -39,7 +52,33 @@ export async function createSchedule(formData: FormData) {
     .maybeSingle();
 
   if (!endpoint) {
-    redirect("/schedules?error=invalid");
+    return { error: "That endpoint doesn’t exist in this workspace." };
+  }
+
+  // One schedule per endpoint (also enforced by a unique index), and a cap on
+  // how many an workspace can run — otherwise a Starter plan could schedule the
+  // same endpoint a hundred times and multiply its outbound traffic.
+  const { data: existing } = await supabase
+    .from("schedules")
+    .select("id")
+    .eq("endpoint_id", endpointId)
+    .maybeSingle();
+
+  if (existing) {
+    return { error: "That endpoint already has a schedule." };
+  }
+
+  const limit = planEndpointLimit(ctx.plan);
+  if (limit != null) {
+    const { count } = await supabase
+      .from("schedules")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", ctx.workspaceId);
+    if ((count ?? 0) >= limit) {
+      return {
+        error: `Your ${ctx.plan} plan allows ${limit} schedules. Upgrade to add more.`,
+      };
+    }
   }
 
   const { error } = await supabase.from("schedules").insert({
@@ -51,12 +90,12 @@ export async function createSchedule(formData: FormData) {
   });
 
   if (error) {
-    redirect("/schedules?error=save-failed");
+    return { error: "Couldn’t save that schedule. Try again." };
   }
 
   revalidatePath("/schedules");
   revalidatePath("/dashboard");
-  redirect("/schedules?created=1");
+  return { ok: true };
 }
 
 export async function toggleSchedule(formData: FormData) {

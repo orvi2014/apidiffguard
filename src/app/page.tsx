@@ -25,8 +25,12 @@ const ProductDemo = dynamic(
   () =>
     import("@/components/marketing/product-demo").then((m) => m.ProductDemo),
   {
+    // Height mirrors the real ProductDemo so the hero doesn't shift when the
+    // island hydrates: a 41px chrome bar plus the tallest grid column (a 32px
+    // pane header over a 13-line monospace block at leading-5). Below `lg` the
+    // three columns stack, so the reserve is roughly triple.
     loading: () => (
-      <div className="mx-auto mt-14 h-64 w-full max-w-5xl animate-pulse rounded-xl bg-surface" />
+      <div className="mx-auto mt-14 h-[871px] w-full max-w-5xl animate-pulse rounded-lg bg-surface lg:h-[357px]" />
     ),
   }
 );

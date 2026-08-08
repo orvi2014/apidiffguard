@@ -1,7 +1,11 @@
 import {
-  parseAndAssertPublicUrl,
-  safeFetch,
-} from "@/lib/safe-url";
+  emailConfigured,
+  isValidEmail,
+  renderAlertEmail,
+  sendEmail,
+} from "@/lib/alerts/email";
+import { safeFetch } from "@/lib/safe-fetch";
+import { parseAndAssertPublicUrl } from "@/lib/safe-url";
 
 export type DeliverableChannel = "EMAIL" | "SLACK" | "DISCORD" | "WEBHOOK";
 
@@ -34,6 +38,8 @@ export async function deliverAlert(opts: {
   severity: string;
   event?: string;
   meta?: Record<string, unknown>;
+  /** EMAIL only: whether the destination address has confirmed. */
+  verified?: boolean;
 }): Promise<DeliveryResult> {
   const target = targetFromConfig(opts.channel, opts.config);
   if (!target) {
@@ -50,17 +56,66 @@ export async function deliverAlert(opts: {
   };
 
   if (opts.channel === "EMAIL") {
+    const payload = { ...body, channel: "EMAIL", email: target };
+
+    if (!emailConfigured()) {
+      return {
+        ok: false,
+        status: "FAILED",
+        error:
+          "Email delivery is not configured on this server (RESEND_API_KEY and ALERT_FROM_EMAIL).",
+        payload,
+      };
+    }
+    if (!isValidEmail(target)) {
+      return {
+        ok: false,
+        status: "FAILED",
+        error: "Invalid destination address.",
+        payload,
+      };
+    }
+    // Withheld rather than sent: an unconfirmed address is someone else's
+    // inbox until they say otherwise.
+    if (!opts.verified) {
+      return {
+        ok: false,
+        status: "FAILED",
+        error: "This address has not confirmed yet, so the alert was withheld.",
+        payload,
+      };
+    }
+
+    const meta = opts.meta ?? {};
+    const diffId = typeof meta.diffId === "string" ? meta.diffId : null;
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+      "http://localhost:3000";
+
+    const rendered = renderAlertEmail({
+      severity: opts.severity,
+      message: opts.message,
+      endpointName:
+        typeof meta.endpointName === "string" ? meta.endpointName : undefined,
+      diffUrl: diffId ? `${appUrl}/diff/${diffId}` : null,
+    });
+
+    const sent = await sendEmail({ to: target, ...rendered });
+    if (!sent.ok) {
+      return { ok: false, status: "FAILED", error: sent.error, payload };
+    }
     return {
-      ok: false,
-      status: "FAILED",
-      error:
-        "Email delivery is not configured yet. Use Slack, Discord, or a webhook channel.",
-      payload: { ...body, channel: "EMAIL", email: target },
+      ok: true,
+      status: "SENT",
+      payload: { ...payload, providerId: sent.id },
     };
   }
 
   try {
-    parseAndAssertPublicUrl(target);
+    // https only — alert payloads carry endpoint names and diff summaries, and
+    // create-time validation already requires https. Rows written any other way
+    // (imports, direct DB writes) must not silently downgrade to cleartext.
+    parseAndAssertPublicUrl(target, { requireHttps: true });
   } catch (err) {
     return {
       ok: false,

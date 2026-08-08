@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 /** Hook: Esc to collapse + lock body scroll while expanded. */
 export function useExpandOverlay(expanded: boolean, onCollapse: () => void) {
@@ -74,11 +75,9 @@ export function ExpandablePanel({
   headerExtra?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = React.useState(false);
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = useHydrated();
   const collapse = React.useCallback(() => setExpanded(false), []);
   useExpandOverlay(expanded, collapse);
-
-  React.useEffect(() => setMounted(true), []);
 
   const header = (
     <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
@@ -149,9 +148,8 @@ export function ExpandOverlayShell({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = useHydrated();
   useExpandOverlay(true, onClose);
-  React.useEffect(() => setMounted(true), []);
 
   if (!mounted) return null;
 

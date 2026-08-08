@@ -1,26 +1,46 @@
 ---
 title: REST API
-description: Programmatic API status and current alternatives.
+description: Workspace API tokens and endpoint check API.
+lastModified: "2026-07-13"
 ---
 
-A public `https://api.apidiffguard.com/v1` host and personal access tokens are **not available yet**.
+Authenticate with a workspace API token from **Settings → Tokens**.
 
-## What exists today
+```http
+Authorization: Bearer adg_live_…
+```
+
+Tokens are shown once at creation and stored as SHA-256 hashes.
+
+## Check an endpoint
+
+```bash
+curl -X POST \
+  "https://YOUR_APP/api/v1/endpoints/$ENDPOINT_ID/check" \
+  -H "Authorization: Bearer adg_live_…"
+```
+
+Successful response:
+
+```json
+{
+  "success": true,
+  "diffId": "…",
+  "breakingCount": 0,
+  "warningCount": 1,
+  "changeCount": 3,
+  "alertsSent": 1
+}
+```
+
+This runs the same hosted check path as the console (baseline diff, schema mode, OpenAPI contract, Slack/Discord fan-out).
+
+## Also available
 
 | Surface | Notes |
 | --- | --- |
 | Console | Full baseline / check / diff / alerts / schedules UI |
-| `POST /api/check` | One-off public URL probe (app origin) |
+| `POST /api/check` | Signed-in one-off URL probe (session cookie) |
 | `POST /api/openapi/parse` | OpenAPI parse for import |
+| CLI | Offline / CI JSON gates — see [CLI](/docs/cli) |
 | Stripe webhooks | Billing only |
-
-API tokens under **Settings → Tokens** are listed as coming soon. Do not expect `adg_live_…` keys to work.
-
-## Planned API (coming soon)
-
-```
-Authorization: Bearer adg_live_…
-POST /v1/endpoints/:id/check
-```
-
-Until that ships, automate with the console, schedules (cron), and webhook alert channels.

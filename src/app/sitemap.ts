@@ -43,12 +43,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
   let blogPages: MetadataRoute.Sitemap = [];
 
   try {
-    docPages = source.getPages().map((page) => ({
-      url: `${base}${page.url}`,
-      lastModified: now,
-      changeFrequency: "monthly" as const,
-      priority: page.url === "/docs" ? 0.85 : 0.7,
-    }));
+    docPages = source.getPages().map((page) => {
+      // Real revision date from frontmatter. Stamping `now` on every build told
+      // crawlers the whole doc set changed daily, which devalues the signal.
+      const raw = (page.data as { lastModified?: string }).lastModified;
+      const parsed = raw ? new Date(raw) : null;
+      return {
+        url: `${base}${page.url}`,
+        lastModified:
+          parsed && !Number.isNaN(parsed.getTime()) ? parsed : now,
+        changeFrequency: "monthly" as const,
+        priority: page.url === "/docs" ? 0.85 : 0.7,
+      };
+    });
   } catch {
     docPages = [
       { url: `${base}/docs`, lastModified: now, changeFrequency: "weekly", priority: 0.85 },

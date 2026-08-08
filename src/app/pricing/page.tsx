@@ -1,3 +1,4 @@
+import { Suspense, cache } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import type { Metadata } from "next";
@@ -25,11 +26,11 @@ const faqs = [
   },
   {
     q: "Can I ignore volatile fields?",
-    a: "Built-in defaults ignore volatile leaf names (request_id, timestamp, and similar). Custom workspace ignore rules exist in the engine but the console UI to edit them is still on the roadmap — review noisy paths in the Diff Viewer today.",
+    a: "Built-in defaults ignore volatile leaf names (request_id, timestamp, and similar). Add custom paths on each endpoint’s Ignore rules panel.",
   },
   {
     q: "Is there a CLI?",
-    a: "Yes. Use apidiff check from packages/cli in this repo (or npm link) to compare JSON files or a live URL and fail CI on breaking changes. Hosted endpoint login remains on the roadmap — see the CLI docs.",
+    a: "Yes. Use apidiff check from packages/cli (with --header for private APIs) or POST /api/v1/endpoints/:id/check with a workspace token from Settings → Tokens.",
   },
   {
     q: "What auth types are supported?",
@@ -37,15 +38,68 @@ const faqs = [
   },
 ];
 
-export default async function PricingPage() {
+/**
+ * Viewer lookup for the pricing page, deduped across the several Suspense
+ * boundaries below so the whole page costs one Supabase round-trip.
+ */
+const getPricingViewer = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const ctx = user ? await getWorkspaceContext() : null;
-  const currentPlan = ctx?.plan ?? null;
+  return {
+    signedIn: !!user,
+    email: ctx?.email ?? null,
+    currentPlan: ctx?.plan ?? null,
+    hasCustomer: Boolean(ctx?.stripeCustomerId),
+  };
+});
+
+async function ViewerPlanLine() {
+  const viewer = await getPricingViewer();
+  if (!viewer.currentPlan) return null;
+  return (
+    <>
+      {" "}
+      Signed in as {viewer.email} · current plan{" "}
+      <strong className="font-medium text-foreground">
+        {viewer.currentPlan}
+      </strong>
+      .
+    </>
+  );
+}
+
+async function ViewerPlanCta({
+  planId,
+  highlighted,
+  contactOnly,
+  stripeReady,
+}: {
+  planId: PlanId;
+  highlighted: boolean;
+  contactOnly: boolean;
+  stripeReady: boolean;
+}) {
+  const viewer = await getPricingViewer();
+  return (
+    <PlanCta
+      planId={planId}
+      highlighted={highlighted}
+      contactOnly={contactOnly}
+      signedIn={viewer.signedIn}
+      currentPlan={viewer.currentPlan}
+      stripeReady={stripeReady}
+      hasCustomer={viewer.hasCustomer}
+    />
+  );
+}
+
+// Static shell. Everything that depends on who is viewing is streamed behind
+// Suspense, so the plan grid, copy, and FAQ render without waiting on auth.
+export default function PricingPage() {
   const stripeReady = isStripeConfigured();
-  const hasCustomer = Boolean(ctx?.stripeCustomerId);
 
   return (
     <div className="min-h-screen">
@@ -57,16 +111,9 @@ export default async function PricingPage() {
         </h1>
         <p className="mt-3 max-w-lg text-sm text-muted sm:text-base">
           Start free. Scale when monitoring becomes part of how you ship.
-          {currentPlan ? (
-            <>
-              {" "}
-              Signed in as {ctx?.email} · current plan{" "}
-              <strong className="font-medium text-foreground">
-                {currentPlan}
-              </strong>
-              .
-            </>
-          ) : null}
+          <Suspense fallback={null}>
+            <ViewerPlanLine />
+          </Suspense>
         </p>
 
         <div className="mt-10 grid gap-3 sm:mt-14 sm:grid-cols-2 lg:grid-cols-4 lg:gap-px lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-border">
@@ -101,15 +148,26 @@ export default async function PricingPage() {
                 ))}
               </ul>
               <div className="mt-8">
-                <PlanCta
-                  planId={plan.id}
-                  highlighted={!!plan.highlighted}
-                  contactOnly={!!plan.contactOnly}
-                  signedIn={!!user}
-                  currentPlan={currentPlan}
-                  stripeReady={stripeReady}
-                  hasCustomer={hasCustomer}
-                />
+                <Suspense
+                  fallback={
+                    <PlanCta
+                      planId={plan.id}
+                      highlighted={!!plan.highlighted}
+                      contactOnly={!!plan.contactOnly}
+                      signedIn={false}
+                      currentPlan={null}
+                      stripeReady={stripeReady}
+                      hasCustomer={false}
+                    />
+                  }
+                >
+                  <ViewerPlanCta
+                    planId={plan.id}
+                    highlighted={!!plan.highlighted}
+                    contactOnly={!!plan.contactOnly}
+                    stripeReady={stripeReady}
+                  />
+                </Suspense>
               </div>
             </article>
           ))}

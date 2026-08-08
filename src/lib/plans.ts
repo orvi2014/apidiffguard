@@ -9,6 +9,12 @@ export type PlanDefinition = {
   description: string;
   features: string[];
   endpointLimit: number | null;
+  /** Outbound checks per calendar month. `null` for unlimited. */
+  checkQuota: number | null;
+  /** Members per workspace. `null` for unlimited. */
+  seatLimit: number | null;
+  /** USD per month. `null` for contact-only tiers. */
+  monthlyPrice: number | null;
   highlighted?: boolean;
   contactOnly?: boolean;
 };
@@ -28,6 +34,9 @@ export const PLANS: PlanDefinition[] = [
       "OpenAPI import",
     ],
     endpointLimit: 3,
+    checkQuota: 250,
+    seatLimit: 1,
+    monthlyPrice: 0,
   },
   {
     id: "starter",
@@ -43,6 +52,9 @@ export const PLANS: PlanDefinition[] = [
       "OpenAPI import",
     ],
     endpointLimit: 20,
+    checkQuota: 5000,
+    seatLimit: 3,
+    monthlyPrice: 19,
   },
   {
     id: "pro",
@@ -58,6 +70,9 @@ export const PLANS: PlanDefinition[] = [
       "OpenAPI import",
     ],
     endpointLimit: 100,
+    checkQuota: 25000,
+    seatLimit: 10,
+    monthlyPrice: 49,
     highlighted: true,
   },
   {
@@ -65,15 +80,17 @@ export const PLANS: PlanDefinition[] = [
     name: "Team",
     priceLabel: "Custom",
     period: "",
-    description: "Custom limits and support. Invite/SSO controls are on the roadmap.",
+    description:
+      "Custom limits and priority support, arranged directly with us. Not a self-serve tier.",
     features: [
       "Custom endpoint limits",
       "Priority support",
       "Dedicated onboarding",
-      "SSO (soon)",
-      "Invite & roles (soon)",
     ],
     endpointLimit: null,
+    checkQuota: null,
+    seatLimit: null,
+    monthlyPrice: null,
     contactOnly: true,
   },
 ];
@@ -92,6 +109,18 @@ export function getPlan(id: PlanId): PlanDefinition {
 
 export function planEndpointLimit(id: PlanId): number | null {
   return getPlan(id).endpointLimit;
+}
+
+export function planCheckQuota(id: PlanId): number | null {
+  return getPlan(id).checkQuota;
+}
+
+export function planSeatLimit(id: PlanId): number | null {
+  return getPlan(id).seatLimit;
+}
+
+export function planMonthlyPrice(id: PlanId): number | null {
+  return getPlan(id).monthlyPrice;
 }
 
 /** Scheduled checks require Starter or above. */

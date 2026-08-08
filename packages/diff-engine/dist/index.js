@@ -7,6 +7,7 @@ const IGNORE_DEFAULTS = new Set([
     "nonce",
     "uuid",
 ]);
+const ARRAY_IDENTITY_KEYS = ["id", "_id", "uuid", "key", "slug", "name"];
 function typeOf(value) {
     if (value === null)
         return "null";
@@ -15,14 +16,23 @@ function typeOf(value) {
     return typeof value;
 }
 function isIgnoredPath(path, ignorePaths) {
-    const leaf = path.split(".").pop()?.replace(/\[\d+\]/g, "") ?? "";
+    const leaf = path.split(".").pop()?.replace(/\[[^\]]+\]/g, "") ?? "";
     if (IGNORE_DEFAULTS.has(leaf))
         return true;
     return ignorePaths.some((p) => path === p || path.startsWith(`${p}.`) || path.endsWith(`.${p}`));
 }
 function severityFor(type, path) {
-    if (type === "removed" || type === "type_changed" || type === "status_changed") {
+    if (type === "removed" ||
+        type === "type_changed" ||
+        type === "nullability_changed" ||
+        type === "contract_violation") {
         return "breaking";
+    }
+    if (type === "status_changed") {
+        return "breaking";
+    }
+    if (type === "header_changed") {
+        return "warning";
     }
     if (type === "changed" && !path.includes("meta") && !path.includes("preferences")) {
         return "warning";
@@ -37,8 +47,10 @@ function pushChange(changes, partial) {
             removed: `Field removed at ${partial.path}`,
             changed: `Value changed at ${partial.path}`,
             type_changed: `Type changed at ${partial.path}`,
+            nullability_changed: `Nullability changed at ${partial.path}`,
             status_changed: "HTTP status code changed",
             header_changed: `Header changed: ${partial.path}`,
+            contract_violation: `Contract violation at ${partial.path}`,
         }[partial.type];
     changes.push({
         id: `chg_${changes.length + 1}`,
@@ -52,10 +64,52 @@ function pushChange(changes, partial) {
         message,
     });
 }
+function arrayItemIdentity(item) {
+    if (!item || typeof item !== "object" || Array.isArray(item))
+        return null;
+    const obj = item;
+    for (const key of ARRAY_IDENTITY_KEYS) {
+        const value = obj[key];
+        if (typeof value === "string" || typeof value === "number") {
+            return `${key}=${value}`;
+        }
+    }
+    return null;
+}
+function canUseArrayIdentity(items) {
+    if (items.length === 0)
+        return false;
+    const keyed = items.filter((item) => arrayItemIdentity(item) != null).length;
+    return keyed >= Math.ceil(items.length * 0.5);
+}
+/**
+ * Compare HTTP status codes.
+ * Same class (e.g. 200→201) is warning; class change (2xx→4xx) is breaking.
+ */
+export function compareStatusCodes(oldStatus, newStatus) {
+    if (oldStatus === newStatus)
+        return null;
+    const oldClass = Math.floor(oldStatus / 100);
+    const newClass = Math.floor(newStatus / 100);
+    const sameClass = oldClass === newClass && oldClass >= 1 && oldClass <= 5;
+    return {
+        id: "chg_status",
+        path: "$status",
+        type: "status_changed",
+        severity: sameClass ? "warning" : "breaking",
+        oldValue: oldStatus,
+        newValue: newStatus,
+        message: sameClass
+            ? `HTTP status changed within ${oldClass}xx: ${oldStatus} → ${newStatus}`
+            : `HTTP status class changed ${oldStatus} → ${newStatus}`,
+    };
+}
 /** Deep-compare two JSON values and return a list of field-level changes. */
 export function compareJson(oldValue, newValue, options = {}) {
     const ignorePaths = options.ignorePaths ?? [];
     const path = options.path ?? "";
+    const schemaOnly = options.schemaOnly ?? false;
+    const arrayIdentity = options.arrayIdentity ?? true;
     const changes = [];
     const walk = (a, b, current) => {
         if (current && isIgnoredPath(current, ignorePaths))
@@ -77,6 +131,18 @@ export function compareJson(oldValue, newValue, options = {}) {
                 type: "removed",
                 oldValue: a,
                 oldType: ta,
+            });
+            return;
+        }
+        if ((a === null) !== (b === null) && a !== undefined && b !== undefined) {
+            pushChange(changes, {
+                path: current || "$",
+                type: "nullability_changed",
+                oldValue: a,
+                newValue: b,
+                oldType: ta,
+                newType: tb,
+                message: `Nullability changed at ${current || "$"} (${ta} → ${tb})`,
             });
             return;
         }
@@ -102,6 +168,50 @@ export function compareJson(oldValue, newValue, options = {}) {
             return;
         }
         if (ta === "array" && Array.isArray(a) && Array.isArray(b)) {
+            if (arrayIdentity && canUseArrayIdentity(a) && canUseArrayIdentity(b)) {
+                const bById = new Map();
+                const usedB = new Set();
+                b.forEach((item, index) => {
+                    const id = arrayItemIdentity(item);
+                    if (id && !bById.has(id))
+                        bById.set(id, { item, index });
+                });
+                a.forEach((item, index) => {
+                    const id = arrayItemIdentity(item);
+                    if (!id) {
+                        walk(item, b[index], `${current}[${index}]`);
+                        if (b[index] !== undefined)
+                            usedB.add(index);
+                        return;
+                    }
+                    const match = bById.get(id);
+                    if (!match) {
+                        pushChange(changes, {
+                            path: `${current}[${id}]`,
+                            type: "removed",
+                            oldValue: item,
+                            oldType: typeOf(item),
+                            message: `Array item removed at ${current}[${id}]`,
+                        });
+                        return;
+                    }
+                    usedB.add(match.index);
+                    walk(item, match.item, `${current}[${id}]`);
+                });
+                b.forEach((item, index) => {
+                    if (usedB.has(index))
+                        return;
+                    const id = arrayItemIdentity(item) ?? String(index);
+                    pushChange(changes, {
+                        path: `${current}[${id}]`,
+                        type: "added",
+                        newValue: item,
+                        newType: typeOf(item),
+                        message: `Array item added at ${current}[${id}]`,
+                    });
+                });
+                return;
+            }
             const max = Math.max(a.length, b.length);
             for (let i = 0; i < max; i++) {
                 walk(a[i], b[i], `${current}[${i}]`);
@@ -109,6 +219,8 @@ export function compareJson(oldValue, newValue, options = {}) {
             return;
         }
         if (a !== b) {
+            if (schemaOnly)
+                return;
             pushChange(changes, {
                 path: current || "$",
                 type: "changed",
@@ -129,6 +241,9 @@ export function summarizeChanges(changes) {
         infoCount: changes.filter((c) => c.severity === "info").length,
         added: changes.filter((c) => c.type === "added").length,
         removed: changes.filter((c) => c.type === "removed").length,
-        changed: changes.filter((c) => c.type === "changed" || c.type === "type_changed").length,
+        changed: changes.filter((c) => c.type === "changed" ||
+            c.type === "type_changed" ||
+            c.type === "nullability_changed" ||
+            c.type === "contract_violation").length,
     };
 }

@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { deliverAlert, type DeliverableChannel } from "@/lib/alerts/deliver";
+import { emailConfigured, isValidEmail } from "@/lib/alerts/email";
+import { startEmailVerification } from "@/lib/alerts/email-verification";
 import { canEditWorkspace } from "@/lib/plans";
+import { parseAndAssertPublicUrl } from "@/lib/safe-url";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
@@ -17,40 +20,142 @@ function isChannel(value: string): value is (typeof CHANNELS)[number] {
   return (CHANNELS as readonly string[]).includes(value);
 }
 
+/** Whether the server can send mail at all — drives the channel picker. */
+export async function isEmailChannelAvailable(): Promise<boolean> {
+  return emailConfigured();
+}
+
 function isSeverity(value: string): value is AlertSeverity {
   return (SEVERITIES as readonly string[]).includes(value);
 }
 
-function isValidTarget(channel: (typeof CHANNELS)[number], target: string): boolean {
+/**
+ * Validate a webhook target for the channel it is actually being saved as, so a
+ * Discord URL saved as a Slack channel fails here rather than at delivery time.
+ */
+function isValidTarget(
+  channel: (typeof CHANNELS)[number],
+  target: string
+): boolean {
+  let url: URL;
   try {
-    const url = new URL(target);
-    return url.protocol === "https:";
+    url = parseAndAssertPublicUrl(target, { requireHttps: true });
   } catch {
     return false;
   }
+
+  const host = url.hostname.toLowerCase();
+  switch (channel) {
+    case "SLACK":
+      return (
+        (host === "hooks.slack.com" || host.endsWith(".slack.com")) &&
+        url.pathname.startsWith("/services/")
+      );
+    case "DISCORD":
+      return (
+        (host === "discord.com" ||
+          host === "discordapp.com" ||
+          host.endsWith(".discord.com") ||
+          host.endsWith(".discordapp.com")) &&
+        /^\/api\/webhooks\//.test(url.pathname)
+      );
+    case "WEBHOOK":
+      return true;
+  }
 }
 
-export async function createAlertChannel(formData: FormData) {
+export type FormState = { error?: string; ok?: boolean };
+
+/**
+ * Returns `{ error }` rather than redirecting with `?error=code`.
+ *
+ * Query-string errors were bookmarkable, shareable, and forced every page to
+ * hand-decode an opaque code far from the field that caused it. useActionState
+ * keeps the message next to the form.
+ */
+export async function createAlertChannel(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login?next=/alerts/channels");
   if (!canEditWorkspace(ctx.role)) {
-    redirect("/alerts/channels?error=forbidden");
+    return { error: "Your role cannot manage alert channels." };
   }
 
   const channel = String(formData.get("channel") ?? "").toUpperCase();
   const target = String(formData.get("target") ?? "").trim();
-  const minSeverity = String(formData.get("min_severity") ?? "WARNING").toUpperCase();
+  const minSeverity = String(
+    formData.get("min_severity") ?? "WARNING"
+  ).toUpperCase();
+
+  if (!isSeverity(minSeverity)) {
+    return { error: "Pick a valid minimum severity." };
+  }
 
   if (channel === "EMAIL") {
-    redirect("/alerts/channels?error=email-unavailable");
-  }
-  if (!isChannel(channel) || !target || !isValidTarget(channel, target)) {
-    redirect("/alerts/channels?error=invalid");
-  }
-  if (!isSeverity(minSeverity)) {
-    redirect("/alerts/channels?error=invalid");
+    if (!emailConfigured()) {
+      return {
+        error:
+          "Email delivery isn’t configured on this server. Use Slack, Discord, or a webhook.",
+      };
+    }
+    if (!isValidEmail(target)) {
+      return { error: "Enter a valid email address." };
+    }
+
+    const supabase = await createClient();
+    const { data: created, error } = await supabase
+      .from("alert_configs")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        channel: "EMAIL",
+        min_severity: minSeverity,
+        enabled: true,
+        config: { email: target.trim() },
+      })
+      .select("id")
+      .single();
+
+    if (error || !created) {
+      return { error: "Couldn’t save that channel. Try again." };
+    }
+
+    // The channel exists but stays inert until the address confirms, so a
+    // failure to send the confirmation is reported without losing the row.
+    const started = await startEmailVerification({
+      alertConfigId: created.id,
+      email: target.trim(),
+      workspaceName: ctx.workspaceName,
+    });
+
+    revalidatePath("/alerts");
+    revalidatePath("/alerts/channels");
+
+    if (!started.ok) {
+      return {
+        error: `Channel saved, but the confirmation email could not be sent: ${started.error}`,
+      };
+    }
+    return { ok: true };
   }
 
+  if (!isChannel(channel)) {
+    return { error: "Pick a supported channel." };
+  }
+  if (!target) {
+    return { error: "Enter the webhook URL for this channel." };
+  }
+  if (!isValidTarget(channel, target)) {
+    return {
+      error:
+        channel === "SLACK"
+          ? "That doesn’t look like a Slack incoming webhook (https://hooks.slack.com/services/…)."
+          : channel === "DISCORD"
+            ? "That doesn’t look like a Discord webhook (https://discord.com/api/webhooks/…)."
+            : "Enter a public https URL.",
+    };
+  }
   const config =
     channel === "WEBHOOK" ? { url: target } : { webhookUrl: target };
 
@@ -64,12 +169,12 @@ export async function createAlertChannel(formData: FormData) {
   });
 
   if (error) {
-    redirect("/alerts/channels?error=save-failed");
+    return { error: "Couldn’t save that channel. Try again." };
   }
 
   revalidatePath("/alerts");
   revalidatePath("/alerts/channels");
-  redirect("/alerts/channels?created=1");
+  return { ok: true };
 }
 
 export async function toggleAlertChannel(formData: FormData) {
@@ -84,20 +189,6 @@ export async function toggleAlertChannel(formData: FormData) {
   if (!id) redirect("/alerts/channels?error=invalid");
 
   const supabase = await createClient();
-
-  // Prevent enabling email channels
-  if (!enabled) {
-    const { data: row } = await supabase
-      .from("alert_configs")
-      .select("channel")
-      .eq("id", id)
-      .eq("workspace_id", ctx.workspaceId)
-      .maybeSingle();
-    if (row?.channel === "EMAIL") {
-      redirect("/alerts/channels?error=email-unavailable");
-    }
-  }
-
   const { error } = await supabase
     .from("alert_configs")
     .update({ enabled: !enabled })
@@ -110,6 +201,51 @@ export async function toggleAlertChannel(formData: FormData) {
 
   revalidatePath("/alerts");
   revalidatePath("/alerts/channels");
+}
+
+/** Re-issue a confirmation link for an unverified email channel. */
+export async function resendChannelVerification(formData: FormData) {
+  const ctx = await getWorkspaceContext();
+  if (!ctx) redirect("/login?next=/alerts/channels");
+  if (!canEditWorkspace(ctx.role)) {
+    redirect("/alerts/channels?error=forbidden");
+  }
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) redirect("/alerts/channels?error=invalid");
+
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("alert_configs")
+    .select("id, channel, config, verified_at")
+    .eq("id", id)
+    .eq("workspace_id", ctx.workspaceId)
+    .maybeSingle();
+
+  if (!row || row.channel !== "EMAIL") {
+    redirect("/alerts/channels?error=invalid");
+  }
+  if (row.verified_at) {
+    redirect("/alerts/channels?verify=already-verified");
+  }
+
+  const email = (row.config as Record<string, unknown> | null)?.email;
+  if (typeof email !== "string" || !isValidEmail(email)) {
+    redirect("/alerts/channels?error=invalid");
+  }
+
+  const started = await startEmailVerification({
+    alertConfigId: row.id,
+    email,
+    workspaceName: ctx.workspaceName,
+  });
+
+  revalidatePath("/alerts/channels");
+  redirect(
+    started.ok
+      ? "/alerts/channels?verify=resent"
+      : "/alerts/channels?error=verify-send-failed"
+  );
 }
 
 export async function deleteAlertChannel(formData: FormData) {
@@ -148,10 +284,9 @@ export async function testAlertNotification() {
   const supabase = await createClient();
   const { data: configs } = await supabase
     .from("alert_configs")
-    .select("id, channel, config, enabled")
+    .select("id, channel, config, enabled, verified_at")
     .eq("workspace_id", ctx.workspaceId)
     .eq("enabled", true)
-    .neq("channel", "EMAIL")
     .order("created_at", { ascending: true });
 
   if (!configs?.length) {
@@ -168,6 +303,7 @@ export async function testAlertNotification() {
       config: (config.config ?? {}) as Record<string, unknown>,
       message,
       severity: "INFO",
+      verified: Boolean(config.verified_at),
     });
 
     await supabase.from("alert_history").insert({

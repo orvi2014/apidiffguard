@@ -5,43 +5,40 @@ import { EmptyState } from "@/components/domain/activity";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
-import { listWorkspaceEndpointIds } from "@/lib/workspace-data";
+import { Pagination, parsePage } from "@/components/domain/pagination";
 import type { HttpMethod } from "@/lib/types";
 import { formatRelativeTime } from "@/lib/utils";
 
 export const metadata = { title: "Diffs" };
 
-export default async function DiffsListPage() {
+const PAGE_SIZE = 50;
+
+export default async function DiffsListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
 
-  const endpointIds = await listWorkspaceEndpointIds(ctx.workspaceId);
-  if (!endpointIds.length) {
-    return (
-      <EmptyState
-        title="No diffs yet"
-        description="Add an endpoint and run a check after capturing a baseline."
-        action={
-          <Link href="/endpoints/new">
-            <Button size="sm">New endpoint</Button>
-          </Link>
-        }
-      />
-    );
-  }
+  const page = parsePage((await searchParams).page);
+  const from = (page - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
-  const { data: rows } = await supabase
+  // Join on the workspace and ask for an exact count so the pager knows the
+  // real total rather than silently truncating at the page size.
+  const { data: rows, count } = await supabase
     .from("diffs")
     .select(
       `
       id, created_at, breaking_count, warning_count, info_count, accepted,
-      endpoints!inner(id, name, method)
-    `
+      endpoints!inner(id, name, method, workspace_id)
+    `,
+      { count: "exact" }
     )
-    .in("endpoint_id", endpointIds)
+    .eq("endpoints.workspace_id", ctx.workspaceId)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .range(from, from + PAGE_SIZE - 1);
 
   if (!rows?.length) {
     return (
@@ -128,6 +125,13 @@ export default async function DiffsListPage() {
           );
         })}
       </div>
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={count ?? rows.length}
+        basePath="/diffs"
+      />
     </div>
   );
 }

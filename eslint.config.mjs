@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated output — fumadocs-mdx writes .source/, tsc writes packages/*/dist.
+    ".source/**",
+    "packages/*/dist/**",
+    "test-results/**",
+    "packages/*/test-results/**",
   ]),
 ]);
 

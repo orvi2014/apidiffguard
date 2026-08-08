@@ -29,15 +29,28 @@ export default async function BillingPage({
 
   const plan = getPlan(ctx.plan);
   const supabase = await createClient();
-  const { count: endpointCount } = await supabase
-    .from("endpoints")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", ctx.workspaceId);
+  const [{ count: endpointCount }, { data: checkUsage }] = await Promise.all([
+    supabase
+      .from("endpoints")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", ctx.workspaceId),
+    supabase
+      .rpc("current_check_usage", { p_workspace_id: ctx.workspaceId })
+      .single<{ used: number; quota: number | null }>(),
+  ]);
 
   const endpoints = endpointCount ?? 0;
   const limit = plan.endpointLimit;
   const usageLabel =
     limit == null ? `${endpoints} / ∞` : `${endpoints} / ${limit}`;
+
+  const checksUsed = checkUsage?.used ?? 0;
+  const checkQuota = checkUsage?.quota ?? plan.checkQuota;
+  const checksLabel =
+    checkQuota == null
+      ? `${checksUsed.toLocaleString()} / ∞`
+      : `${checksUsed.toLocaleString()} / ${checkQuota.toLocaleString()}`;
+  const checksExhausted = checkQuota != null && checksUsed >= checkQuota;
 
   const canManage = ctx.role === "OWNER" || ctx.role === "ADMIN";
   const stripeReady = isStripeConfigured();
@@ -159,6 +172,17 @@ export default async function BillingPage({
         </div>
       </section>
 
+      {checksExhausted ? (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+        >
+          This workspace has used its {checkQuota?.toLocaleString()} checks for
+          the month. Scheduled and manual checks are paused until the next
+          period{canManage ? " — upgrade below to raise the limit." : "."}
+        </p>
+      ) : null}
+
       <section aria-labelledby="usage-heading">
         <h3 id="usage-heading" className="text-sm font-medium">
           Usage this period
@@ -173,8 +197,12 @@ export default async function BillingPage({
             </div>
           </div>
           <div>
-            <div className="font-mono text-lg font-semibold tabular-nums text-muted">
-              Not tracked yet
+            <div
+              className={`font-mono text-lg font-semibold tabular-nums${
+                checksExhausted ? " text-danger" : ""
+              }`}
+            >
+              {checksLabel}
             </div>
             <div className="text-[11px] uppercase tracking-wider text-muted">
               Checks

@@ -62,6 +62,17 @@ export async function signOut() {
   redirect("/login");
 }
 
+function oauthStartError(message: string): string {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("provider is not enabled") ||
+    lower.includes("unsupported provider")
+  ) {
+    return "GitHub sign-in isn’t enabled yet. Ask an admin to turn on the GitHub provider in Supabase Auth.";
+  }
+  return message;
+}
+
 export async function signInWithGitHub(formData?: FormData) {
   const supabase = await createClient();
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -74,7 +85,7 @@ export async function signInWithGitHub(formData?: FormData) {
       redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
-  if (error) return { error: error.message };
+  if (error) return { error: oauthStartError(error.message) };
   if (data.url) redirect(data.url);
   return { error: "Could not start GitHub login." };
 }

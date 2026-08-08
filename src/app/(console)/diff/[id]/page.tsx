@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
-import { listWorkspaceEndpointIds } from "@/lib/workspace-data";
 import type { DiffChange, DiffResult } from "@/lib/types";
 
 export const metadata = { title: "Diff" };
@@ -41,13 +40,11 @@ export default async function DiffPage({
 
   // Resolve "latest" in-place — no second navigation hop.
   if (id === "latest") {
-    const endpointIds = await listWorkspaceEndpointIds(ctx.workspaceId);
-    if (!endpointIds.length) return <EmptyDiffs />;
-
+    // Join on the workspace instead of round-tripping every endpoint id.
     const { data: latest } = await supabase
       .from("diffs")
-      .select("id")
-      .in("endpoint_id", endpointIds)
+      .select("id, endpoints!inner(workspace_id)")
+      .eq("endpoints.workspace_id", ctx.workspaceId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

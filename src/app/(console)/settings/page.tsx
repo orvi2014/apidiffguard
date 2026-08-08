@@ -33,7 +33,7 @@ export default function SettingsPage() {
           <div>
             <div className="text-sm">Fail CI on breaking</div>
             <div className="text-xs text-muted">
-              Intended default when a CLI ships — use console checks today
+              Use Settings → Tokens + CLI /api/v1 checks to gate CI
             </div>
           </div>
           <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
