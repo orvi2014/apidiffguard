@@ -101,7 +101,7 @@ export default async function AlertsPage({
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Alerts</h1>
             <p className="mt-1 text-sm text-muted">
-              Delivery history across Slack, Discord, and webhooks.
+              Delivery history across Slack, Discord, Mattermost, email, and webhooks.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

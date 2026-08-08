@@ -145,7 +145,7 @@ export default function LandingPage() {
                 {
                   icon: Bell,
                   title: "Alerts that matter",
-                  body: "Slack, Discord, and webhooks — filtered by severity so noise stays out.",
+                  body: "Slack, Discord, Mattermost, email, and webhooks — filtered by severity so noise stays out.",
                 },
                 {
                   icon: Braces,
@@ -242,7 +242,7 @@ export default function LandingPage() {
                 },
                 {
                   title: "Alert when it matters",
-                  body: "Route breaking changes to Slack, Discord, or a webhook instead of burying them in log noise.",
+                  body: "Route breaking changes to Slack, Discord, Mattermost, or a webhook instead of burying them in log noise.",
                 },
                 {
                   title: "Same engine as free tools",

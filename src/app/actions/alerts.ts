@@ -2,23 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  isValidTarget,
+  isWebhookChannel,
+  type WebhookChannel,
+} from "@/lib/alerts/channel-targets";
 import { deliverAlert, type DeliverableChannel } from "@/lib/alerts/deliver";
 import { emailConfigured, isValidEmail } from "@/lib/alerts/email";
 import { startEmailVerification } from "@/lib/alerts/email-verification";
 import { canEditWorkspace } from "@/lib/plans";
-import { parseAndAssertPublicUrl } from "@/lib/safe-url";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
-const CHANNELS = ["SLACK", "DISCORD", "WEBHOOK"] as const;
 const SEVERITIES = ["INFO", "WARNING", "BREAKING"] as const;
 
-export type AlertChannel = (typeof CHANNELS)[number] | "EMAIL";
+export type AlertChannel = WebhookChannel | "EMAIL";
 export type AlertSeverity = (typeof SEVERITIES)[number];
-
-function isChannel(value: string): value is (typeof CHANNELS)[number] {
-  return (CHANNELS as readonly string[]).includes(value);
-}
 
 /** Whether the server can send mail at all — drives the channel picker. */
 export async function isEmailChannelAvailable(): Promise<boolean> {
@@ -29,40 +28,6 @@ function isSeverity(value: string): value is AlertSeverity {
   return (SEVERITIES as readonly string[]).includes(value);
 }
 
-/**
- * Validate a webhook target for the channel it is actually being saved as, so a
- * Discord URL saved as a Slack channel fails here rather than at delivery time.
- */
-function isValidTarget(
-  channel: (typeof CHANNELS)[number],
-  target: string
-): boolean {
-  let url: URL;
-  try {
-    url = parseAndAssertPublicUrl(target, { requireHttps: true });
-  } catch {
-    return false;
-  }
-
-  const host = url.hostname.toLowerCase();
-  switch (channel) {
-    case "SLACK":
-      return (
-        (host === "hooks.slack.com" || host.endsWith(".slack.com")) &&
-        url.pathname.startsWith("/services/")
-      );
-    case "DISCORD":
-      return (
-        (host === "discord.com" ||
-          host === "discordapp.com" ||
-          host.endsWith(".discord.com") ||
-          host.endsWith(".discordapp.com")) &&
-        /^\/api\/webhooks\//.test(url.pathname)
-      );
-    case "WEBHOOK":
-      return true;
-  }
-}
 
 export type FormState = { error?: string; ok?: boolean };
 
@@ -97,7 +62,7 @@ export async function createAlertChannel(
     if (!emailConfigured()) {
       return {
         error:
-          "Email delivery isn’t configured on this server. Use Slack, Discord, or a webhook.",
+          "Email delivery isn’t configured on this server. Use Slack, Discord, Mattermost, or a webhook.",
       };
     }
     if (!isValidEmail(target)) {
@@ -140,7 +105,7 @@ export async function createAlertChannel(
     return { ok: true };
   }
 
-  if (!isChannel(channel)) {
+  if (!isWebhookChannel(channel)) {
     return { error: "Pick a supported channel." };
   }
   if (!target) {
@@ -153,7 +118,9 @@ export async function createAlertChannel(
           ? "That doesn’t look like a Slack incoming webhook (https://hooks.slack.com/services/…)."
           : channel === "DISCORD"
             ? "That doesn’t look like a Discord webhook (https://discord.com/api/webhooks/…)."
-            : "Enter a public https URL.",
+            : channel === "MATTERMOST"
+              ? "That doesn’t look like a Mattermost incoming webhook (https://your-server/hooks/…). It must be reachable from the public internet."
+              : "Enter a public https URL.",
     };
   }
   const config =
