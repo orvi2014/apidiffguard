@@ -55,3 +55,32 @@ describe("parseAndAssertPublicUrl", () => {
     assert.throws(() => parseAndAssertPublicUrl("ftp://example.com/x"));
   });
 });
+
+describe("parseAndAssertPublicUrl — requireHttps", () => {
+  it("rejects plain http when https is required", () => {
+    // Alert delivery uses this: payloads must never go out in the clear, even
+    // for rows written by an import or directly into the database.
+    assert.throws(
+      () =>
+        parseAndAssertPublicUrl("http://example.com/hook", {
+          requireHttps: true,
+        }),
+      /Only https/
+    );
+  });
+
+  it("still accepts https when https is required", () => {
+    const url = parseAndAssertPublicUrl("https://example.com/hook", {
+      requireHttps: true,
+    });
+    assert.equal(url.protocol, "https:");
+  });
+
+  it("still blocks private hosts even over https", () => {
+    assert.throws(() =>
+      parseAndAssertPublicUrl("https://169.254.169.254/latest/meta-data", {
+        requireHttps: true,
+      })
+    );
+  });
+});

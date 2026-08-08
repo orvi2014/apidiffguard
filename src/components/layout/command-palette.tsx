@@ -50,14 +50,19 @@ export function CommandPalette({
   canEdit?: boolean;
 }) {
   const router = useRouter();
-  const [endpoints, setEndpoints] = React.useState<PaletteEndpoint[]>([]);
-  const [loadingEndpoints, setLoadingEndpoints] = React.useState(false);
+  const [endpoints, setEndpoints] = React.useState<PaletteEndpoint[] | null>(
+    null
+  );
   const [endpointsError, setEndpointsError] = React.useState(false);
+  // In-flight guard lives in a ref, not state: it only gates the fetch and
+  // must not trigger a render (setting it synchronously in the effect would
+  // cascade a render before the request even starts).
+  const inFlight = React.useRef(false);
 
   React.useEffect(() => {
-    if (!open || endpoints.length > 0 || loadingEndpoints) return;
-    setLoadingEndpoints(true);
-    setEndpointsError(false);
+    if (!open || endpoints !== null || inFlight.current) return;
+    inFlight.current = true;
+
     void fetch("/api/workspace/endpoints")
       .then(async (r) => {
         if (!r.ok) throw new Error("failed");
@@ -65,13 +70,20 @@ export function CommandPalette({
       })
       .then((data) => {
         setEndpoints(data.endpoints ?? []);
+        setEndpointsError(false);
       })
       .catch(() => {
         setEndpoints([]);
         setEndpointsError(true);
       })
-      .finally(() => setLoadingEndpoints(false));
-  }, [open, endpoints.length, loadingEndpoints]);
+      .finally(() => {
+        inFlight.current = false;
+      });
+  }, [open, endpoints]);
+
+  // Derived, not stored: "loading" is simply "opened but nothing has arrived".
+  const loadingEndpoints = open && endpoints === null;
+  const endpointList = endpoints ?? [];
 
   const run = (href: string) => {
     onOpenChange(false);
@@ -118,11 +130,11 @@ export function CommandPalette({
             </CommandGroup>
           </>
         ) : null}
-        {endpoints.length > 0 ? (
+        {endpointList.length > 0 ? (
           <>
             <CommandSeparator />
             <CommandGroup heading="Endpoints">
-              {endpoints.map((ep) => (
+              {endpointList.map((ep) => (
                 <CommandItem
                   key={ep.id}
                   value={ep.name}

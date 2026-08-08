@@ -52,7 +52,6 @@ export function DiffViewer({
       : null
   );
   const [bodiesError, setBodiesError] = React.useState<string | null>(null);
-  const [bodiesLoading, setBodiesLoading] = React.useState(false);
   const [bodiesRetry, setBodiesRetry] = React.useState(0);
   const [acceptPending, setAcceptPending] = React.useState(false);
   const [acceptError, setAcceptError] = React.useState<string | null>(null);
@@ -92,9 +91,14 @@ export function DiffViewer({
     [bodies, changeMap]
   );
 
+  // Guards the fetch without rendering: setting a loading flag synchronously
+  // from the effect below would cascade an extra render before the request
+  // even leaves. `bodiesLoading` is derived from it plus the data instead.
+  const inFlight = React.useRef(false);
+
   const loadBodies = React.useCallback(() => {
-    setBodiesLoading(true);
-    setBodiesError(null);
+    if (inFlight.current) return;
+    inFlight.current = true;
     void fetch(`/api/diffs/${diff.id}/bodies`)
       .then(async (r) => {
         if (!r.ok) throw new Error("Could not load response bodies");
@@ -108,19 +112,25 @@ export function DiffViewer({
           baselineBody: data.baselineBody,
           currentBody: data.currentBody,
         });
+        setBodiesError(null);
       })
       .catch((err: unknown) => {
         setBodiesError(
           err instanceof Error ? err.message : "Could not load response bodies"
         );
       })
-      .finally(() => setBodiesLoading(false));
+      .finally(() => {
+        inFlight.current = false;
+      });
   }, [diff.id]);
 
   React.useEffect(() => {
-    if (tab === "summary" || bodies || bodiesLoading || bodiesError) return;
+    if (tab === "summary" || bodies || bodiesError) return;
     loadBodies();
-  }, [tab, bodies, bodiesLoading, bodiesError, loadBodies, bodiesRetry]);
+  }, [tab, bodies, bodiesError, loadBodies, bodiesRetry]);
+
+  // Derived: a body tab is open, nothing has arrived, and nothing failed.
+  const bodiesLoading = tab !== "summary" && !bodies && !bodiesError;
 
   const jump = React.useCallback(
     (dir: 1 | -1) => {

@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { ChecksTodayCount } from "@/components/layout/console-chrome-data";
 import { canEditWorkspace } from "@/lib/plans";
-import { getWorkspaceContext } from "@/lib/workspace";
+import { getWorkspaceContext, listUserWorkspaces } from "@/lib/workspace";
+import { PaymentFailedBanner } from "@/components/billing/payment-failed-banner";
 
 export default async function ConsoleLayout({
   children,
@@ -12,11 +13,14 @@ export default async function ConsoleLayout({
 }) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
+  const workspaces = await listUserWorkspaces();
 
   return (
     <AppShell
       workspaceName={ctx.workspaceName}
       workspaceSlug={ctx.workspaceSlug}
+      workspaceId={ctx.workspaceId}
+      workspaces={workspaces}
       email={ctx.email}
       canEdit={canEditWorkspace(ctx.role)}
       checksTodaySlot={
@@ -31,6 +35,9 @@ export default async function ConsoleLayout({
         </Suspense>
       }
     >
+      {ctx.paymentFailedAt ? (
+        <PaymentFailedBanner failedAt={ctx.paymentFailedAt} />
+      ) : null}
       {children}
     </AppShell>
   );

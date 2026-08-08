@@ -32,7 +32,6 @@ export default async function DashboardPage() {
 
   const endpointRows = await listWorkspaceEndpointsForDashboard(ctx.workspaceId);
   const endpoints = (endpointRows as DbEndpoint[]).map(mapEndpoint);
-  const endpointIds = endpoints.map((e) => e.id);
 
   const [{ data: activityRows }, { data: latestDiff }, checksToday] =
     await Promise.all([
@@ -42,17 +41,15 @@ export default async function DashboardPage() {
         .eq("workspace_id", ctx.workspaceId)
         .order("created_at", { ascending: false })
         .limit(12),
-      endpointIds.length
-        ? supabase
-            .from("diffs")
-            .select(
-              "id, breaking_count, warning_count, created_at, endpoint_id, endpoints(name, baseline_version)"
-            )
-            .in("endpoint_id", endpointIds)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
+      supabase
+        .from("diffs")
+        .select(
+          "id, breaking_count, warning_count, created_at, endpoint_id, endpoints!inner(name, baseline_version, workspace_id)"
+        )
+        .eq("endpoints.workspace_id", ctx.workspaceId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
       countChecksToday(ctx.workspaceId),
     ]);
   const drifting = endpoints.filter(

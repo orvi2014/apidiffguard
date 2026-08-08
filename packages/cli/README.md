@@ -2,17 +2,11 @@
 
 Command-line JSON / API response diff for CI and local checks. Uses the same engine as APIDiffGuard Cloud (`@apidiffguard/diff`).
 
-## Install (from this repo)
+## Install
 
 ```bash
-cd packages/diff-engine && npm run build && cd -
-cd packages/cli && npm install
-```
-
-Or from the repo root after workspaces are linked:
-
-```bash
-npx apidiff check --baseline old.json --current new.json --fail-on breaking
+npm install -g @apidiffguard/cli
+npx @apidiffguard/cli --help
 ```
 
 ## Usage

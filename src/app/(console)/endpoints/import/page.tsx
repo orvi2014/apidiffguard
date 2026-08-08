@@ -262,7 +262,14 @@ function OpenAPIImportWizard() {
         .map((ep) => ({
           name: ep.name,
           url: serverOverride
-            ? `${serverOverride.replace(/\/$/, "")}${ep.path.startsWith("/") ? ep.path : `/${ep.path}`}`
+            ? (() => {
+                try {
+                  const parsed = new URL(ep.url);
+                  return `${serverOverride.replace(/\/$/, "")}${parsed.pathname}${parsed.search}`;
+                } catch {
+                  return ep.url;
+                }
+              })()
             : ep.url,
           method: ep.method,
           description: ep.description,

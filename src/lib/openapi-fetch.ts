@@ -8,11 +8,11 @@ import {
   pickServerForDocsHost,
   type ParsedOpenAPISpec,
 } from "@/lib/openapi";
+import { safeFetch } from "@/lib/safe-fetch";
 import {
   MAX_FETCH_BYTES,
   parseAndAssertPublicUrl,
   readResponseTextLimited,
-  safeFetch,
 } from "@/lib/safe-url";
 
 const FETCH_HEADERS = {

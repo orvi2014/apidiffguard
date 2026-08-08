@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   deleteAlertChannel,
+  isEmailChannelAvailable,
+  resendChannelVerification,
   toggleAlertChannel,
 } from "@/app/actions/alerts";
 import { AddChannelForm } from "@/components/alerts/add-channel-form";
@@ -36,6 +38,7 @@ export default async function AlertChannelsPage({
     created?: string;
     deleted?: string;
     error?: string;
+    verify?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -44,11 +47,14 @@ export default async function AlertChannelsPage({
   const canEdit = canEditWorkspace(ctx.role);
 
   const supabase = await createClient();
-  const { data: channels } = await supabase
-    .from("alert_configs")
-    .select("id, channel, config, min_severity, enabled, created_at")
-    .eq("workspace_id", ctx.workspaceId)
-    .order("created_at", { ascending: false });
+  const [{ data: channels }, emailEnabled] = await Promise.all([
+    supabase
+      .from("alert_configs")
+      .select("id, channel, config, min_severity, enabled, created_at, verified_at")
+      .eq("workspace_id", ctx.workspaceId)
+      .order("created_at", { ascending: false }),
+    isEmailChannelAvailable(),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-5 sm:py-8">
@@ -63,7 +69,8 @@ export default async function AlertChannelsPage({
             Alert channels
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Route breaking and warning drift to Slack, Discord, or a webhook.
+            Route breaking and warning drift to Slack, Discord, email, or a
+            webhook.
           </p>
         </div>
       </div>
@@ -92,12 +99,34 @@ export default async function AlertChannelsPage({
           {params.error === "no-channel"
             ? "Add a channel before sending a test notification."
             : params.error === "invalid"
-              ? "Choose a channel and enter a valid HTTPS webhook URL."
-              : params.error === "email-unavailable"
-                ? "Email alerts are not available yet. Use Slack, Discord, or a webhook."
+              ? "Choose a channel and enter a valid destination."
+              : params.error === "verify-send-failed"
+                ? "Could not send the confirmation email. Check the address and try again."
                 : params.error === "forbidden"
                   ? "Viewers can view channels but cannot change them."
                   : "Could not save channel. Try again."}
+        </p>
+      ) : null}
+      {params.verify ? (
+        <p
+          role="status"
+          className={`rounded-md border px-3 py-2 text-sm animate-in fade-in slide-in-from-top-1 duration-300 ${
+            params.verify === "verified" || params.verify === "already-verified"
+              ? "border-success/30 bg-success/10"
+              : params.verify === "resent"
+                ? "border-border bg-surface"
+                : "border-destructive/30 bg-destructive/10"
+          }`}
+        >
+          {params.verify === "verified"
+            ? "Address confirmed. Alerts will be delivered here."
+            : params.verify === "already-verified"
+              ? "That address was already confirmed."
+              : params.verify === "resent"
+                ? "Confirmation email sent again."
+                : params.verify === "expired"
+                  ? "That confirmation link has expired. Send a new one below."
+                  : "That confirmation link is not valid."}
         </p>
       ) : null}
 
@@ -109,7 +138,7 @@ export default async function AlertChannelsPage({
           Add channel
         </h2>
         {canEdit ? (
-          <AddChannelForm />
+          <AddChannelForm emailEnabled={emailEnabled} />
         ) : (
           <p className="mt-3 text-sm text-muted">
             Viewers can view channels but cannot add them.
@@ -149,6 +178,11 @@ export default async function AlertChannelsPage({
                     <span className="text-[11px] text-muted">
                       ≥ {String(row.min_severity).toLowerCase()}
                     </span>
+                    {row.channel === "EMAIL" && !row.verified_at ? (
+                      <span className="rounded bg-warning/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-warning">
+                        Unconfirmed
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 truncate font-mono text-xs text-muted">
                     {targetFromConfig(row.channel, row.config)}
@@ -157,6 +191,18 @@ export default async function AlertChannelsPage({
                 <div className="flex flex-wrap gap-2">
                   {canEdit ? (
                     <>
+                      {row.channel === "EMAIL" && !row.verified_at ? (
+                        <form action={resendChannelVerification}>
+                          <input type="hidden" name="id" value={row.id} />
+                          <PendingSubmitButton
+                            size="sm"
+                            variant="secondary"
+                            pendingLabel="Sending…"
+                          >
+                            Resend confirmation
+                          </PendingSubmitButton>
+                        </form>
+                      ) : null}
                       <form action={toggleAlertChannel}>
                         <input type="hidden" name="id" value={row.id} />
                         <input

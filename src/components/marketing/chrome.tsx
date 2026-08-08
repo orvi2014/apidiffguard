@@ -1,8 +1,10 @@
+import { Suspense, cache } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { BrandLogo } from "@/components/brand/logo";
 import { createClient } from "@/lib/supabase/server";
 import { MarketingHeaderClient } from "@/components/marketing/header-client";
+import { APP_VERSION } from "@/lib/seo";
 
 function hasAuthCookie(
   jar: Awaited<ReturnType<typeof cookies>>
@@ -16,18 +18,35 @@ function hasAuthCookie(
     );
 }
 
-export async function MarketingHeader() {
+/** Deduped per request — several marketing surfaces ask for the same viewer. */
+const getMarketingViewer = cache(async () => {
   const jar = await cookies();
-  if (!hasAuthCookie(jar)) {
-    return <MarketingHeaderClient signedIn={false} email={null} />;
-  }
+  if (!hasAuthCookie(jar)) return { signedIn: false, email: null };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <MarketingHeaderClient signedIn={!!user} email={user?.email ?? null} />;
+  return { signedIn: !!user, email: user?.email ?? null };
+});
+
+async function MarketingHeaderAuth() {
+  const viewer = await getMarketingViewer();
+  return (
+    <MarketingHeaderClient signedIn={viewer.signedIn} email={viewer.email} />
+  );
+}
+
+export function MarketingHeader() {
+  // Streamed behind Suspense so the Supabase round-trip a signed-in visitor
+  // pays never blocks first byte on an otherwise static marketing page. The
+  // signed-out header is the fallback, which is also the common case.
+  return (
+    <Suspense fallback={<MarketingHeaderClient signedIn={false} email={null} />}>
+      <MarketingHeaderAuth />
+    </Suspense>
+  );
 }
 
 export function MarketingFooter() {
@@ -106,7 +125,7 @@ export function MarketingFooter() {
             <Link href="/llms-full.txt" className="hover:text-foreground">
               llms-full.txt
             </Link>
-            <span className="font-mono">v0.1.0</span>
+            <span className="font-mono">v{APP_VERSION}</span>
           </div>
         </div>
       </div>

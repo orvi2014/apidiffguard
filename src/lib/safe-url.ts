@@ -44,7 +44,11 @@ function isBlockedIpv4(host: string): boolean {
   return false;
 }
 
-function expandIpv6(host: string): string | null {
+type Ipv6Expansion =
+  | { kind: "expanded"; address: string }
+  | { kind: "blocked-v4-mapped" };
+
+function expandIpv6(host: string): Ipv6Expansion | null {
   let h = host.toLowerCase();
   if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
   if (h.includes("%")) h = h.split("%")[0]!;
@@ -54,7 +58,7 @@ function expandIpv6(host: string): string | null {
   const v4Tail = h.match(/:((\d{1,3}\.){3}\d{1,3})$/);
   if (v4Tail) {
     const mapped = v4Tail[1]!;
-    if (isBlockedIpv4(mapped)) return "blocked-v4-mapped";
+    if (isBlockedIpv4(mapped)) return { kind: "blocked-v4-mapped" };
     h = h.replace(/:((\d{1,3}\.){3}\d{1,3})$/, "");
   }
 
@@ -74,13 +78,17 @@ function expandIpv6(host: string): string | null {
     ...tail,
   ];
   if (full.length !== 8) return null;
-  return full.map((p) => p.padStart(4, "0")).join(":");
+  return {
+    kind: "expanded",
+    address: full.map((p) => p.padStart(4, "0")).join(":"),
+  };
 }
 
 function isBlockedIpv6(host: string): boolean {
-  const expanded = expandIpv6(host);
-  if (!expanded) return host.includes(":");
-  if (expanded === "blocked-v4-mapped") return true;
+  const result = expandIpv6(host);
+  if (!result) return host.includes(":");
+  if (result.kind === "blocked-v4-mapped") return true;
+  const expanded = result.address;
   // ::1 loopback
   if (expanded === "0000:0000:0000:0000:0000:0000:0000:0001") return true;
   // :: (unspecified)
@@ -132,7 +140,10 @@ export function isBlockedHost(hostname: string): boolean {
   return false;
 }
 
-export function parseAndAssertPublicUrl(raw: string): URL {
+export function parseAndAssertPublicUrl(
+  raw: string,
+  opts: { requireHttps?: boolean } = {}
+): URL {
   const trimmed = raw.trim();
   if (!trimmed) throw new Error("URL is required.");
   let parsed: URL;
@@ -141,7 +152,11 @@ export function parseAndAssertPublicUrl(raw: string): URL {
   } catch {
     throw new Error("Invalid URL.");
   }
-  if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
+  if (opts.requireHttps) {
+    if (parsed.protocol !== "https:") {
+      throw new Error("Only https URLs are allowed here.");
+    }
+  } else if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
     throw new Error("Only http/https URLs are allowed.");
   }
   if (parsed.username || parsed.password) {
@@ -227,47 +242,11 @@ export async function readResponseTextLimited(
   return new TextDecoder().decode(merged);
 }
 
-/**
- * Fetch with manual redirects so each hop is re-validated against SSRF rules.
+/*
+ * `safeFetch` lives in `safe-fetch.ts`, not here.
+ *
+ * This module is pure URL/host validation and is imported by server actions and
+ * route handlers alike. The fetch path needs `node:dns` and `undici` to pin the
+ * resolved address against DNS rebinding, and those must not be dragged into
+ * every module that only wants `safeNextPath`.
  */
-export async function safeFetch(
-  rawUrl: string,
-  init: RequestInit & { timeoutMs?: number } = {}
-): Promise<Response> {
-  let current = parseAndAssertPublicUrl(rawUrl);
-  const timeoutMs = init.timeoutMs ?? 15000;
-  let method = (init.method || "GET").toUpperCase();
-  let body = init.body;
-  const headers = new Headers(init.headers);
-
-  for (let i = 0; i <= MAX_REDIRECTS; i++) {
-    const response = await fetch(current.toString(), {
-      method,
-      headers,
-      redirect: "manual",
-      cache: "no-store",
-      signal: AbortSignal.timeout(timeoutMs),
-      body,
-    });
-
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) {
-        throw new Error("Redirect without Location header.");
-      }
-      const next = new URL(location, current);
-      parseAndAssertPublicUrl(next.toString());
-      current = next;
-      // Redirects become GET for 301/302/303; keep method for 307/308
-      if ([301, 302, 303].includes(response.status) && method !== "HEAD") {
-        method = "GET";
-        body = undefined;
-      }
-      continue;
-    }
-
-    return response;
-  }
-
-  throw new Error("Too many redirects.");
-}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useActionState } from "react";
 import { createSchedule } from "@/app/actions/schedules";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,8 @@ export function AddScheduleForm({
 }: {
   endpoints: EndpointOption[];
 }) {
+  const [state, formAction] = useActionState(createSchedule, {});
+
   if (!endpoints.length) {
     return (
       <p className="mt-4 text-sm text-muted">
@@ -20,7 +23,7 @@ export function AddScheduleForm({
   }
 
   return (
-    <form action={createSchedule} className="mt-4 grid gap-4 sm:grid-cols-[1fr_140px_auto] sm:items-end">
+    <form action={formAction} className="mt-4 grid gap-4 sm:grid-cols-[1fr_140px_auto] sm:items-end">
       <div className="space-y-1.5">
         <Label htmlFor="endpoint_id">Endpoint</Label>
         <select
@@ -54,6 +57,17 @@ export function AddScheduleForm({
       <PendingSubmitButton className="min-h-9" pendingLabel="Creating…">
         Create schedule
       </PendingSubmitButton>
+    
+      {state.error ? (
+        <p role="alert" className="text-sm text-danger sm:col-span-3">
+          {state.error}
+        </p>
+      ) : null}
+      {state.ok ? (
+        <p role="status" className="text-sm text-success sm:col-span-3">
+          Schedule created.
+        </p>
+      ) : null}
     </form>
   );
 }

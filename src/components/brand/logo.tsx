@@ -6,8 +6,6 @@ type BrandLogoProps = {
   withWordmark?: boolean;
   /** Pixel size of the mark square. */
   size?: number;
-  /** Unused — kept for call-site compatibility. */
-  priority?: boolean;
 };
 
 /** Official APIDiffGuard mark — Split (before/after panes) on accent tile. */

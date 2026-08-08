@@ -58,29 +58,33 @@ export const listWorkspaceEndpointsForDashboard = cache(
 );
 
 export const countChecksToday = cache(async (workspaceId: string) => {
-  const ids = await listWorkspaceEndpointIds(workspaceId);
-  if (!ids.length) return 0;
-
   const supabase = await createClient();
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
+  // UTC midnight, not the instance's local midnight — otherwise "checks today"
+  // silently shifts depending on which region served the request.
+  const now = new Date();
+  const dayStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  // Inner join on endpoints rather than fetching every endpoint id and passing
+  // it back as an IN list — that list becomes a multi-kilobyte URL at a few
+  // hundred endpoints, and RLS already scopes the join.
   const { count } = await supabase
     .from("checks")
-    .select("id", { count: "exact", head: true })
-    .in("endpoint_id", ids)
+    .select("id, endpoints!inner(workspace_id)", {
+      count: "exact",
+      head: true,
+    })
+    .eq("endpoints.workspace_id", workspaceId)
     .gte("started_at", dayStart.toISOString());
   return count ?? 0;
 });
 
 export const getLatestDiffId = cache(async (workspaceId: string) => {
-  const ids = await listWorkspaceEndpointIds(workspaceId);
-  if (!ids.length) return null;
-
   const supabase = await createClient();
   const { data } = await supabase
     .from("diffs")
-    .select("id")
-    .in("endpoint_id", ids)
+    .select("id, endpoints!inner(workspace_id)")
+    .eq("endpoints.workspace_id", workspaceId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

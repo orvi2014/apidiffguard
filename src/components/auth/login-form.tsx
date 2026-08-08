@@ -12,7 +12,9 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/dashboard";
   const [error, setError] = React.useState<string | null>(
-    searchParams.get("error") === "auth" ? "Authentication failed." : null
+    searchParams.get("error") === "auth"
+      ? "GitHub sign-in failed. If this keeps happening, the GitHub provider may not be enabled in Supabase Auth."
+      : null
   );
   const [pending, setPending] = React.useState(false);
 

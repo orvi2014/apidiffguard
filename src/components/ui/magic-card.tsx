@@ -1,13 +1,12 @@
 "use client"
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef } from "react"
 import {
   motion,
   useMotionTemplate,
   useMotionValue,
   useSpring,
 } from "motion/react"
-import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
 
@@ -72,16 +71,10 @@ export function MagicCard(props: MagicCardProps) {
   const glowSize = isOrbMode(props) ? (props.glowSize ?? 420) : 420
   const glowBlur = isOrbMode(props) ? (props.glowBlur ?? 60) : 60
   const glowOpacity = isOrbMode(props) ? (props.glowOpacity ?? 0.9) : 0.9
-  const { theme, systemTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
-
-  const isDarkTheme = useMemo(() => {
-    if (!mounted) return true
-    const currentTheme = theme === "system" ? systemTheme : theme
-    return currentTheme === "dark"
-  }, [theme, systemTheme, mounted])
+  // The app is dark-only. This previously read next-themes without a provider
+  // anywhere in the tree, so it resolved to `undefined` and flipped to the
+  // light-mode gradient one render after mount.
+  const isDarkTheme = true
 
   const mouseX = useMotionValue(-gradientSize)
   const mouseY = useMotionValue(-gradientSize)

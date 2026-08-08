@@ -8,25 +8,37 @@ import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { mapEndpoint, type DbEndpoint } from "@/lib/mappers";
+import { Pagination, parsePage } from "@/components/domain/pagination";
 
 export const metadata = { title: "Endpoints" };
 
-export default async function EndpointsPage() {
+const PAGE_SIZE = 50;
+
+export default async function EndpointsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
   const canEdit = canEditWorkspace(ctx.role);
 
+  const page = parsePage((await searchParams).page);
+  const from = (page - 1) * PAGE_SIZE;
+
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, count } = await supabase
     .from("endpoints")
     .select(
-      "id, name, url, method, environment, tags, description, health, auth_type, last_checked_at, response_time, baseline_version, breaking_count, warning_count"
+      "id, name, url, method, environment, tags, description, health, auth_type, last_checked_at, response_time, baseline_version, breaking_count, warning_count",
+      { count: "exact" }
     )
     .eq("workspace_id", ctx.workspaceId)
     .order("created_at", { ascending: false })
-    .limit(200);
+    .range(from, from + PAGE_SIZE - 1);
 
   const endpoints = (data as DbEndpoint[] | null)?.map(mapEndpoint) ?? [];
+  const total = count ?? endpoints.length;
   const breaking = endpoints.filter((e) => e.health === "breaking").length;
   const warning = endpoints.filter((e) => e.health === "warning").length;
   const healthy = endpoints.filter((e) => e.health === "healthy").length;
@@ -38,7 +50,7 @@ export default async function EndpointsPage() {
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Endpoints</h1>
             <p className="mt-1 text-sm text-muted">
-              {endpoints.length} monitored · {breaking} breaking ·{" "}
+              {total} monitored · {breaking} breaking on this page ·{" "}
               {ctx.workspaceName}
             </p>
           </div>
@@ -65,6 +77,13 @@ export default async function EndpointsPage() {
 
       <EndpointsList endpoints={endpoints} />
 
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        basePath="/endpoints"
+      />
+
       <div className="flex items-center gap-3 border-t border-border px-4 py-2 text-[11px] text-muted">
         <HealthBadge status="breaking" />
         <span>{breaking}</span>
@@ -72,7 +91,7 @@ export default async function EndpointsPage() {
         <span>{warning}</span>
         <HealthBadge status="healthy" />
         <span>{healthy}</span>
-        <span className="ml-auto">{endpoints.length} total</span>
+        <span className="ml-auto">{total} total</span>
       </div>
     </div>
   );

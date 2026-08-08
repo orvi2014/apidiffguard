@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,16 +14,21 @@ import {
 } from "@/lib/seo";
 import "./globals.css";
 
+// Weights are trimmed to what the UI actually uses: font-medium (500) and
+// font-semibold (600) appear throughout, 700 is never referenced. Mono only
+// renders at 400 and 600.
 const sans = Instrument_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 const mono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -58,9 +63,9 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  alternates: {
-    canonical: SITE_URL,
-  },
+  // No root `alternates.canonical`: it is inherited by every route that does
+  // not call buildMetadata(), which would point them all at the homepage.
+  // Pages set their own canonical.
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -90,11 +95,36 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
   },
   manifest: "/manifest.webmanifest",
-  verification: {
-    // Add Search Console / Bing codes when available:
-    // google: "...",
-    // other: { "msvalidate.01": "..." },
-  },
+  // Site verification is emitted only when the codes are actually configured —
+  // an empty object renders nothing and just invites a half-filled block.
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+  process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+    ? {
+        verification: {
+          ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+            ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+            : {}),
+          ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+            ? {
+                other: {
+                  "msvalidate.01":
+                    process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
+                },
+              }
+            : {}),
+        },
+      }
+    : {}),
+};
+
+// The manifest declares theme_color but the document never emitted the tag,
+// so mobile browsers painted the default chrome colour.
+export const viewport: Viewport = {
+  // Matches manifest.ts theme_color.
+  themeColor: "#4F7FFF",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -103,10 +133,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // Dark-only by design: globals.css defines a single palette on `:root, .dark`
+    // and pins `color-scheme: dark`. Nothing mutates this at runtime, so there is
+    // no hydration mismatch to suppress.
     <html
       lang="en"
       className={cn("dark h-full antialiased", sans.variable, mono.variable)}
-      suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col bg-background font-sans text-foreground">
         <JsonLd data={[organizationJsonLd(), websiteJsonLd(), softwareJsonLd()]} />

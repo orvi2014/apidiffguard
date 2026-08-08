@@ -1,17 +1,27 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { canEditWorkspace, planEndpointLimit } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { MissingSecretKeyError } from "@/lib/crypto/secret-box";
+import {
+  ENDPOINT_COLUMNS,
+  loadEndpointCredentials,
+  sealEndpointCredentials,
+} from "@/lib/endpoint-secrets";
 import {
   authHeadersFromEndpoint,
   buildStoredHeaders,
   requestBodyFromEndpoint,
 } from "@/lib/endpoint-auth";
 import { runHttpCheck } from "@/lib/http-check";
+import { hydrateResponseBody } from "@/lib/response-body-store";
 import { runEndpointCheck } from "@/lib/run-endpoint-check";
+import { activateBaseline, promoteBaseline } from "@/lib/baselines";
+import { parseAndAssertPublicUrl } from "@/lib/safe-url";
 
 function mapMethod(method: string) {
   return method.toUpperCase() as
@@ -105,42 +115,29 @@ export async function acceptDiffAsBaseline(diffId: string) {
 
   const { data: check } = await supabase
     .from("checks")
-    .select("body, status_code, headers, response_time, content_size")
+    .select("body, body_ref, status_code, headers, response_time, content_size")
     .eq("id", diff.check_id)
     .single();
 
   if (!check) return { error: "Check for this diff was not found." };
 
-  const { data: latest } = await supabase
-    .from("baselines")
-    .select("version")
-    .eq("endpoint_id", diff.endpoint_id)
-    .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // A large body lives in object storage, so accepting a diff has to fetch the
+  // real content before promoting it to a baseline.
+  const checkBody = await hydrateResponseBody(check);
 
-  const version = (latest?.version ?? 0) + 1;
-
-  await supabase
-    .from("baselines")
-    .update({ is_active: false })
-    .eq("endpoint_id", diff.endpoint_id)
-    .eq("is_active", true);
-
-  const { error: baselineError } = await supabase.from("baselines").insert({
-    endpoint_id: diff.endpoint_id,
-    version,
-    body: check.body,
-    status_code: check.status_code,
+  const promoted = await promoteBaseline(supabase, {
+    endpointId: diff.endpoint_id,
+    body: checkBody,
+    statusCode: check.status_code,
     headers: check.headers ?? {},
-    response_time: check.response_time ?? 0,
-    content_size: check.content_size ?? 0,
+    responseTime: check.response_time ?? 0,
+    contentSize: check.content_size ?? 0,
     notes: "Accepted from diff",
     approved: true,
-    is_active: true,
   });
 
-  if (baselineError) return { error: baselineError.message };
+  if ("error" in promoted) return { error: promoted.error };
+  const version = promoted.version;
 
   await supabase
     .from("diffs")
@@ -198,13 +195,15 @@ export async function createEndpoint(formData: FormData) {
   if (!name || !url) {
     return { error: "Name and URL are required." };
   }
+  // Same guard the checker uses at request time — otherwise a user can save an
+  // endpoint (localhost, link-local, credentials in the URL) that is rejected
+  // on every single check.
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return { error: "URL must start with http:// or https://." };
-    }
-  } catch {
-    return { error: "Enter a valid URL." };
+    parseAndAssertPublicUrl(url);
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Enter a valid URL.",
+    };
   }
   if (authType !== "NONE" && !authConfigValid(authType, authConfig)) {
     return { error: "Fill in the auth credentials for the selected type." };
@@ -223,15 +222,35 @@ export async function createEndpoint(formData: FormData) {
     }
   }
 
+  // The id is generated here rather than by the database default because it is
+  // bound into the credential ciphertext as additional authenticated data — the
+  // envelope has to know which endpoint it belongs to before the row exists.
+  const endpointId = randomUUID();
+  let sealedAuthConfig: unknown;
+  try {
+    sealedAuthConfig =
+      authType === "NONE" ? {} : sealEndpointCredentials(authConfig, endpointId);
+  } catch (err) {
+    return {
+      error:
+        err instanceof MissingSecretKeyError
+          ? "Credential storage is not configured on this server. Set ENDPOINT_SECRET_KEY and try again."
+          : err instanceof Error
+            ? err.message
+            : "Could not secure the credentials.",
+    };
+  }
+
   const { data, error } = await supabase
     .from("endpoints")
     .insert({
+      id: endpointId,
       name,
       url,
       method,
       environment,
       auth_type: authType,
-      auth_config: authConfig,
+      auth_config: sealedAuthConfig,
       headers,
       description,
       workspace_id: ctx.workspaceId,
@@ -278,8 +297,30 @@ export async function importEndpoints(
   }
 
   const supabase = await createClient();
-  let toImport = endpoints;
-  let skipped = 0;
+
+  // Imported specs are user-supplied data like any other input — validate the
+  // URLs here rather than discovering them at check time.
+  let invalid = 0;
+  const endpointsToConsider = endpoints.filter((ep) => {
+    try {
+      parseAndAssertPublicUrl(String(ep.url ?? ""));
+      return true;
+    } catch {
+      invalid += 1;
+      return false;
+    }
+  });
+
+  if (endpointsToConsider.length === 0) {
+    return {
+      error: "No endpoints in that spec had a valid, publicly reachable URL.",
+      count: 0,
+      skipped: endpoints.length,
+    };
+  }
+
+  let toImport = endpointsToConsider;
+  let skipped = invalid;
   const limit = planEndpointLimit(ctx.plan);
   if (limit != null) {
     const { count } = await supabase
@@ -294,8 +335,8 @@ export async function importEndpoints(
         skipped: endpoints.length,
       };
     }
-    skipped = Math.max(0, endpoints.length - remaining);
-    toImport = endpoints.slice(0, remaining);
+    skipped = invalid + Math.max(0, endpointsToConsider.length - remaining);
+    toImport = endpointsToConsider.slice(0, remaining);
   }
 
   const rows = toImport.slice(0, 200).map((ep) => ({
@@ -365,23 +406,39 @@ export async function captureBaselineAction(
   const supabase = await createClient();
   const { data: endpoint, error: epError } = await supabase
     .from("endpoints")
-    .select("*")
+    .select(ENDPOINT_COLUMNS)
     .eq("id", endpointId)
     .eq("workspace_id", ctx.workspaceId)
     .single();
 
   if (epError || !endpoint) return { error: "Endpoint not found." };
 
+  // Capturing a baseline is an outbound request too, so it is metered like any
+  // other check rather than being a free way around the quota.
+  const { data: quota, error: quotaError } = await supabase
+    .rpc("consume_check_quota", { p_workspace_id: ctx.workspaceId })
+    .single<{ allowed: boolean; used: number; quota: number | null }>();
+
+  if (quotaError) {
+    return { error: `Could not reserve check quota: ${quotaError.message}` };
+  }
+  if (quota && !quota.allowed) {
+    return {
+      error: `Monthly check limit reached (${quota.used} of ${quota.quota}). Upgrade in Settings → Billing to capture more baselines.`,
+    };
+  }
+
   await supabase
     .from("endpoints")
     .update({ health: "CHECKING" })
     .eq("id", endpointId);
 
+  const credentials = await loadEndpointCredentials(endpointId);
   const result = await runHttpCheck({
     url: endpoint.url,
     method: endpoint.method,
     timeoutMs: endpoint.timeout_ms,
-    headers: authHeadersFromEndpoint(endpoint),
+    headers: authHeadersFromEndpoint(endpoint, credentials),
     body: requestBodyFromEndpoint(endpoint),
   });
 
@@ -408,40 +465,19 @@ export async function captureBaselineAction(
     };
   }
 
-  const { data: latest } = await supabase
-    .from("baselines")
-    .select("version")
-    .eq("endpoint_id", endpointId)
-    .order("version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const baseline = await promoteBaseline(supabase, {
+    endpointId,
+    statusCode: result.statusCode,
+    headers: result.headers,
+    body: result.body,
+    responseTime: result.responseTime,
+    contentSize: result.contentSize,
+    notes: "Captured from live check",
+    approved: true,
+  });
 
-  const version = (latest?.version ?? 0) + 1;
-
-  await supabase
-    .from("baselines")
-    .update({ is_active: false })
-    .eq("endpoint_id", endpointId)
-    .eq("is_active", true);
-
-  const { data: baseline, error: blError } = await supabase
-    .from("baselines")
-    .insert({
-      endpoint_id: endpointId,
-      version,
-      status_code: result.statusCode,
-      headers: result.headers,
-      body: result.body,
-      response_time: result.responseTime,
-      content_size: result.contentSize,
-      notes: "Captured from live check",
-      approved: true,
-      is_active: true,
-    })
-    .select("id, version")
-    .single();
-
-  if (blError) return { error: blError.message };
+  if ("error" in baseline) return { error: baseline.error };
+  const version = baseline.version;
 
   await supabase
     .from("endpoints")
@@ -522,18 +558,17 @@ export async function updateEndpoint(formData: FormData) {
     return { error: "Name and URL are required." };
   }
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return { error: "URL must start with http:// or https://." };
-    }
-  } catch {
-    return { error: "Enter a valid URL." };
+    parseAndAssertPublicUrl(url);
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Enter a valid URL.",
+    };
   }
 
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("endpoints")
-    .select("id, auth_config, headers")
+    .select("id, headers")
     .eq("id", endpointId)
     .eq("workspace_id", ctx.workspaceId)
     .maybeSingle();
@@ -542,17 +577,41 @@ export async function updateEndpoint(formData: FormData) {
 
   let nextAuthConfig = authConfig;
   if (keepAuth && authType !== "NONE") {
-    const prev =
-      existing.auth_config && typeof existing.auth_config === "object"
-        ? (existing.auth_config as Record<string, string>)
-        : {};
-    // Keep previous secrets when form fields are left blank.
+    // "Leave blank to keep" needs the old secret, which no user-scoped client
+    // can read. Membership was just proven by the lookup above, so this
+    // service-role read is scoped to an endpoint the caller already owns.
+    let prev: Record<string, string>;
+    try {
+      prev = await loadEndpointCredentials(endpointId);
+    } catch {
+      return {
+        error:
+          "Existing credentials could not be read. Re-enter them to replace the stored value.",
+      };
+    }
     nextAuthConfig = { ...prev, ...Object.fromEntries(
       Object.entries(authConfig).filter(([, v]) => v !== "")
     ) };
   }
   if (authType !== "NONE" && !authConfigValid(authType, nextAuthConfig)) {
     return { error: "Fill in the auth credentials for the selected type." };
+  }
+
+  let sealedAuthConfig: unknown;
+  try {
+    sealedAuthConfig =
+      authType === "NONE"
+        ? {}
+        : sealEndpointCredentials(nextAuthConfig, endpointId);
+  } catch (err) {
+    return {
+      error:
+        err instanceof MissingSecretKeyError
+          ? "Credential storage is not configured on this server. Set ENDPOINT_SECRET_KEY and try again."
+          : err instanceof Error
+            ? err.message
+            : "Could not secure the credentials.",
+    };
   }
 
   const prevHeaders =
@@ -584,7 +643,7 @@ export async function updateEndpoint(formData: FormData) {
       method,
       environment,
       auth_type: authType,
-      auth_config: authType === "NONE" ? {} : nextAuthConfig,
+      auth_config: sealedAuthConfig,
       headers,
       description,
       diff_mode: diffMode,
@@ -629,16 +688,12 @@ export async function restoreBaselineAction(
 
   await supabase
     .from("baselines")
-    .update({ is_active: false })
-    .eq("endpoint_id", endpointId)
-    .eq("is_active", true);
+    .update({ approved: true })
+    .eq("id", baselineId)
+    .eq("endpoint_id", endpointId);
 
-  const { error } = await supabase
-    .from("baselines")
-    .update({ is_active: true, approved: true })
-    .eq("id", baselineId);
-
-  if (error) return { error: error.message };
+  const activated = await activateBaseline(supabase, endpointId, baselineId);
+  if ("error" in activated) return { error: activated.error };
 
   await supabase
     .from("endpoints")

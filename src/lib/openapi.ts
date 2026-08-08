@@ -318,6 +318,36 @@ function joinUrl(server: string, path: string): string {
   return `${base}${suffix}`.replace(/([^:]\/)\/+/g, "$1");
 }
 
+/**
+ * Replace `/users/{id}` with example/default values so imported URLs are callable.
+ * Remaining `{param}` tokens become `example-param`.
+ */
+export function materializePathTemplate(
+  path: string,
+  parameters: unknown[] | undefined
+): string {
+  const values = new Map<string, string>();
+  for (const raw of parameters ?? []) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const p = raw as {
+      in?: string;
+      name?: string;
+      example?: unknown;
+      schema?: { example?: unknown; default?: unknown };
+    };
+    if (p.in !== "path" || typeof p.name !== "string" || !p.name) continue;
+    const candidate =
+      p.example ?? p.schema?.example ?? p.schema?.default ?? null;
+    if (candidate != null && candidate !== "") {
+      values.set(p.name, encodeURIComponent(String(candidate)));
+    }
+  }
+
+  return path.replace(/\{([^}/]+)\}/g, (_, name: string) => {
+    return values.get(name) ?? encodeURIComponent(`example-${name}`);
+  });
+}
+
 function inferAuthType(doc: OpenAPIDocument): AuthType {
   const schemes = {
     ...(doc.components?.securitySchemes ?? {}),
@@ -410,12 +440,14 @@ export function extractEndpointsFromOpenAPI(
 
       const id = `${method}:${path}`.toLowerCase().replace(/[^a-z0-9]+/g, "_");
 
+      const materializedPath = materializePathTemplate(path, op.parameters);
+
       endpoints.push({
         id,
         name: humanizePath(method, path, op),
         path,
         method,
-        url: joinUrl(selectedServer, path),
+        url: joinUrl(selectedServer, materializedPath),
         description: op.description?.trim() || op.summary?.trim(),
         tags,
         operationId: op.operationId,

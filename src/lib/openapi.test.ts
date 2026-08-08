@@ -32,9 +32,24 @@ paths:
     get:
       operationId: getUser
       tags: [users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "42"
       responses:
         "200":
           description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id:
+                    type: string
 components:
   securitySchemes:
     bearerAuth:
@@ -67,6 +82,13 @@ describe("parseOpenAPIDocument", () => {
     assert.equal(
       spec.endpoints.find((e) => e.operationId === "listUsers")?.url,
       "https://api.example.com/v1/users"
+    );
+    assert.equal(
+      spec.endpoints.find((e) => e.operationId === "getUser")?.url,
+      "https://api.example.com/v1/users/42"
+    );
+    assert.ok(
+      spec.endpoints.find((e) => e.operationId === "getUser")?.responseSchema
     );
   });
 

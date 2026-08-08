@@ -9,7 +9,8 @@
  */
 
 import { NextResponse } from "next/server";
-import { LOOKUP_KEY_TO_PLAN } from "@/lib/stripe/billing";
+import { resolvePaidPlan } from "@/lib/stripe/billing";
+import { verifyStripeSignature } from "@/lib/stripe/verify";
 import type { PlanId } from "@/lib/plans";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -36,62 +37,79 @@ interface StripeCheckoutSession {
 interface StripeEvent {
   id: string;
   type: string;
+  created: number;
   data: { object: Record<string, unknown> };
 }
 
-async function verifyStripeSignature(
-  body: string,
-  signatureHeader: string,
-  secret: string
-): Promise<boolean> {
-  const parts = signatureHeader.split(",");
-  const tPart = parts.find((p) => p.startsWith("t="));
-  const v1Parts = parts.filter((p) => p.startsWith("v1="));
-  if (!tPart || v1Parts.length === 0) return false;
-
-  const timestamp = tPart.slice(2);
-  const tsSeconds = Number.parseInt(timestamp, 10);
-  if (Number.isNaN(tsSeconds) || Math.abs(Date.now() / 1000 - tsSeconds) > 300) {
-    return false;
-  }
-
-  const payload = `${timestamp}.${body}`;
-  const keyData = new TextEncoder().encode(secret);
-  const msgData = new TextEncoder().encode(payload);
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
-  const expected =
-    "v1=" +
-    Array.from(new Uint8Array(sig))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-  return v1Parts.some((v1) => {
-    if (v1.length !== expected.length) return false;
-    let diff = 0;
-    for (let i = 0; i < v1.length; i++) {
-      diff |= v1.charCodeAt(i) ^ expected.charCodeAt(i);
-    }
-    return diff === 0;
+/**
+ * Record the event id before handling it. Returns false if we've already
+ * processed this id — Stripe retries on any non-2xx, and the ±300s signature
+ * tolerance also leaves a replay window for a captured request.
+ */
+async function claimEvent(event: StripeEvent, objectId: string | null) {
+  const supabase = createServiceClient();
+  const { error } = await supabase.from("stripe_events").insert({
+    id: event.id,
+    type: event.type,
+    object_id: objectId,
+    event_created_at: new Date(event.created * 1000).toISOString(),
   });
+
+  if (!error) return { fresh: true as const };
+  // 23505 = unique violation: already handled.
+  if (error.code === "23505") return { fresh: false as const };
+  throw new Error(error.message);
+}
+
+/**
+ * Stripe does not guarantee delivery order. Applying an older subscription
+ * event after a newer one can downgrade a workspace that is actually active,
+ * so every billing write carries the event timestamp and older writes are
+ * dropped.
+ */
+async function isStaleEvent(
+  workspaceId: string,
+  eventCreatedAt: Date
+): Promise<boolean> {
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("workspaces")
+    .select("billing_event_at")
+    .eq("id", workspaceId)
+    .maybeSingle();
+
+  const applied = data?.billing_event_at
+    ? new Date(data.billing_event_at)
+    : null;
+  return applied !== null && applied.getTime() > eventCreatedAt.getTime();
 }
 
 async function updateWorkspaceBilling(
   workspaceId: string,
   plan: PlanId,
-  stripeCustomerId?: string | null
+  stripeCustomerId?: string | null,
+  eventCreatedAt?: Date
 ) {
+  if (eventCreatedAt && (await isStaleEvent(workspaceId, eventCreatedAt))) {
+    console.warn(
+      `[stripe] Skipping out-of-order event for workspace ${workspaceId}`
+    );
+    return;
+  }
+
   const supabase = createServiceClient();
-  const patch: Record<string, string> = { plan };
+  const patch: Record<string, string | null> = { plan };
   if (stripeCustomerId) {
     patch.stripe_customer_id = stripeCustomerId;
   }
+  if (eventCreatedAt) {
+    patch.billing_event_at = eventCreatedAt.toISOString();
+  }
+  // A successful plan write clears any outstanding payment-failure banner.
+  if (plan !== "free") {
+    patch.payment_failed_at = null;
+  }
+
   const { error } = await supabase
     .from("workspaces")
     .update(patch)
@@ -131,48 +149,60 @@ async function findWorkspaceIdByCustomer(
   return data?.id ?? null;
 }
 
-async function handleCheckoutCompleted(session: StripeCheckoutSession) {
+async function handleCheckoutCompleted(
+  session: StripeCheckoutSession,
+  eventCreatedAt: Date
+) {
   const workspaceId = session.metadata.workspace_id;
   if (!workspaceId) return;
 
-  const planRaw = session.metadata.plan;
-  const plan =
-    planRaw && planRaw in LOOKUP_KEY_TO_PLAN
-      ? LOOKUP_KEY_TO_PLAN[planRaw]
-      : null;
+  const plan = resolvePaidPlan(session.metadata.plan);
   if (!plan) return;
 
-  await updateWorkspaceBilling(workspaceId, plan, session.customer || null);
+  await updateWorkspaceBilling(
+    workspaceId,
+    plan,
+    session.customer || null,
+    eventCreatedAt
+  );
 }
 
-async function handleSubscriptionUpdated(subscription: StripeSubscription) {
+async function handleSubscriptionUpdated(
+  subscription: StripeSubscription,
+  eventCreatedAt: Date
+) {
   const workspaceId =
     subscription.metadata.workspace_id ||
     (await findWorkspaceIdByCustomer(String(subscription.customer)));
   if (!workspaceId) return;
 
   if (subscription.status !== "active" && subscription.status !== "trialing") {
-    await updateWorkspaceBilling(workspaceId, "free");
+    await updateWorkspaceBilling(workspaceId, "free", null, eventCreatedAt);
     return;
   }
 
-  const lookupKey = subscription.items.data[0]?.price?.lookup_key ?? null;
-  const plan = lookupKey ? LOOKUP_KEY_TO_PLAN[lookupKey] : null;
+  const plan = resolvePaidPlan(
+    subscription.items.data[0]?.price?.lookup_key ?? null
+  );
   if (!plan) return;
 
   await updateWorkspaceBilling(
     workspaceId,
     plan,
-    String(subscription.customer)
+    String(subscription.customer),
+    eventCreatedAt
   );
 }
 
-async function handleSubscriptionDeleted(subscription: StripeSubscription) {
+async function handleSubscriptionDeleted(
+  subscription: StripeSubscription,
+  eventCreatedAt: Date
+) {
   const workspaceId =
     subscription.metadata.workspace_id ||
     (await findWorkspaceIdByCustomer(String(subscription.customer)));
   if (!workspaceId) return;
-  await updateWorkspaceBilling(workspaceId, "free");
+  await updateWorkspaceBilling(workspaceId, "free", null, eventCreatedAt);
 }
 
 async function handlePaymentFailed(invoice: StripeInvoice) {
@@ -190,11 +220,23 @@ async function handlePaymentFailed(invoice: StripeInvoice) {
   }
   if (!workspaceId) return;
 
-  // Keep the current plan through Stripe retries. Downgrade only when the
-  // subscription is deleted or updated to a free/canceled state.
-  console.warn(
-    `[stripe] Payment failed for workspace ${workspaceId} — plan unchanged pending retry or cancellation`
-  );
+  // Keep the current plan through Stripe retries — downgrade only on an actual
+  // cancellation. But record the failure so the console can warn the user
+  // instead of the service silently dying when retries run out.
+  const supabase = createServiceClient();
+  await supabase
+    .from("workspaces")
+    .update({ payment_failed_at: new Date().toISOString() })
+    .eq("id", workspaceId)
+    .is("payment_failed_at", null);
+
+  await supabase.from("activities").insert({
+    type: "billing_payment_failed",
+    title: "Payment failed",
+    description:
+      "Stripe could not charge your card. Update your payment method in Settings → Billing before the subscription is cancelled.",
+    workspace_id: workspaceId,
+  });
 }
 
 export async function POST(request: Request) {
@@ -232,11 +274,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  if (!event.id || typeof event.created !== "number") {
+    return NextResponse.json({ error: "Malformed event" }, { status: 400 });
+  }
+
+  const eventCreatedAt = new Date(event.created * 1000);
+  const objectId =
+    typeof event.data?.object?.id === "string" ? event.data.object.id : null;
+
+  try {
+    const claim = await claimEvent(event, objectId);
+    if (!claim.fresh) {
+      // Already applied — ack so Stripe stops retrying.
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+  } catch (err) {
+    console.error("[stripe] Could not record event id:", err);
+    return NextResponse.json({ error: "Handler failed" }, { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutCompleted(
-          event.data.object as unknown as StripeCheckoutSession
+          event.data.object as unknown as StripeCheckoutSession,
+          eventCreatedAt
         );
         break;
       case "invoice.payment_failed":
@@ -246,12 +308,14 @@ export async function POST(request: Request) {
         break;
       case "customer.subscription.updated":
         await handleSubscriptionUpdated(
-          event.data.object as unknown as StripeSubscription
+          event.data.object as unknown as StripeSubscription,
+          eventCreatedAt
         );
         break;
       case "customer.subscription.deleted":
         await handleSubscriptionDeleted(
-          event.data.object as unknown as StripeSubscription
+          event.data.object as unknown as StripeSubscription,
+          eventCreatedAt
         );
         break;
       default:
@@ -259,6 +323,11 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error(`[stripe] Error handling event ${event.type}:`, err);
+    // Release the claim so Stripe's retry can actually re-run the handler.
+    await createServiceClient()
+      .from("stripe_events")
+      .delete()
+      .eq("id", event.id);
     return NextResponse.json({ error: "Handler failed" }, { status: 500 });
   }
 

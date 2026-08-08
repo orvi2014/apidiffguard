@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 const navLinks = [
   { href: "/#features", label: "Product" },
@@ -23,6 +24,11 @@ export function MarketingHeaderClient({
   email: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const mobileNavRef = useRef<HTMLElement | null>(null);
+  const closeMenu = useCallback(() => setOpen(false), []);
+
+  // Keeps Tab inside the open menu and closes it on Escape.
+  useFocusTrap(mobileNavRef, open, closeMenu);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur-md">
@@ -37,7 +43,7 @@ export function MarketingHeaderClient({
           href="/"
           className="flex items-center gap-2.5 font-semibold tracking-tight"
         >
-          <BrandLogo withWordmark size={24} priority />
+          <BrandLogo withWordmark size={24} />
         </Link>
 
         <nav
@@ -98,6 +104,7 @@ export function MarketingHeaderClient({
       {open ? (
         <nav
           id="mobile-nav"
+          ref={mobileNavRef}
           className="border-t border-border px-4 py-3 md:hidden"
           aria-label="Mobile"
         >

@@ -16,6 +16,9 @@
     "build": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": ["json", "diff", "api", "openapi", "breaking-change", "schema-drift"],
   "license": "MIT",
   "repository": {

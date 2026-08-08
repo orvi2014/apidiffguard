@@ -1,21 +1,20 @@
 ---
 title: CLI
 description: Run apidiff check locally or in CI against JSON files or a live URL.
+lastModified: "2026-07-13"
 ---
 
 Use `@apidiffguard/cli` to fail a pipeline when a response drifts from a known-good baseline.
 
-## Install from this repository
+## Install
 
 ```bash
-# Build the diff engine, then install the CLI package
-cd packages/diff-engine && npm run build && cd ../..
-cd packages/cli && npm install
+npm install -g @apidiffguard/cli
+# or one-off
+npx --yes @apidiffguard/cli --help
 ```
 
-The binary is `apidiff` (also available via `npm run apidiff -- …` inside `packages/cli`).
-
-npm publish of `@apidiffguard/cli` is optional — clone/link from source works today.
+The binary is `apidiff`. Diff engine package: [`@apidiffguard/diff`](https://www.npmjs.com/package/@apidiffguard/diff).
 
 ## Check two JSON files
 
@@ -23,21 +22,36 @@ npm publish of `@apidiffguard/cli` is optional — clone/link from source works 
 apidiff check --baseline baseline.json --current live.json --fail-on breaking
 ```
 
-## Check a baseline against a live URL
+## Check a baseline against a private URL
 
 ```bash
-apidiff check --baseline baseline.json --url https://api.example.com/v1/me --fail-on breaking
+apidiff check \
+  --baseline baseline.json \
+  --url https://api.example.com/v1/me \
+  --header "Authorization: Bearer $API_TOKEN" \
+  --schema-only \
+  --fail-on breaking
 ```
 
-## CI tip
-
-Exit code `1` means the threshold was hit. Wire it after deploy smoke or contract fixtures:
+## CI tip (GitHub Actions)
 
 ```yaml
-- run: npx --yes --package=@apidiffguard/cli apidiff check --baseline ./fixtures/users.json --url "$API_URL/users" --fail-on breaking
+- name: API schema gate
+  run: |
+    npx --yes @apidiffguard/cli check \
+      --baseline ./fixtures/users.json \
+      --url "$API_URL/users" \
+      --header "Authorization: Bearer ${{ secrets.API_TOKEN }}" \
+      --schema-only \
+      --fail-on breaking
 ```
 
-(When the package is published to npm; until then run from `packages/cli`.)
+For **hosted** endpoint checks (baselines, alerts, schedules), create a token under **Settings → Tokens** and call:
+
+```bash
+curl -X POST "$APP_URL/api/v1/endpoints/$ENDPOINT_ID/check" \
+  -H "Authorization: Bearer $ADG_TOKEN"
+```
 
 ## Options
 
@@ -46,7 +60,9 @@ Exit code `1` means the threshold was hit. Wire it after deploy smoke or contrac
 | `--baseline` / `--old` | Path to baseline JSON |
 | `--current` / `--new` | Path to current JSON |
 | `--url` | Fetch current JSON from an HTTPS URL |
+| `--header` / `-H` | Repeatable `Name: value` request header (for `--url`) |
+| `--schema-only` | Ignore leaf value churn; keep structure/type/nullability |
 | `--fail-on` | `breaking` (default), `warning`, or `info` |
 | `--json` | Print structured JSON instead of text |
 
-Cloud console login (`apidiff login`) and hosted endpoint IDs remain on the roadmap — use the [console](/dashboard) for scheduled monitoring today.
+There is no GitHub App yet — use the CLI gate above, or the hosted token API + Slack/Discord webhooks for monitoring.

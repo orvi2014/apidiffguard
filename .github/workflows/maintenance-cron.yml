@@ -1,0 +1,37 @@
+# Housekeeping: retry failed alert deliveries, release checks stuck on
+# CHECKING, and apply data retention.
+# Requires repo secrets: CRON_SECRET (same as Vercel), optional APP_URL.
+#
+# Every 10 minutes rather than hourly: this job also drains the alert retry
+# queue, and an alert about a breaking API change is worth much less an hour
+# late. The reaper and retention passes are time-bounded, so running them more
+# often is cheap.
+name: Maintenance cron
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run-maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger /api/cron/maintenance
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "Missing CRON_SECRET repo secret — skipping."
+            exit 1
+          fi
+          BASE="${APP_URL:-https://apidiffguard.com}"
+          BASE="${BASE%/}"
+          curl -fsS --max-time 90 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${BASE}/api/cron/maintenance"
+          echo
+          echo "OK"

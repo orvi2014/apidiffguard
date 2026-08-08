@@ -1,6 +1,7 @@
 ---
 title: Overview
 description: Monitor APIs, review diffs, and schedule checks with APIDiffGuard.
+lastModified: "2026-07-13"
 ---
 
 APIDiffGuard watches your endpoints, captures baselines, and flags breaking response changes before they hit production.
@@ -13,7 +14,7 @@ APIDiffGuard watches your endpoints, captures baselines, and flags breaking resp
 - Import endpoints from **OpenAPI** / Swagger UI
 - Alert the team when contracts drift (Slack, Discord, webhooks)
 
-A published [REST API](/docs/api) is on the roadmap. The [CLI](/docs/cli) (`apidiff check`) works today for local and CI JSON diffs.
+A published [REST API](/docs/api) accepts workspace tokens for `POST /api/v1/endpoints/:id/check`. The [CLI](/docs/cli) (`apidiff check`) works for local and CI JSON diffs (including `--header` for private APIs).
 
 ## Start here
 
@@ -23,6 +24,6 @@ A published [REST API](/docs/api) is on the roadmap. The [CLI](/docs/cli) (`apid
 | [Concepts](/docs/concepts) | Baselines, diffs, severity, ignore rules |
 | [OpenAPI import](/docs/openapi-import) | Bulk import from JSON, YAML, or URL |
 | [CLI](/docs/cli) | `apidiff check` for files / URLs in CI |
-| [REST API](/docs/api) | Programmatic API status (coming soon) |
+| [REST API](/docs/api) | Workspace tokens + endpoint check API |
 
 Prefer the [Quickstart](/docs/quickstart) and console for production monitoring today.

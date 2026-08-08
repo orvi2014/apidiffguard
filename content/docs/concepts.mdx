@@ -1,6 +1,7 @@
 ---
 title: Concepts
 description: Baselines, diffs, severity levels, ignore rules, and schedules.
+lastModified: "2026-07-13"
 ---
 
 ## Baseline
@@ -37,7 +38,7 @@ When an endpoint was imported from OpenAPI with a response schema, live bodies a
 
 Volatile leaf names such as `request_id`, `timestamp`, `created_at`, `updated_at`, `etag`, `nonce`, and `uuid` are ignored by default so alerts stay on contract changes.
 
-Workspace-specific ignore rules also exist in the data model and are applied by the engine when present. A console UI to manage custom rules is not shipped yet — until then, prefer stable response shapes or filter noise in the Diff Viewer.
+Workspace-specific ignore rules are managed on each **endpoint detail** page and applied by the engine when present.
 
 ## Schedules
 
