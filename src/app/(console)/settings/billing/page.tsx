@@ -7,7 +7,10 @@ import {
 } from "@/components/billing/stripe-actions";
 import { Button } from "@/components/ui/button";
 import { getPlan, isPaidPlan, PLANS, type PlanId } from "@/lib/plans";
-import { isStripeConfigured } from "@/lib/stripe/server";
+import {
+  billingProviderLabel,
+  getBillingProvider,
+} from "@/lib/billing/provider";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { createClient } from "@/lib/supabase/server";
 
@@ -53,7 +56,12 @@ export default async function BillingPage({
   const checksExhausted = checkQuota != null && checksUsed >= checkQuota;
 
   const canManage = ctx.role === "OWNER" || ctx.role === "ADMIN";
-  const stripeReady = isStripeConfigured();
+  const billingProvider = getBillingProvider();
+  const stripeReady = billingProvider !== null;
+  const providerLabel = billingProviderLabel(billingProvider);
+  // Whichever provider is live owns the customer record the portal needs.
+  const billingCustomerId =
+    billingProvider === "polar" ? ctx.polarCustomerId : ctx.stripeCustomerId;
   const highlightUpgrade = params.upgrade as PlanId | undefined;
 
   return (
@@ -71,8 +79,8 @@ export default async function BillingPage({
           role="status"
           className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-foreground"
         >
-          Payment received. Your plan will update in a few seconds once Stripe
-          confirms the subscription.
+          Payment received. Your plan will update in a few seconds once{" "}
+          {providerLabel} confirms the subscription.
         </p>
       ) : null}
 
@@ -112,8 +120,8 @@ export default async function BillingPage({
           role="status"
           className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted"
         >
-          Stripe billing is not configured yet. Paid upgrades will unlock once
-          Stripe keys are set.
+          Billing is not configured yet. Paid upgrades unlock once Polar or
+          Stripe credentials are set.
         </p>
       ) : null}
 
@@ -158,12 +166,12 @@ export default async function BillingPage({
           </a>
           {canManage ? (
             <PortalButton
-              disabled={!stripeReady || !ctx.stripeCustomerId}
+              disabled={!stripeReady || !billingCustomerId}
               disabledReason={
                 !stripeReady
-                  ? "Stripe is not configured for this deployment yet."
+                  ? "Billing is not configured for this deployment yet."
                   : !ctx.stripeCustomerId
-                    ? "No Stripe customer yet — upgrade once to manage payment."
+                    ? `No ${providerLabel} customer yet — upgrade once to manage payment.`
                     : undefined
               }
               label="Manage payment"
@@ -224,7 +232,7 @@ export default async function BillingPage({
           Choose a plan
         </h3>
         <p className="mt-1 text-sm text-muted">
-          Paid plans check out with Stripe. Manage or cancel anytime in the
+          Paid plans check out with {providerLabel}. Manage or cancel anytime in the
           customer portal. Team plans need a conversation.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -295,12 +303,12 @@ export default async function BillingPage({
                       className="w-full [&_button]:w-full"
                       variant="secondary"
                       label="Downgrade via portal"
-                      disabled={!stripeReady || !ctx.stripeCustomerId}
+                      disabled={!stripeReady || !billingCustomerId}
                       disabledReason={
                         !stripeReady
                           ? "Stripe is not configured for this deployment yet."
                           : !ctx.stripeCustomerId
-                            ? "No Stripe customer yet — upgrade once to manage billing."
+                            ? `No ${providerLabel} customer yet — upgrade once to manage billing.`
                             : undefined
                       }
                     />
@@ -312,7 +320,7 @@ export default async function BillingPage({
                     />
                   ) : (
                     <Button size="sm" className="w-full" disabled>
-                      Stripe not configured
+                      Billing not configured
                     </Button>
                   )}
                 </div>

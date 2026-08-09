@@ -16,6 +16,7 @@ export type WorkspaceContext = {
   role: string;
   plan: PlanId;
   stripeCustomerId: string | null;
+  polarCustomerId: string | null;
   /** Set by the Stripe webhook when an invoice fails; cleared on a good charge. */
   paymentFailedAt: string | null;
 };
@@ -57,7 +58,7 @@ export async function requireUser() {
 export const WORKSPACE_COOKIE = "adg_workspace";
 
 const MEMBERSHIP_SELECT =
-  "role, workspace_id, workspaces(id, name, slug, plan, stripe_customer_id, payment_failed_at)";
+  "role, workspace_id, workspaces(id, name, slug, plan, stripe_customer_id, polar_customer_id, payment_failed_at)";
 
 type MembershipRow = {
   role: string;
@@ -69,6 +70,7 @@ type MembershipRow = {
         slug: string;
         plan?: string | null;
         stripe_customer_id?: string | null;
+        polar_customer_id?: string | null;
         payment_failed_at?: string | null;
       }
     | Array<{
@@ -77,6 +79,7 @@ type MembershipRow = {
         slug: string;
         plan?: string | null;
         stripe_customer_id?: string | null;
+        polar_customer_id?: string | null;
         payment_failed_at?: string | null;
       }>
     | null;
@@ -134,6 +137,7 @@ export const getWorkspaceContext = cache(
       slug: string;
       plan?: string | null;
       stripe_customer_id?: string | null;
+      polar_customer_id?: string | null;
       payment_failed_at?: string | null;
     };
 
@@ -146,6 +150,7 @@ export const getWorkspaceContext = cache(
       role: membership.role,
       plan: normalizePlan(ws.plan ?? "free"),
       stripeCustomerId: ws.stripe_customer_id ?? null,
+      polarCustomerId: ws.polar_customer_id ?? null,
       paymentFailedAt: ws.payment_failed_at ?? null,
     };
   }

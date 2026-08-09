@@ -8,6 +8,7 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 ## [Unreleased]
 
 ### Added
+- **Polar checkout and billing portal**, as an alternative to Stripe. Polar is a merchant of record, so it collects and remits VAT/sales tax rather than leaving that to you. Whichever provider is configured is the one that's live; Polar wins if both are
 - **Mattermost alert channel.** Mattermost incoming webhooks need a `text` field, which the generic Webhook channel doesn't send, so pointing one at it failed silently. It's now a channel of its own
 - **Multiple workspaces**: a switcher in the console header, and workspace creation from Settings → Workspace. Which workspace you see is now your choice instead of whichever one you joined first
 - **Members and invites**: invite by email with a role, revoke pending invites, change roles, and remove or leave a workspace. Plans carry seat limits, and a workspace can never be left without an owner
