@@ -1,16 +1,20 @@
 /**
- * POST /api/billing/portal — Stripe Customer Portal for subscription management.
+ * POST /api/billing/portal — customer portal for subscription management.
+ *
+ * Dispatches on the configured provider, same as checkout.
  */
 
 import { NextResponse } from "next/server";
+import { getBillingProvider } from "@/lib/billing/provider";
+import { createPolarPortalUrl } from "@/lib/polar/billing";
 import { createCustomerPortalUrl } from "@/lib/stripe/billing";
-import { isStripeConfigured } from "@/lib/stripe/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
 export async function POST() {
-  if (!isStripeConfigured()) {
+  const provider = getBillingProvider();
+  if (!provider) {
     return NextResponse.json(
-      { error: "Stripe is not configured" },
+      { error: "Billing is not configured" },
       { status: 503 }
     );
   }
@@ -27,19 +31,23 @@ export async function POST() {
     );
   }
 
-  if (!ctx.stripeCustomerId) {
+  const customerId =
+    provider === "polar" ? ctx.polarCustomerId : ctx.stripeCustomerId;
+
+  if (!customerId) {
     return NextResponse.json(
-      {
-        error:
-          "No Stripe customer on file. Subscribe to a paid plan first.",
-      },
+      { error: "No billing customer on file. Subscribe to a paid plan first." },
       { status: 400 }
     );
   }
 
-  const result = await createCustomerPortalUrl(ctx.stripeCustomerId);
+  const result =
+    provider === "polar"
+      ? await createPolarPortalUrl(customerId)
+      : await createCustomerPortalUrl(customerId);
+
   if ("error" in result) {
-    console.error("[billing/portal]", result.error);
+    console.error(`[billing/portal] ${provider}:`, result.error);
     return NextResponse.json({ error: result.error }, { status: 500 });
   }
 

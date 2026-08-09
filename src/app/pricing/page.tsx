@@ -7,7 +7,7 @@ import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome"
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
 import { isPaidPlan, PLANS, type PlanId } from "@/lib/plans";
-import { isStripeConfigured } from "@/lib/stripe/server";
+import { getBillingProvider } from "@/lib/billing/provider";
 import { buildMetadata, faqJsonLd } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
@@ -99,7 +99,7 @@ async function ViewerPlanCta({
 // Static shell. Everything that depends on who is viewing is streamed behind
 // Suspense, so the plan grid, copy, and FAQ render without waiting on auth.
 export default function PricingPage() {
-  const stripeReady = isStripeConfigured();
+  const stripeReady = getBillingProvider() !== null;
 
   return (
     <div className="min-h-screen">

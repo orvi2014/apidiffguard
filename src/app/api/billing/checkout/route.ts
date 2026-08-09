@@ -1,21 +1,27 @@
 /**
- * POST /api/billing/checkout — Stripe Checkout for starter / pro plans.
+ * POST /api/billing/checkout — subscription checkout for starter / pro.
+ *
+ * Provider-neutral by design: the button in the UI does not know or care which
+ * processor is live, so switching providers is an environment change rather
+ * than a frontend change.
  */
 
 import { NextResponse } from "next/server";
+import { getBillingProvider } from "@/lib/billing/provider";
+import { createPolarCheckoutUrl } from "@/lib/polar/billing";
+import { isPaidPlan } from "@/lib/plans";
 import {
   createSubscriptionCheckoutUrl,
   ensureStripeCustomer,
-  isPaidPlan,
 } from "@/lib/stripe/billing";
-import { isStripeConfigured } from "@/lib/stripe/server";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 
 export async function POST(request: Request) {
-  if (!isStripeConfigured()) {
+  const provider = getBillingProvider();
+  if (!provider) {
     return NextResponse.json(
-      { error: "Stripe is not configured" },
+      { error: "Billing is not configured" },
       { status: 503 }
     );
   }
@@ -45,6 +51,24 @@ export async function POST(request: Request) {
       { error: "plan must be starter or pro" },
       { status: 400 }
     );
+  }
+
+  if (provider === "polar") {
+    // No customer is created up front: Polar creates one at checkout and binds
+    // it to the workspace through externalCustomerId, which the webhook reads
+    // back. One fewer API call, and no orphan customer if checkout is abandoned.
+    const result = await createPolarCheckoutUrl({
+      workspaceId: ctx.workspaceId,
+      targetPlan: plan,
+      customerEmail: ctx.email,
+      polarCustomerId: ctx.polarCustomerId,
+    });
+
+    if ("error" in result) {
+      console.error("[billing/checkout] polar:", result.error);
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ url: result.url });
   }
 
   const supabase = await createClient();
@@ -82,7 +106,7 @@ export async function POST(request: Request) {
   });
 
   if ("error" in result) {
-    console.error("[billing/checkout]", result.error);
+    console.error("[billing/checkout] stripe:", result.error);
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
