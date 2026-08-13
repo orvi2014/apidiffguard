@@ -26,6 +26,23 @@ import {
   runCheckAction,
 } from "@/app/actions/endpoints";
 
+/**
+ * How long to hold on the verdict before navigating to the diff.
+ *
+ * Read at call time rather than through a hook: it is consulted once per check,
+ * and a user who turns motion down mid-session should get the shorter path on
+ * their next check without a re-render.
+ */
+function verdictHold(): number {
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  ) {
+    return 0;
+  }
+  return 460;
+}
+
 export function EndpointDetailLive({
   endpoint,
   baselines,
@@ -55,6 +72,9 @@ export function EndpointDetailLive({
     text: string;
   } | null>(null);
   const [local, setLocal] = React.useState(endpoint);
+  // 0 means "nothing has transitioned yet", which keeps the badge static on
+  // first paint. Every increment is a verdict we watched arrive.
+  const [settleKey, setSettleKey] = React.useState(0);
 
   // Re-sync when the server sends a newer row. Adjusting state during render
   // (React's documented pattern for derived state) re-renders immediately with
@@ -69,8 +89,17 @@ export function EndpointDetailLive({
   const onCapture = async (allowErrorStatus = false) => {
     setBusy("baseline");
     setMessage(null);
+    // Capturing a baseline fetches the endpoint too, so it is the same
+    // scanning beat. This is also the first thing a new workspace ever does,
+    // which makes it the worst possible moment to look inert.
+    setLocal((l) => ({ ...l, health: "checking" }));
     const result = await captureBaselineAction(local.id, { allowErrorStatus });
     setBusy(null);
+    // Every path out of here has to leave the scanning state, or the pill
+    // sweeps forever on a request that already finished.
+    const stopScanning = () =>
+      setLocal((l) => ({ ...l, health: endpoint.health }));
+
     if (result && "needsConfirm" in result && result.needsConfirm) {
       if (
         confirm(
@@ -79,6 +108,7 @@ export function EndpointDetailLive({
       ) {
         await onCapture(true);
       } else {
+        stopScanning();
         setMessage({
           tone: "warn",
           text: result.error ?? "Baseline not saved.",
@@ -87,9 +117,11 @@ export function EndpointDetailLive({
       return;
     }
     if (result?.error) {
+      stopScanning();
       setMessage({ tone: "err", text: result.error });
       return;
     }
+    stopScanning();
     setMessage({
       tone: "ok",
       text: `Baseline v${result.version} captured · HTTP ${result.statusCode} · ${formatMs(result.responseTime!)}`,
@@ -100,16 +132,44 @@ export function EndpointDetailLive({
   const onCheck = async () => {
     setBusy("check");
     setMessage(null);
+    // The server sets health to CHECKING immediately, but the client would not
+    // see it until a refresh — which lands after the check has already
+    // finished. Entering the state locally is what makes the scanning beat
+    // real; without it the pill sat unchanged for the whole request and the
+    // only feedback was a 14px spinner inside the button.
+    setLocal((l) => ({ ...l, health: "checking" }));
+
     const result = await runCheckAction(local.id);
     setBusy(null);
+
     if ("error" in result && result.error) {
+      setLocal((l) => ({ ...l, health: endpoint.health }));
       setMessage({
         tone: result.error.includes("baseline") ? "warn" : "err",
         text: result.error,
       });
       return;
     }
-    if (!("success" in result) || !result.success) return;
+    if (!("success" in result) || !result.success) {
+      setLocal((l) => ({ ...l, health: endpoint.health }));
+      return;
+    }
+
+    const verdict: Endpoint["health"] = result.breakingCount
+      ? "breaking"
+      : result.warningCount
+        ? "warning"
+        : "healthy";
+    setLocal((l) => ({
+      ...l,
+      health: verdict,
+      breakingCount: result.breakingCount ?? 0,
+      warningCount: result.warningCount ?? 0,
+    }));
+    // Bumping the key remounts the badge, which restarts the CSS animation.
+    // Gated on a real transition, so nothing animates on first paint.
+    setSettleKey((k) => k + 1);
+
     if (result.changeCount === 0) {
       setMessage({
         tone: "ok",
@@ -118,12 +178,23 @@ export function EndpointDetailLive({
       router.refresh();
       return;
     }
+
     setMessage({
       tone: result.breakingCount ? "err" : "warn",
       text: `Found ${result.breakingCount} breaking · ${result.warningCount} warnings`,
     });
-    if (result.diffId) router.push(`/diff/${result.diffId}`);
-    else router.refresh();
+
+    if (result.diffId) {
+      const diffId = result.diffId;
+      // Let the verdict land before the diff replaces the page. Previously the
+      // route changed the instant the promise resolved, so the endpoint you
+      // were looking at never visibly turned red — you were just somewhere
+      // else. After a multi-second check this beat reads as comprehension, not
+      // latency, and it collapses to nothing when motion is reduced.
+      window.setTimeout(() => router.push(`/diff/${diffId}`), verdictHold());
+    } else {
+      router.refresh();
+    }
   };
 
   const onDelete = async () => {
@@ -155,7 +226,11 @@ export function EndpointDetailLive({
                 <h1 className="text-xl font-semibold tracking-tight">
                   {local.name}
                 </h1>
-                <HealthBadge status={local.health} />
+                <HealthBadge
+                  key={settleKey}
+                  status={local.health}
+                  settle={settleKey > 0}
+                />
               </div>
               <p className="mt-2 font-mono text-xs text-muted">{local.url}</p>
               {local.description ? (

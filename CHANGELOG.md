@@ -8,6 +8,8 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 ## [Unreleased]
 
 ### Added
+- **Landing page rebuilt around the diff itself.** The hero now shows a real check readout — every row is output the diff engine actually produces in schema mode, verified against it — instead of an illustrative mock. A side-by-side Diff Viewer pane sits beside the CLI transcript, so "same engine in the console and in CI" is shown rather than claimed
+- **The free tier, MIT licence, and the VPN limitation are stated at the signup button**, not buried thousands of pixels down. Cloud can only reach public endpoints; the page says so and points at self-hosting
 - **Polar checkout and billing portal**, as an alternative to Stripe. Polar is a merchant of record, so it collects and remits VAT/sales tax rather than leaving that to you. Whichever provider is configured is the one that's live; Polar wins if both are
 - **Mattermost alert channel.** Mattermost incoming webhooks need a `text` field, which the generic Webhook channel doesn't send, so pointing one at it failed silently. It's now a channel of its own
 - **Multiple workspaces**: a switcher in the console header, and workspace creation from Settings → Workspace. Which workspace you see is now your choice instead of whichever one you joined first
@@ -29,6 +31,9 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Retention and reaper maintenance job (hourly), trimming old response bodies and releasing checks stuck on "Checking…"
 
 ### Changed
+- Removed the shimmer, shine, beam, and gradient-wash effects from marketing pages. Colour now only ever reports something
+- Consistent signup button across header, hero, and footer — one label, one treatment, one primary action per screen
+- Merged the two duplicate Q&A sections and dropped the entry that restated the hero
 - Brand mark set to Split (solid + outlined before/after panes) across UI, favicon, Apple icon, and social cards
 - Slack/Discord alert activity logging no longer writes invalid `endpoint_id` column
 - Repeated alerts for the same unchanged break are now suppressed for a cooldown window instead of firing every run
@@ -38,6 +43,11 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Downgraded workspaces stop running scheduled checks
 
 ### Fixed
+- **Diff highlights failed the WCAG AA contrast minimum** (4.49:1 against a 4.5 threshold). Code panes now sit on the ink surface, which the design system already specified, bringing them to 4.81:1
+- **Diff highlighting relied on colour alone.** Changed lines now carry `+`/`−` markers, so the information survives greyscale and colour blindness
+- **Touch targets in the site header were below the 44px minimum** — the menu toggle, signup button, brand link, and every mobile drawer row. Sized by pointer type rather than screen width, so a touchscreen laptop benefits and mouse density is unchanged
+- Reduced-motion preference now clears animation *delays* as well as durations; a staggered entrance previously stayed invisible for the length of its stagger before snapping in
+- Removed seven unused UI components and the now-unreferenced `motion` dependency
 - **Endpoint credentials are now encrypted at rest** and can no longer be read back by anyone — including owners. Bearer tokens, API keys, and basic-auth passwords were stored as plaintext that every workspace member, viewers included, could read
 - **DNS rebinding could reach internal addresses.** A hostname that passed validation could resolve to something else by the time the connection was made; the resolved address is now checked and pinned for the life of the request
 - **Viewers could trigger checks through the REST API**, bypassing the role check enforced in the UI

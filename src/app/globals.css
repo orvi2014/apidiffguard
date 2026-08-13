@@ -42,6 +42,10 @@
   --danger: #ef4444;
   --danger-muted: rgba(239, 68, 68, 0.12);
   --info: #38bdf8;
+  --info-muted: rgba(56, 189, 248, 0.12);
+
+  /* Exponential ease-out: decisive arrival, no overshoot, no bounce. */
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
 
   --chart-1: #4f7fff;
   --chart-2: #22c55e;
@@ -77,6 +81,7 @@
   --color-danger: var(--danger);
   --color-danger-muted: var(--danger-muted);
   --color-info: var(--info);
+  --color-info-muted: var(--info-muted);
   --color-ring: var(--ring);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -193,6 +198,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /* Delays must go too. A staggered entrance whose duration is crushed to
+       0.01ms but whose delay survives leaves content invisible for the length
+       of the stagger and then pops — worse than the animation it replaced. */
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
   }
 }
 
@@ -233,17 +243,134 @@
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 
-@keyframes slide-up {
+/* ---------------------------------------------------------------------------
+   Check lifecycle motion
+   ---------------------------------------------------------------------------
+   The product says one thing: this was X, it is now Y, here is the delta. A
+   check has three beats, and each gets exactly one gesture.
+
+     1. Scanning — a sliver sweeps the health pill while the response is being
+        read. Transform-only inside an overflow-clipped 90x20 pill, so it
+        composites and stays cheap on a mid-range phone.
+     2. Verdict  — the pill settles as the result lands, and the status dot
+        blooms a single ring. Fast settle over a slower bloom reads as an
+        authored arrival rather than a CSS default.
+     3. Continuity — handled in JS: the verdict is allowed to land before the
+        diff replaces the page.
+
+   Colour and label carry the meaning on their own, so the reduce-motion block
+   above can flatten all of this without costing information.
+--------------------------------------------------------------------------- */
+
+@keyframes health-scan {
   from {
-    opacity: 0;
-    transform: translateY(6px);
+    transform: translateX(-110%);
   }
   to {
-    opacity: 1;
-    transform: translateY(0);
+    transform: translateX(210%);
   }
 }
 
-.animate-slide-up {
-  animation: slide-up 0.25s ease-out both;
+/* The sweeping sliver. `currentColor` inherits the state's own hue, so the
+   scanner is tinted by the badge rather than washed with white. */
+.health-scan::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  /* Narrow enough to read as a passing line rather than a wash over the pill. */
+  inline-size: 28%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    currentColor 50%,
+    transparent
+  );
+  opacity: 0.34;
+  /* Linear: a scanner traverses at a constant rate. An ease-in-out dwells at
+     each edge, which reads as a pulse and loses the sense of travel. */
+  animation: health-scan 1.5s linear infinite;
+  will-change: transform;
+}
+
+@keyframes verdict-settle {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes verdict-bloom {
+  from {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.health-settle {
+  animation: verdict-settle 320ms var(--ease-settle) both;
+}
+
+/* ---------------------------------------------------------------------------
+   Landing hero: the ledger performs the check once
+   ---------------------------------------------------------------------------
+   The page's argument is that a contract was fine, then it broke, and we
+   caught it. So the ledger writes itself in reading order and each severity
+   word arrives *after* its row — the visitor watches the verdict form instead
+   of finding it already there.
+
+   One authored sequence, on one element. Nothing else on the page moves.
+   Transform and opacity only, ~1.1s end to end, so it stays composited on a
+   mid-range phone. `both` fill means the reduce-motion rule above lands every
+   row on its final visible state rather than hiding it.
+--------------------------------------------------------------------------- */
+
+@keyframes ledger-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ledger-verdict-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ledger-row {
+  animation: ledger-row-in 420ms var(--ease-settle) both;
+  animation-delay: calc(var(--row, 0) * 90ms);
+}
+
+/* The severity trails its own row, so the reading order is path → change →
+   verdict rather than everything arriving at once. */
+.ledger-verdict {
+  animation: ledger-verdict-in 320ms var(--ease-settle) both;
+  animation-delay: calc(var(--row, 0) * 90ms + 240ms);
+}
+
+/* A ring, not a filled disc: a solid circle expanding out of a 6px dot fades
+   below the noise floor before it is big enough to notice, whereas a stroke
+   stays legible the whole way out. One composited transform+opacity pair,
+   bounded to ~16px, gone after a single pass. */
+.health-settle .health-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid currentColor;
+  animation: verdict-bloom 520ms var(--ease-settle) both;
 }

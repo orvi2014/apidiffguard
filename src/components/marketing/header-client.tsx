@@ -41,7 +41,7 @@ export function MarketingHeaderClient({
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-5">
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-semibold tracking-tight"
+          className="flex items-center gap-2.5 font-semibold tracking-tight pointer-coarse:min-h-11"
         >
           <BrandLogo withWordmark size={24} />
         </Link>
@@ -67,10 +67,10 @@ export function MarketingHeaderClient({
               <span className="hidden max-w-[140px] truncate text-xs text-muted lg:inline">
                 {email}
               </span>
-              <Button asChild size="sm" variant="secondary" className="hidden sm:inline-flex">
+              <Button asChild size="sm" variant="secondary" className="pointer-coarse:min-h-11 hidden sm:inline-flex">
                 <Link href="/settings/billing">Billing</Link>
               </Button>
-              <Button asChild size="sm">
+              <Button asChild size="sm" className="pointer-coarse:min-h-11">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
             </>
@@ -78,11 +78,14 @@ export function MarketingHeaderClient({
             <>
               <Link
                 href="/login"
-                className="hidden px-3 py-1.5 text-sm text-muted hover:text-foreground sm:inline"
+                className="pointer-coarse:min-h-11 hidden items-center px-3 py-1.5 text-sm text-muted hover:text-foreground sm:inline-flex"
               >
                 Sign in
               </Link>
-              <Button asChild size="sm">
+              {/* Secondary on purpose. The hero owns the primary action; a
+                  filled accent button in the sticky header out-shouted it and
+                  put two competing primaries in one viewport. */}
+              <Button asChild size="sm" variant="secondary" className="pointer-coarse:min-h-11">
                 <Link href="/register">Start free</Link>
               </Button>
             </>
@@ -90,7 +93,7 @@ export function MarketingHeaderClient({
 
           <button
             type="button"
-            className="inline-flex size-9 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-foreground md:hidden"
+            className="pointer-coarse:min-h-11 pointer-coarse:min-w-11 inline-flex size-9 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-foreground md:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -113,7 +116,7 @@ export function MarketingHeaderClient({
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="block rounded-md px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground"
+                  className="pointer-coarse:min-h-11 flex items-center rounded-md px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground"
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
@@ -125,7 +128,7 @@ export function MarketingHeaderClient({
                 <li>
                   <Link
                     href="/settings/billing"
-                    className="block rounded-md px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground"
+                    className="pointer-coarse:min-h-11 flex items-center rounded-md px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground"
                     onClick={() => setOpen(false)}
                   >
                     Billing
@@ -145,7 +148,7 @@ export function MarketingHeaderClient({
               <li>
                 <Link
                   href="/login"
-                  className="block rounded-md px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground"
+                  className="pointer-coarse:min-h-11 flex items-center rounded-md px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground"
                   onClick={() => setOpen(false)}
                 >
                   Sign in

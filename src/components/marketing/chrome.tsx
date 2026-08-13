@@ -91,9 +91,11 @@ export function MarketingFooter() {
           },
         ].map((col) => (
           <div key={col.title}>
-            <h4 className="text-xs font-medium uppercase tracking-wider text-muted">
+            {/* h3, not h4: the nearest preceding heading is an h2, and jumping
+                a level breaks the document outline for screen readers. */}
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted">
               {col.title}
-            </h4>
+            </h3>
             <ul className="mt-3 space-y-2">
               {col.links.map(([label, href]) => (
                 <li key={href}>

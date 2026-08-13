@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-13T00:00:00.000Z",
+  "title": "Design System: APIDiffGuard",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#09090b",
+        "tonalRamp": [
+          "#09090b",
+          "#111113",
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#71717a",
+          "#a1a1aa",
+          "#e4e4e7"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "canonical": "#111113",
+        "tonalRamp": [
+          "#09090b",
+          "#111113",
+          "#18181b",
+          "#1f1f23",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#a1a1aa"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "#18181b",
+        "tonalRamp": [
+          "#0c0c0e",
+          "#131316",
+          "#18181b",
+          "#212125",
+          "#2b2b30",
+          "#3f3f46",
+          "#5b5b63",
+          "#8b8b93"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#27272a",
+        "tonalRamp": [
+          "#101012",
+          "#18181b",
+          "#1f1f23",
+          "#27272a",
+          "#333338",
+          "#4a4a52",
+          "#6b6b75",
+          "#9c9ca6"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "canonical": "#fafafa",
+        "tonalRamp": [
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#71717a",
+          "#a1a1aa",
+          "#d4d4d8",
+          "#ededf0",
+          "#fafafa"
+        ]
+      },
+      "foreground-muted": {
+        "role": "neutral",
+        "displayName": "Muted Foreground",
+        "canonical": "#c4c4cc",
+        "tonalRamp": [
+          "#3f3f46",
+          "#52525b",
+          "#6b6b75",
+          "#8b8b93",
+          "#a8a8b2",
+          "#c4c4cc",
+          "#dedee4",
+          "#f4f4f6"
+        ]
+      },
+      "signal": {
+        "role": "primary",
+        "displayName": "Signal Blue",
+        "canonical": "#4f7fff",
+        "tonalRamp": [
+          "#0b1533",
+          "#122352",
+          "#1b3480",
+          "#2649b3",
+          "#3563e0",
+          "#4f7fff",
+          "#8aa8ff",
+          "#c9d8ff"
+        ]
+      },
+      "healthy": {
+        "role": "tertiary",
+        "displayName": "Healthy Green",
+        "canonical": "#22c55e",
+        "tonalRamp": [
+          "#052e14",
+          "#064e26",
+          "#0a7038",
+          "#0f9349",
+          "#16a34a",
+          "#22c55e",
+          "#6ee7a0",
+          "#bbf7d0"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Warning Amber",
+        "canonical": "#f59e0b",
+        "tonalRamp": [
+          "#301a02",
+          "#4d2a05",
+          "#733f07",
+          "#9a5709",
+          "#c2790a",
+          "#f59e0b",
+          "#fbc766",
+          "#fde8b8"
+        ]
+      },
+      "breaking": {
+        "role": "tertiary",
+        "displayName": "Breaking Red",
+        "canonical": "#ef4444",
+        "tonalRamp": [
+          "#320a0a",
+          "#511010",
+          "#7a1818",
+          "#a32121",
+          "#cc2f2f",
+          "#ef4444",
+          "#f88f8f",
+          "#fcd0d0"
+        ]
+      },
+      "scanning": {
+        "role": "tertiary",
+        "displayName": "Scanning Cyan",
+        "canonical": "#38bdf8",
+        "tonalRamp": [
+          "#062736",
+          "#0a3d54",
+          "#0f5877",
+          "#15759d",
+          "#1d95c4",
+          "#38bdf8",
+          "#87d8fb",
+          "#c8ecfd"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Marketing headlines only. Never appears inside the console."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles \u2014 endpoint names, section pages."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section and panel headings inside the console."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose and form values. Long-form caps at 65\u201375ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Badges, table headers, metadata. Uppercase only for severity."
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "Values you would diff: URLs, latencies, sizes, versions, status codes."
+      }
+    },
+    "shadows": [
+      {
+        "name": "none",
+        "value": "none",
+        "purpose": "The console default and the system's position. Depth is tonal; shadows are suppressed with shadow-none where component libraries add them."
+      },
+      {
+        "name": "marketing-ambient",
+        "value": "0 0 0 1px rgba(255,255,255,0.03), 0 40px 80px -20px rgba(0,0,0,0.7)",
+        "purpose": "Marketing only, under the product-demo frame. Must not migrate into the console."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-settle",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Exponential ease-out for decisive arrivals. No overshoot, no bounce."
+      },
+      {
+        "name": "health-scan",
+        "value": "1.5s linear infinite",
+        "purpose": "A narrow sliver traversing the status pill while a check is in flight. Linear because a scanner travels at a constant rate."
+      },
+      {
+        "name": "verdict-settle",
+        "value": "320ms var(--ease-settle)",
+        "purpose": "The status pill landing on its result, from scale(1.05)."
+      },
+      {
+        "name": "verdict-bloom",
+        "value": "520ms var(--ease-settle)",
+        "purpose": "One ring expanding off the status dot as the verdict lands. Fires once, on a real transition."
+      },
+      {
+        "name": "state-transition",
+        "value": "150ms ease",
+        "purpose": "Routine hover and colour changes across rows, buttons, and links."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one action on a view. Signal Blue, spent sparingly.",
+      "html": "<button class=\"ds-btn-primary\">Run check</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 10px; background: var(--accent, #4f7fff); color: #f8fafc; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 150ms ease, transform 100ms ease; } .ds-btn-primary:hover { background: rgba(79,127,255,0.8); } .ds-btn-primary:focus-visible { outline: none; border-color: #4f7fff; box-shadow: 0 0 0 3px rgba(79,127,255,0.5); } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The default for anything that is not the single primary action.",
+      "html": "<button class=\"ds-btn-secondary\">Capture baseline</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 10px; background: var(--surface-elevated, #18181b); color: var(--foreground, #fafafa); font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 150ms ease; } .ds-btn-secondary:hover { background: #212125; } .ds-btn-secondary:focus-visible { outline: none; border-color: #4f7fff; box-shadow: 0 0 0 3px rgba(79,127,255,0.5); }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Washed red, never a solid fill \u2014 a filled red button reads as a state, not an action.",
+      "html": "<button class=\"ds-btn-destructive\">Delete endpoint</button>",
+      "css": ".ds-btn-destructive { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 10px; background: rgba(239,68,68,0.1); color: #ef4444; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 150ms ease; } .ds-btn-destructive:hover { background: rgba(239,68,68,0.2); } .ds-btn-destructive:focus-visible { outline: none; border-color: rgba(239,68,68,0.4); box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "An Ink well on a Panel surface. Focus shifts the border to Signal Blue.",
+      "html": "<input class=\"ds-input\" placeholder=\"https://api.example.com/v1/users\" />",
+      "css": ".ds-input { display: block; width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--border, #27272a); border-radius: 8px; background: var(--background, #09090b); color: var(--foreground, #fafafa); font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 14px; transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-input::placeholder { color: #8b8b93; } .ds-input:focus-visible { outline: none; border-color: #4f7fff; box-shadow: 0 0 0 3px rgba(79,127,255,0.5); }"
+    },
+    {
+      "name": "Status Badge \u2014 Breaking",
+      "kind": "chip",
+      "refersTo": "badge-breaking",
+      "description": "A status colour on its own 12% wash, with a leading dot. The signature component.",
+      "html": "<span class=\"ds-badge ds-badge-breaking\"><span class=\"ds-badge-dot\"></span>Breaking</span>",
+      "css": ".ds-badge { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 2px 6px; border-radius: 6px; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.02em; } .ds-badge-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; } .ds-badge-breaking { background: rgba(239,68,68,0.12); color: #ef4444; }"
+    },
+    {
+      "name": "Status Badge \u2014 Scanning",
+      "kind": "chip",
+      "refersTo": "badge-healthy",
+      "description": "The in-flight state. A narrow sliver traverses the clipped pill at a constant rate.",
+      "html": "<span class=\"ds-badge ds-badge-scanning\"><span class=\"ds-badge-dot ds-dot-pulse\"></span>Checking</span>",
+      "css": ".ds-badge-scanning { position: relative; display: inline-flex; align-items: center; gap: 6px; overflow: hidden; padding: 2px 6px; border-radius: 6px; background: rgba(56,189,248,0.12); color: #38bdf8; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 500; } .ds-badge-scanning .ds-badge-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; animation: ds-pulse 1.6s ease-in-out infinite; } .ds-badge-scanning::after { content: ''; position: absolute; inset-block: 0; inline-size: 28%; background: linear-gradient(90deg, transparent, currentColor 50%, transparent); opacity: 0.34; animation: ds-scan 1.5s linear infinite; } @keyframes ds-scan { from { transform: translateX(-110%); } to { transform: translateX(210%); } } @keyframes ds-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }"
+    },
+    {
+      "name": "Method Badge",
+      "kind": "chip",
+      "refersTo": "badge-healthy",
+      "description": "No ground at all \u2014 coloured monospace so the verb reads as data, not as a control.",
+      "html": "<span class=\"ds-method\">GET</span>",
+      "css": ".ds-method { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #4ade80; }"
+    },
+    {
+      "name": "Endpoint Row",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "The console's primary unit. Dense, hairline-separated, hover-tinted.",
+      "html": "<a class=\"ds-row\" href=\"#\"><span class=\"ds-method\">GET</span><span class=\"ds-row-main\"><span class=\"ds-row-title\">Billing API</span><span class=\"ds-row-url\">https://api.example.com/v1/invoices</span></span><span class=\"ds-row-meta\">128ms</span></a>",
+      "css": ".ds-row { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid #1f1f23; text-decoration: none; transition: background 150ms ease; } .ds-row:hover { background: #111113; } .ds-row-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; } .ds-row-title { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; color: #fafafa; transition: color 150ms ease; } .ds-row:hover .ds-row-title { color: #4f7fff; } .ds-row-url { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; color: #c4c4cc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-row-meta { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: #c4c4cc; font-variant-numeric: tabular-nums; } .ds-method { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: #4ade80; }"
+    },
+    {
+      "name": "Console Nav Link",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Label-size, transparent until hover, Raised when active.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-active\" href=\"#\">Overview</a><a class=\"ds-nav-link\" href=\"#\">Endpoints</a><a class=\"ds-nav-link\" href=\"#\">Diffs</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 2px; padding: 8px; background: #111113; border-bottom: 1px solid #27272a; } .ds-nav-link { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: 6px; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 500; color: #c4c4cc; text-decoration: none; transition: background 150ms ease, color 150ms ease; } .ds-nav-link:hover { background: #18181b; color: #fafafa; } .ds-nav-active { background: #18181b; color: #fafafa; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel-surface",
+      "description": "The container. Tone plus a hairline \u2014 no shadow, ever.",
+      "html": "<section class=\"ds-panel\"><h3 class=\"ds-panel-title\">Baseline history</h3><p class=\"ds-panel-body\">Versioned snapshots of status, headers, and body.</p></section>",
+      "css": ".ds-panel { padding: 20px; border: 1px solid #27272a; border-radius: 8px; background: #111113; } .ds-panel-title { margin: 0 0 8px; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; color: #fafafa; } .ds-panel-body { margin: 0; font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #c4c4cc; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Instrument Panel",
+    "overview": "This is a readout, not a website. It sits dark and near-silent while everything is fine, and it becomes unmistakable the moment something is not. Every colour that is not greyscale means something; nothing is tinted for atmosphere. The system assumes a professional who already knows what they are looking at, and it spends its budget on information density rather than on reassurance.\n\nDepth comes from stacked tone, never from shadow. Three greys \u2014 #09090b ground, #111113 panel, #18181b raised \u2014 plus a 1px hairline do all the structural work, which is why the interface stays legible at high density and why a drop shadow immediately looks foreign in it. Monospace is reserved for things that are measured: URLs, latencies, versions, status codes, HTTP methods. It is never a costume for \"technical\".\n\nThe identity comes from the Split mark \u2014 a solid pane beside an outlined one, before beside after. That is the product and it is the system: two states, one delta, graded by consequence.",
+    "keyCharacteristics": [
+      "Dark-only by commitment, not by theme toggle (color-scheme: dark is pinned)",
+      "Flat by construction: tonal layering and hairlines instead of elevation",
+      "One accent, spent rarely; four semantic status colours, spent precisely",
+      "High density \u2014 32px controls, 11px labels, 12px row padding",
+      "Monospace as data, never as decoration"
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Signal Blue marks at most one thing per view: the action you would take, or the state you are in. It is never a surface, never a border above 1px, and never used to make something look branded. Its scarcity is what keeps the status colours legible beside it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Every Colour Means Something Rule",
+        "body": "If an element is not greyscale, a reader must be able to say what it is reporting. There is no decorative colour in this system. A new hue requires a new meaning, not a new mood. Scanning Cyan is the one colour with two meanings \u2014 in-flight, and info severity \u2014 because neither ever means act now.",
+        "section": "colors"
+      },
+      {
+        "name": "The Wash Pairing Rule",
+        "body": "A status colour on a filled ground always uses its own 12% wash, never a grey chip with coloured text. The wash is what makes a badge readable at 11px.",
+        "section": "colors"
+      },
+      {
+        "name": "The Measurement Rule",
+        "body": "Monospace is for values a machine produced and a human compares: URLs, durations, sizes, versions, status codes, HTTP methods, JSON paths. Prose never gets it. If the text is not something you would diff, it is not mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Display In The Console Rule",
+        "body": "Display type belongs to marketing surfaces. Inside the console the largest text is Headline at 1.25rem; anything larger steals vertical space from the data the user came for.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Densities Rule",
+        "body": "Console and marketing have separate spatial systems. Console optimises information per pixel; marketing optimises comprehension per scroll. Never import marketing whitespace into the console, or console density into a landing page.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Ground Rule",
+        "body": "A console surface is distinguished by its tone and its hairline, never by a shadow. If two surfaces need separating and tone is not enough, add a 1px #27272a border \u2014 not a drop shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do build depth from the three-tone stack and a 1px hairline. Reach for tone before you reach for a border, and for a border before you reach for anything else.",
+      "Do pair every status colour with its own 12% wash when it needs a ground.",
+      "Do keep monospace for values you would diff \u2014 URLs, durations, versions, status codes, paths.",
+      "Do hold Signal Blue to one element per view.",
+      "Do let colour and text carry state on their own. Every animation here is removable by prefers-reduced-motion without losing information, and that must stay true.",
+      "Do keep console controls at 32px and labels at 11px. The density is the design."
+    ],
+    "donts": [
+      "Don't add a box-shadow to a console surface. This system is flat by construction.",
+      "Don't reach for consumer-SaaS marketing gloss \u2014 gradient meshes, floating glass cards, pastel blobs, illustration-led heroes. (Confirmed anti-reference.)",
+      "Don't reach for enterprise dashboard chartjunk \u2014 donut charts, gauges, KPI tiles, sparkline confetti that decorates instead of informing. (Confirmed anti-reference.)",
+      "Don't introduce a colour without a meaning. There is no decorative hue in this palette.",
+      "Don't use a coloured border-left to indicate severity. The wash and the text colour do that job.",
+      "Don't use font-weight 700 \u2014 it is not loaded. Add it to the font config first or use size for emphasis.",
+      "Don't animate a list on mount. Motion marks a transition someone caused, never an arrival.",
+      "Don't put Display type inside the console."
+    ]
+  }
+}

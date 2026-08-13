@@ -4,7 +4,7 @@
   "private": false,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack --port 3100",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -45,7 +45,6 @@
     "fumadocs-mdx": "^15.1.0",
     "fumadocs-ui": "^16.11.3",
     "lucide-react": "^1.24.0",
-    "motion": "^12.42.2",
     "next": "16.2.10",
     "radix-ui": "^1.6.2",
     "react": "19.2.4",

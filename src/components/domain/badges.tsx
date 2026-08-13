@@ -27,28 +27,43 @@ const healthConfig: Record<
   },
   checking: {
     label: "Checking",
-    className: "text-info bg-[rgba(56,189,248,0.12)]",
+    className: "text-info bg-info-muted",
     dot: "bg-info animate-pulse-dot",
   },
 };
 
 export function HealthBadge({
   status,
+  settle = false,
   className,
 }: {
   status: HealthStatus;
+  /**
+   * Play the verdict animation. Off by default and deliberately opt-in: a list
+   * of endpoints rendering on page load has not *changed* state, and animating
+   * every row on arrival would be decoration. Only the surface that watched the
+   * transition happen passes this.
+   */
+  settle?: boolean;
   className?: string;
 }) {
   const config = healthConfig[status];
+  const scanning = status === "checking";
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] font-medium tracking-wide",
+        "relative inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] font-medium tracking-wide",
         config.className,
+        // Clipped only while scanning, so the sliver stays inside the pill.
+        // The verdict bloom has to escape the pill, so the clip is lifted for it.
+        scanning ? "health-scan overflow-hidden" : settle && "health-settle",
         className
       )}
     >
-      <span className={cn("size-1.5 rounded-full", config.dot)} />
+      <span
+        className={cn("health-dot relative size-1.5 rounded-full", config.dot)}
+      />
       {config.label}
     </span>
   );
@@ -60,7 +75,7 @@ const severityConfig: Record<
 > = {
   info: {
     label: "Info",
-    className: "text-info bg-[rgba(56,189,248,0.12)]",
+    className: "text-info bg-info-muted",
   },
   warning: {
     label: "Warning",

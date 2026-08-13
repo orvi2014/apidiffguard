@@ -19,12 +19,17 @@ const securityHeaders = [
 // The diff viewer renders user-supplied JSON, so lock down what can execute.
 // 'unsafe-inline' on style-src is required by Tailwind/Radix inline styles;
 // 'unsafe-inline'/'unsafe-eval' on script-src are required by the Next.js dev
-// overlay and are dropped in production builds.
+// overlay and are dropped in production builds. localhost is allowed in dev for
+// the same reason plus the Impeccable live-mode overlay, which serves its
+// script from a local helper port; both are inside the isDev guard and never
+// reach a production response.
 const isDev = process.env.NODE_ENV === "development";
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${
+    isDev ? " 'unsafe-eval' http://localhost:*" : ""
+  }`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
