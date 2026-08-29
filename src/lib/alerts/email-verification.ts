@@ -2,17 +2,12 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { renderVerificationEmail, sendEmail } from "@/lib/alerts/email";
 import { createServiceClient } from "@/lib/supabase/server";
+import { appUrl } from "@/lib/app-url";
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
-}
-
-function appUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000"
-  );
 }
 
 /**

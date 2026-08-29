@@ -7,6 +7,7 @@ import { emailConfigured, isValidEmail, sendEmail } from "@/lib/alerts/email";
 import { canManageWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { appUrl } from "@/lib/app-url";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const ROLES = ["ADMIN", "MEMBER", "VIEWER"] as const;
@@ -18,12 +19,6 @@ function isInvitableRole(value: string): value is InvitableRole {
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
-}
-
-function appUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000"
-  );
 }
 
 function inviteEmailBody(opts: {

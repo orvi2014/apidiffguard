@@ -171,6 +171,24 @@ export function parseAndAssertPublicUrl(
 export const MAX_FETCH_BYTES = 2 * 1024 * 1024;
 export const MAX_REDIRECTS = 5;
 
+/**
+ * Headers a caller may not set on an outbound request.
+ *
+ * `authorization` is deliberately NOT here. It used to be, which meant the
+ * credential the user had carefully sealed was built into a header and then
+ * deleted before the request went out: every BEARER, OAUTH and BASIC endpoint
+ * was checked unauthenticated and came back 401, with nothing to say the app
+ * had discarded the token itself.
+ *
+ * The instinct behind blocking it was right, but aimed at the wrong layer.
+ * The risk is not sending credentials to the host the user named — that is
+ * the entire point — it is *forwarding* them to some other host named by a
+ * redirect. That is handled where redirects are actually followed, in
+ * `safeFetch`, which drops the header the moment a hop changes origin.
+ *
+ * `proxy-authorization` stays blocked: it is hop-by-hop and addresses a proxy
+ * we do not have, so a caller setting it is never legitimate.
+ */
 const BLOCKED_REQUEST_HEADERS = new Set([
   "host",
   "content-length",
@@ -182,13 +200,20 @@ const BLOCKED_REQUEST_HEADERS = new Set([
   "upgrade",
   "cookie",
   "cookie2",
-  "authorization",
   "proxy-authorization",
   "x-forwarded-for",
   "x-forwarded-host",
   "x-forwarded-proto",
   "forwarded",
 ]);
+
+/** Headers that must not survive a redirect to a different origin. */
+export const CREDENTIAL_HEADERS = ["authorization", "cookie", "cookie2"];
+
+/** scheme + host + port — the boundary credentials must not cross. */
+export function sameOrigin(a: URL, b: URL): boolean {
+  return a.protocol === b.protocol && a.host === b.host;
+}
 
 export function sanitizeOutboundHeaders(
   input?: Record<string, string>

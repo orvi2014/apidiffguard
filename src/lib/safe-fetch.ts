@@ -2,9 +2,11 @@ import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { Agent } from "undici";
 import {
+  CREDENTIAL_HEADERS,
   isBlockedHost,
   MAX_REDIRECTS,
   parseAndAssertPublicUrl,
+  sameOrigin,
 } from "@/lib/safe-url";
 
 /**
@@ -173,6 +175,17 @@ export async function safeFetch(
       // Re-runs the syntactic guard; the loop then re-resolves and re-pins, so
       // a redirect into private space is caught at both layers.
       parseAndAssertPublicUrl(next.toString());
+
+      // Credentials belong to the host the caller named, not to whatever host
+      // that one points at. A monitored API that redirects elsewhere must not
+      // hand the user's token to the destination, so the header is dropped the
+      // moment the origin changes — and stays dropped for the rest of the
+      // chain, since a later hop back to the original host would otherwise
+      // launder it. This is what lets the header through in the first place.
+      if (!sameOrigin(current, next)) {
+        for (const header of CREDENTIAL_HEADERS) headers.delete(header);
+      }
+
       current = next;
       // Redirects become GET for 301/302/303; keep method for 307/308
       if ([301, 302, 303].includes(response.status) && method !== "HEAD") {

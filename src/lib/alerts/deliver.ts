@@ -6,6 +6,7 @@ import {
 } from "@/lib/alerts/email";
 import { safeFetch } from "@/lib/safe-fetch";
 import { parseAndAssertPublicUrl } from "@/lib/safe-url";
+import { appUrl } from "@/lib/app-url";
 
 export type DeliverableChannel =
   | "EMAIL"
@@ -118,16 +119,13 @@ export async function deliverAlert(opts: {
 
     const meta = opts.meta ?? {};
     const diffId = typeof meta.diffId === "string" ? meta.diffId : null;
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-      "http://localhost:3000";
 
     const rendered = renderAlertEmail({
       severity: opts.severity,
       message: opts.message,
       endpointName:
         typeof meta.endpointName === "string" ? meta.endpointName : undefined,
-      diffUrl: diffId ? `${appUrl}/diff/${diffId}` : null,
+      diffUrl: diffId ? `${appUrl()}/diff/${diffId}` : null,
     });
 
     const sent = await sendEmail({ to: target, ...rendered });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * Replaces the root layout when it is the layout itself that threw, so this
@@ -16,6 +17,10 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
+    // This boundary replaces the root layout, so an error reaching here is the
+    // worst case: the user sees nothing of the app. It is the one place that
+    // must always report.
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) Sentry.captureException(error);
   }, [error]);
 
   return (
@@ -59,7 +64,7 @@ export default function GlobalError({
               padding: "0.5rem 1rem",
               borderRadius: "0.5rem",
               border: "none",
-              backgroundColor: "#4f7fff",
+              backgroundColor: "#3560d8",
               color: "#f8fafc",
               fontSize: "0.875rem",
               fontWeight: 500,

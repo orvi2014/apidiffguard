@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/safe-url";
+import { appUrl } from "@/lib/app-url";
 
 export type AuthResult = { error?: string; success?: boolean };
 
@@ -35,7 +36,7 @@ function oauthStartError(message: string): string {
  */
 export async function signInWithGitHub(formData?: FormData) {
   const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const origin = appUrl();
   const next = safeNextPath(
     formData ? String(formData.get("next") ?? "/dashboard") : "/dashboard"
   );

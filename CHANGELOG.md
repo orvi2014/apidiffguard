@@ -8,6 +8,7 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 ## [Unreleased]
 
 ### Added
+- **Error reporting.** The app had none: eleven `console.error` sites whose output nobody would ever read, so a production failure was something you learned about from a customer. Sentry is wired for server, edge, and browser, and stays completely inert until a DSN is set
 - **The REST API is now more than one route.** `GET /api/v1/endpoints`, `GET /api/v1/endpoints/:id`, `GET /api/v1/diffs`, and `GET /api/v1/diffs/:id` join the existing check route, so an integration can find an endpoint, read its health, and pull the changes from a diff without screen-scraping the console. The `endpoints:read` scope now actually grants something
 - **Published an OpenAPI 3.1 spec at [`/openapi.json`](https://apidiffguard.com/openapi.json)**, so clients and agent tooling can be generated rather than hand-written
 - **Landing page rebuilt around the diff itself.** The hero now shows a real check readout — every row is output the diff engine actually produces in schema mode, verified against it — instead of an illustrative mock. A side-by-side Diff Viewer pane sits beside the CLI transcript, so "same engine in the console and in CI" is shown rather than claimed
@@ -33,6 +34,9 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Retention and reaper maintenance job (hourly), trimming old response bodies and releasing checks stuck on "Checking…"
 
 ### Changed
+- **Authenticated endpoints are actually checked authenticated.** `Authorization` was on the outbound header blocklist, so every Bearer, OAuth, and Basic endpoint was fetched with no credential and came back 401 — with nothing to say the app had discarded the token itself. The instinct was right but aimed at the wrong layer: the risk is forwarding a credential to a host named by a *redirect*, so that is now handled where redirects are followed. Credentials reach the host you named, survive a same-origin redirect, and are dropped the moment a hop changes origin
+- **Next 16.3.3 and undici 7.29.0** — clears six high-severity advisories. Production dependencies now report zero vulnerabilities
+- **Preview deployments work.** They had no Supabase configuration and could not boot, so nothing could be tested before it was live. Origin resolution also falls back to the deployment's own host instead of `localhost`, so OAuth callbacks, invite links, and alert deep links point at the deployment that sent them
 - **The console shares one page shell.** Sixteen routes had grown six different header treatments and sixteen hand-written empty states. They now use one `PageHeader`, one container, and the shared `EmptyState`, so title size, spacing, and the "nothing here yet" moment read the same wherever you land
 - **Colour passes contrast everywhere it carries meaning.** The primary button's label sat at 3.45:1 on its own fill and got *darker* on hover — an alpha fade composites downward on a dark ground — so fills now use a dedicated darker blue that lifts instead of fading. Breaking and accent badges moved to lighter on-wash steps, which also lands all five badges in one perceptual band. Two separators that were punctuation at 1.27:1 are drawn rules
 - **Every focus ring went from 2.15:1 to 3.86:1.** The one affordance keyboard users depend on was the faintest thing on the page, below the 3:1 WCAG 1.4.11 requires
