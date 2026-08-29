@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MethodBadge, HealthBadge } from "@/components/domain/badges";
 import type { Endpoint } from "@/lib/types";
-import { cn, formatMs, formatRelativeTime } from "@/lib/utils";
+import { cn, formatMs, formatRelativeTime, pluralize } from "@/lib/utils";
 
 export function EndpointRow({
   endpoint,
@@ -67,12 +67,12 @@ export function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
         <div className="mt-3 flex gap-3 text-xs">
           {endpoint.breakingCount ? (
             <span className="text-danger">
-              {endpoint.breakingCount} breaking
+              {pluralize(endpoint.breakingCount, "breaking change")}
             </span>
           ) : null}
           {endpoint.warningCount ? (
             <span className="text-warning">
-              {endpoint.warningCount} warnings
+              {pluralize(endpoint.warningCount, "warning")}
             </span>
           ) : null}
         </div>

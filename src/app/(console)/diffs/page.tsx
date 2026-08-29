@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MethodBadge, SeverityBadge } from "@/components/domain/badges";
 import { EmptyState } from "@/components/domain/activity";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
@@ -58,19 +59,15 @@ export default async function DiffsListPage({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border px-5 py-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Diffs</h1>
-            <p className="mt-1 text-sm text-muted">
-              Recent response comparisons across your workspace.
-            </p>
-          </div>
+      <PageHeader
+        title="Diffs"
+        description="Recent response comparisons across your workspace."
+        actions={
           <Button asChild size="sm" variant="secondary">
             <Link href="/diff/latest">Open latest</Link>
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="hidden border-b border-border-subtle px-5 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:grid-cols-[1fr_100px_100px_100px_120px] sm:gap-4">
         <span>Endpoint</span>

@@ -17,8 +17,21 @@
   --card-foreground: #fafafa;
   --popover: #111113;
   --popover-foreground: #fafafa;
+  /* Signal Blue serves three roles, and one value cannot serve them all.
+     Measured on this ground: #4f7fff as text on Ink is 5.51:1 (excellent),
+     but #f8fafc on a #4f7fff fill is 3.45:1 (fails AA). Darkening the single
+     token to fix the button drops link text to 3.62:1 — the same violation
+     moved somewhere else. So the hue stays and the roles split. */
   --primary: #4f7fff;
   --primary-foreground: #f8fafc;
+  /* The fill behind #f8fafc: 5.26:1, and still 3.62:1 against Ink so the
+     button reads as a shape. */
+  --primary-solid: #3560d8;
+  /* Hover lifts toward Signal Blue instead of fading toward the page.
+     `bg-primary/80` composited *down* into the near-black ground, so the
+     button got darker on hover — backwards for a tonal dark system — and
+     took the label to 3.86:1 with it. 4.64:1 here, still AA. */
+  --primary-solid-hover: #3b6ae0;
   --secondary: #18181b;
   --secondary-foreground: #fafafa;
   --muted: #18181b;
@@ -43,6 +56,16 @@
   --danger-muted: rgba(239, 68, 68, 0.12);
   --info: #38bdf8;
   --info-muted: rgba(56, 189, 248, 0.12);
+
+  /* Foreground for a status colour sitting on its own wash.
+     Measured against the 12% wash on Panel: success 6.93, warning 7.27,
+     info 7.28 — all clear AA on the pure hue. Danger (4.49) and accent
+     (4.58) do not, because they are the two darkest hues in the set. These
+     two lighter steps bring them to 6.11 and 6.72, which also lands all five
+     badges in the same perceptual band instead of leaving two visibly
+     heavier than the rest. */
+  --danger-on-wash: #f87171;
+  --accent-on-wash: #7ba3ff;
 
   /* Exponential ease-out: decisive arrival, no overshoot, no bounce. */
   --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
@@ -80,6 +103,8 @@
   --color-warning-muted: var(--warning-muted);
   --color-danger: var(--danger);
   --color-danger-muted: var(--danger-muted);
+  --color-danger-on-wash: var(--danger-on-wash);
+  --color-accent-on-wash: var(--accent-on-wash);
   --color-info: var(--info);
   --color-info-muted: var(--info-muted);
   --color-ring: var(--ring);
@@ -112,6 +137,8 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-solid: var(--primary-solid);
+  --color-primary-solid-hover: var(--primary-solid-hover);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -175,7 +202,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/80;
   }
   body {
     @apply bg-background text-foreground;

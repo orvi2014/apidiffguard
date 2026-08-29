@@ -31,6 +31,9 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Retention and reaper maintenance job (hourly), trimming old response bodies and releasing checks stuck on "Checking…"
 
 ### Changed
+- **The console shares one page shell.** Sixteen routes had grown six different header treatments and sixteen hand-written empty states. They now use one `PageHeader`, one container, and the shared `EmptyState`, so title size, spacing, and the "nothing here yet" moment read the same wherever you land
+- **Colour passes contrast everywhere it carries meaning.** The primary button's label sat at 3.45:1 on its own fill and got *darker* on hover — an alpha fade composites downward on a dark ground — so fills now use a dedicated darker blue that lifts instead of fading. Breaking and accent badges moved to lighter on-wash steps, which also lands all five badges in one perceptual band. Two separators that were punctuation at 1.27:1 are drawn rules
+- **Every focus ring went from 2.15:1 to 3.86:1.** The one affordance keyboard users depend on was the faintest thing on the page, below the 3:1 WCAG 1.4.11 requires
 - Removed the shimmer, shine, beam, and gradient-wash effects from marketing pages. Colour now only ever reports something
 - Consistent signup button across header, hero, and footer — one label, one treatment, one primary action per screen
 - Merged the two duplicate Q&A sections and dropped the entry that restated the hero

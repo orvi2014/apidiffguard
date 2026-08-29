@@ -19,7 +19,7 @@ import { IgnoreRulesPanel } from "@/components/domain/ignore-rules-panel";
 import { ContractSchemaPanel } from "@/components/domain/contract-schema-panel";
 import { Button } from "@/components/ui/button";
 import type { Baseline, Endpoint } from "@/lib/types";
-import { cn, formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
+import { cn, formatBytes, formatMs, formatRelativeTime, pluralize } from "@/lib/utils";
 import {
   captureBaselineAction,
   deleteEndpoint,
@@ -181,7 +181,7 @@ export function EndpointDetailLive({
 
     setMessage({
       tone: result.breakingCount ? "err" : "warn",
-      text: `Found ${result.breakingCount} breaking · ${result.warningCount} warnings`,
+      text: `Found ${pluralize(result.breakingCount, "breaking change")} · ${pluralize(result.warningCount, "warning")}`,
     });
 
     if (result.diffId) {
@@ -425,7 +425,7 @@ export function EndpointDetailLive({
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm">v{b.version}</span>
                       {b.isActive ? (
-                        <span className="rounded bg-accent-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent">
+                        <span className="rounded bg-accent-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-on-wash">
                           Active
                         </span>
                       ) : null}

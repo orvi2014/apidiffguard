@@ -263,7 +263,7 @@ export default function LandingPage() {
               <div className="overflow-hidden rounded-lg border border-border bg-surface">
                 <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-2.5 text-[11px] text-muted">
                   <span>Diff Viewer</span>
-                  <span className="text-border">/</span>
+                  <span aria-hidden className="h-3 w-px bg-border" />
                   <span className="font-mono text-foreground">users · v4 → live</span>
                   <span className="ml-auto font-mono text-danger">2 breaking</span>
                 </div>

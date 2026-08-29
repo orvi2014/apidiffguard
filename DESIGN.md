@@ -149,10 +149,13 @@ The identity comes from the Split mark — a solid pane beside an outlined one, 
 A greyscale instrument with a single blue voice and a four-step status vocabulary. Every non-grey is semantic; none is decorative.
 
 ### Primary
-- **Signal Blue** (`#4f7fff`): The one interactive voice. Primary actions, links, focus rings, the active baseline marker, and the brand tile. It never fills a surface and never tints a background.
+- **Signal Blue** (`#4f7fff`): The one interactive voice. Links, focus rings, status dots, the active baseline marker, and the brand tile. It never tints a background.
+- **Signal Fill** (`#3560d8`): The same voice one step down, and the *only* value that fills a control behind `#f8fafc` text. Hover lifts to `#3b6ae0`.
+
+**Why two blues.** Signal Blue sits at the lightness where it reads beautifully as text on Ink (5.51:1) and fails as a ground beneath white text (3.45:1). Darkening the single token to fix the button drops link text to 3.62:1 — it moves the violation rather than removing it. The hue is one; the roles are two. Never fill a control with Signal Blue, and never set body text in Signal Fill.
 
 ### Secondary
-- **Signal Wash** (`rgba(79, 127, 255, 0.12)`): The 12% version, used only where the accent must sit behind text — the active-baseline chip and text selection.
+- **Signal Wash** (`rgba(79, 127, 255, 0.12)`): The 12% version, used only where the accent must sit behind text — the active-baseline chip and text selection. Text on this wash is **Signal On-Wash** (`#7ba3ff`), not Signal Blue.
 
 ### Tertiary
 The status vocabulary. These are readings, not palette colours; each has a paired 12% wash used as its badge ground.
@@ -236,14 +239,14 @@ Silhouettes are rectangular and aligned to a shared grid; nothing is angled, cli
 
 ### Buttons
 - **Shape:** Softly rounded (`10px`), `1px` transparent border reserved for the focus state
-- **Primary:** Signal Blue fill, `#f8fafc` text, `32px` tall, `10px` horizontal padding
-- **Hover / Focus:** Primary fades to 80% opacity; focus draws a 3px `rgba(79,127,255,0.5)` ring and a solid border. Active nudges down `1px`
+- **Primary:** Signal Fill (`#3560d8`) ground, `#f8fafc` text (5.26:1), `32px` tall, `10px` horizontal padding
+- **Hover / Focus:** Primary *lifts* to `#3b6ae0` — it never fades toward the page. On a dark ground an alpha fade composites downward, so the button darkens as you reach for it and takes its label to 3.86:1. Focus draws a 3px `rgba(79,127,255,0.8)` ring and a solid border; at the old `0.5` the ring computed 2.15:1 against Ink, under the 3:1 a focus indicator owes. Active nudges down `1px`
 - **Secondary:** Raised fill, foreground text — the default for anything that is not the one primary action on the view
 - **Ghost:** Transparent until hover, then Raised. Used for destructive and tertiary actions
-- **Destructive:** Breaking Red at 10% ground with Breaking Red text. Never a solid red fill — a filled red button reads as the current state rather than as an action
+- **Destructive:** Breaking Red at 10% ground with **Breaking On-Wash** (`#f87171`) text. Never a solid red fill — a filled red button reads as the current state rather than as an action
 
 ### Chips / Badges
-- **Status badge:** the status colour's 12% wash as ground, the status colour as text, `6px` radius, `2px 6px` padding, an optional `6px` dot at the leading edge
+- **Status badge:** the status colour's 12% wash as ground, the status colour's **on-wash step** as text, `6px` radius, `2px 6px` padding, an optional `6px` dot at the leading edge. Green, amber, and cyan are already light enough to serve as their own on-wash text (6.9–7.3:1); red and blue are the two darkest hues and take lighter steps (`#f87171`, `#7ba3ff`) so all five badges read at one weight
 - **Severity badge:** the same construction, uppercase Label type, no dot
 - **Method badge:** no ground at all — coloured monospace text only, so the HTTP verb reads as data rather than as a control
 

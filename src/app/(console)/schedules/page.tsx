@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CalendarClock } from "lucide-react";
 import { deleteSchedule, toggleSchedule } from "@/app/actions/schedules";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { ConfirmSubmitButton } from "@/components/form/confirm-submit-button";
 import { AddScheduleForm } from "@/components/schedules/add-schedule-form";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/domain/activity";
+import { PageHeader, ListHeader } from "@/components/layout/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { listWorkspaceEndpointsForPalette } from "@/lib/workspace-data";
@@ -48,19 +51,15 @@ export default async function SchedulesPage({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border px-5 py-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Schedules</h1>
-            <p className="mt-1 text-sm text-muted">
-              Pick a frequency (hourly → monthly). A worker picks up due runs
-              every few minutes.
-            </p>
-          </div>
+      <PageHeader
+        title="Schedules"
+        description="Pick a frequency (hourly → monthly). A worker picks up due runs every few minutes."
+        actions={
           <Button asChild size="sm" className="min-h-9">
             <a href="#add-schedule">Add schedule</a>
           </Button>
-        </div>
+        }
+      >
 
         {params.created ? (
           <p
@@ -147,33 +146,40 @@ export default async function SchedulesPage({
             </p>
           )}
         </section>
-      </div>
+      </PageHeader>
 
-      <div className="hidden border-b border-border-subtle px-5 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:grid-cols-[1fr_100px_80px_120px_120px_140px] sm:gap-4">
-        <span>Endpoint</span>
-        <span>Frequency</span>
-        <span>Status</span>
-        <span>Last run</span>
-        <span>Next run</span>
-        <span className="text-right">Actions</span>
-      </div>
+      {schedules?.length ? (
+        <ListHeader
+          className="sm:grid-cols-[1fr_100px_80px_120px_120px_140px]"
+          columns={[
+            { label: "Endpoint" },
+            { label: "Frequency" },
+            { label: "Status" },
+            { label: "Last run" },
+            { label: "Next run" },
+            { label: "Actions", className: "text-right" },
+          ]}
+        />
+      ) : null}
 
       <div className="flex-1 overflow-auto">
         {!schedules?.length ? (
-          <div className="px-5 py-12 text-center">
-            <p className="text-sm text-muted">
-              {endpoints?.length
-                ? "No schedules yet. Add one above to queue recurring checks."
-                : "No schedules yet. Create an endpoint first, then schedule checks here."}
-            </p>
-            {!endpoints?.length ? (
-              <div className="mt-4 flex justify-center">
+          <EmptyState
+            icon={<CalendarClock className="size-4" />}
+            title="No schedules yet"
+            description={
+              endpoints?.length
+                ? "Add a schedule above and a worker will run that check for you on a fixed cadence — no CI job required."
+                : "Schedules run checks on a cadence. Add the endpoint you want watched first, then set how often it should run."
+            }
+            action={
+              !endpoints?.length ? (
                 <Button asChild size="sm">
                   <Link href="/endpoints/new">New endpoint</Link>
                 </Button>
-              </div>
-            ) : null}
-          </div>
+              ) : undefined
+            }
+          />
         ) : (
           schedules.map((s) => {
             const ep = Array.isArray(s.endpoints) ? s.endpoints[0] : s.endpoints;

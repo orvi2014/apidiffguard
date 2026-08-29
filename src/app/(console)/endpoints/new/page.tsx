@@ -6,6 +6,7 @@ import { createEndpoint } from "@/app/actions/endpoints";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageContainer } from "@/components/layout/page-header";
 
 type AuthOption = "none" | "bearer" | "api_key" | "basic" | "oauth" | "custom";
 
@@ -17,7 +18,7 @@ export default function NewEndpointPage() {
   const needsBody = ["POST", "PUT", "PATCH"].includes(method);
 
   return (
-    <div className="mx-auto max-w-xl px-5 py-10">
+    <PageContainer>
       <Link href="/endpoints" className="text-xs text-muted hover:text-foreground">
         ← Endpoints
       </Link>
@@ -224,6 +225,6 @@ export default function NewEndpointPage() {
           </Link>
         </div>
       </form>
-    </div>
+    </PageContainer>
   );
 }

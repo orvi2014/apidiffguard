@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Bell } from "lucide-react";
 import { testAlertNotification } from "@/app/actions/alerts";
 import { SeverityBadge } from "@/components/domain/badges";
+import { EmptyState, MetricStrip } from "@/components/domain/activity";
+import { PageHeader, ListHeader } from "@/components/layout/page-header";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -16,6 +19,9 @@ const channelLabel: Record<string, string> = {
   DISCORD: "Discord",
   EMAIL: "Email",
   WEBHOOK: "Webhook",
+  // Was missing, so Mattermost rows rendered the raw enum in a column of
+  // title-cased names while the page description already advertised it.
+  MATTERMOST: "Mattermost",
 };
 
 const statusTone: Record<string, string> = {
@@ -94,17 +100,20 @@ export default async function AlertsPage({
         }, "BREAKING")
       : "—";
 
+  const hasChannels = (configs?.length ?? 0) > 0;
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border px-4 py-5 sm:px-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Alerts</h1>
-            <p className="mt-1 text-sm text-muted">
-              Delivery history across Slack, Discord, Mattermost, email, and webhooks.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="Alerts"
+        description="Delivery history across Slack, Discord, Mattermost, email, and webhooks."
+        note={
+          enabledCount === 0
+            ? "Add and enable a channel before sending a test notification."
+            : undefined
+        }
+        actions={
+          <>
             {canEdit ? (
               <form action={testAlertNotification}>
                 <PendingSubmitButton
@@ -123,17 +132,15 @@ export default async function AlertsPage({
                 </PendingSubmitButton>
               </form>
             ) : null}
-            <Button asChild size="sm" className="min-h-9">
+            {/* Secondary, not primary. This is navigation to a sub-page, and
+                the empty state below already owns the one Signal Blue on the
+                view — two identical filled CTAs were competing. */}
+            <Button asChild size="sm" variant="secondary" className="min-h-9">
               <Link href="/alerts/channels">Configure channels</Link>
             </Button>
-          </div>
-        </div>
-        {enabledCount === 0 ? (
-          <p className="mt-2 text-xs text-muted">
-            Add and enable a channel before sending a test notification.
-          </p>
-        ) : null}
-
+          </>
+        }
+      >
         {params.tested ? (
           <p
             role="status"
@@ -157,13 +164,18 @@ export default async function AlertsPage({
           </p>
         ) : null}
 
-        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { label: "Channels", value: String(configs?.length ?? 0) },
-            { label: "Sent today", value: String(sentTodayCount ?? 0) },
+      </PageHeader>
+
+      {/* Four zeros above an empty table measure nothing. The strip appears
+          once there is a channel to report on. */}
+      {hasChannels ? (
+        <MetricStrip
+          items={[
+            { label: "Channels", value: configs?.length ?? 0 },
+            { label: "Sent today", value: sentTodayCount ?? 0 },
             {
               label: "Failed (all time)",
-              value: String(failed ?? 0),
+              value: failed ?? 0,
               tone: failed ? "text-danger" : undefined,
             },
             {
@@ -173,43 +185,43 @@ export default async function AlertsPage({
                   ? "—"
                   : minSeverity.charAt(0) + minSeverity.slice(1).toLowerCase(),
             },
-          ].map((s) => (
-            <div key={s.label}>
-              <div
-                className={cn(
-                  "font-mono text-xl font-semibold tabular-nums",
-                  s.tone
-                )}
-              >
-                {s.value}
-              </div>
-              <div className="mt-0.5 text-[11px] uppercase tracking-wider text-muted">
-                {s.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+          ]}
+        />
+      ) : null}
 
-      <div className="hidden border-b border-border-subtle px-5 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:grid-cols-[100px_90px_1fr_100px_80px] sm:gap-4">
-        <span>Channel</span>
-        <span>Severity</span>
-        <span>Message</span>
-        <span>Status</span>
-        <span className="text-right">When</span>
-      </div>
+      {history?.length ? (
+        <ListHeader
+          className="sm:grid-cols-[100px_90px_1fr_100px_80px]"
+          columns={[
+            { label: "Channel" },
+            { label: "Severity" },
+            { label: "Message" },
+            { label: "Status" },
+            { label: "When", className: "text-right" },
+          ]}
+        />
+      ) : null}
 
       <div className="flex-1 overflow-auto">
         {!history?.length ? (
-          <div className="px-5 py-12 text-center">
-            <p className="text-sm text-muted">
-              No alerts yet. Configure channels when you&apos;re ready to notify
-              on drift.
-            </p>
-            <Button asChild size="sm" className="mt-4 min-h-9">
-              <Link href="/alerts/channels">Configure channels</Link>
-            </Button>
-          </div>
+          <EmptyState
+            icon={<Bell className="size-4" />}
+            title={hasChannels ? "No alerts delivered yet" : "No channels yet"}
+            description={
+              hasChannels
+                ? "Alerts land here when a check finds drift at or above your minimum severity."
+                : "Add Slack, Discord, Mattermost, email, or a webhook, and APIDiffGuard will notify you the moment a contract breaks."
+            }
+            action={
+              canEdit ? (
+                <Button asChild size="sm" className="min-h-9">
+                  <Link href="/alerts/channels">
+                    {hasChannels ? "Manage channels" : "Add a channel"}
+                  </Link>
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           history.map((alert) => {
             const config = configs?.find((c) => c.id === alert.alert_config_id);

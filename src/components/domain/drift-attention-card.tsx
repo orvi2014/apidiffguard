@@ -4,7 +4,7 @@ import Link from "next/link";
 import { GitCompare } from "lucide-react";
 import { SeverityBadge } from "@/components/domain/badges";
 import { ShineBorder } from "@/components/ui/shine-border";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatRelativeTime, pluralize } from "@/lib/utils";
 
 export function DriftAttentionCard({
   href,
@@ -48,7 +48,8 @@ export function DriftAttentionCard({
               />
             </div>
             <p className="mt-1 text-xs text-muted">
-              {breakingCount} breaking · {warningCount} warning
+              {pluralize(breakingCount, "breaking change")} ·{" "}
+              {pluralize(warningCount, "warning")}
               {baselineVersion != null ? ` · baseline v${baselineVersion}` : ""}
             </p>
           </div>

@@ -12,6 +12,7 @@ import { ConfirmSubmitButton } from "@/components/form/confirm-submit-button";
 import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
+import { PageContainer } from "@/components/layout/page-header";
 
 export const metadata = { title: "Alert channels" };
 
@@ -58,7 +59,7 @@ export default async function AlertChannelsPage({
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-5 sm:py-8">
+    <PageContainer className="gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs text-muted">
@@ -240,6 +241,6 @@ export default async function AlertChannelsPage({
           )}
         </div>
       </section>
-    </div>
+    </PageContainer>
   );
 }

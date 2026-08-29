@@ -4,6 +4,8 @@ import { FileJson, Plus } from "lucide-react";
 import { HealthBadge } from "@/components/domain/badges";
 import { EndpointsList } from "@/components/domain/endpoints-list";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
+import { pluralize } from "@/lib/utils";
 import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
@@ -45,17 +47,18 @@ export default async function EndpointsPage({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border px-5 pt-4">
-        <div className="flex flex-wrap items-end justify-between gap-4 pb-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Endpoints</h1>
-            <p className="mt-1 text-sm text-muted">
-              {total} monitored · {breaking} breaking on this page ·{" "}
-              {ctx.workspaceName}
-            </p>
-          </div>
-          {canEdit ? (
-            <div className="flex gap-2">
+      <PageHeader
+        title="Endpoints"
+        description={
+          <>
+            {pluralize(total, "endpoint")} monitored
+            {breaking > 0 ? ` · ${breaking} breaking on this page` : ""} ·{" "}
+            {ctx.workspaceName}
+          </>
+        }
+        actions={
+          canEdit ? (
+            <>
               <Link href="/endpoints/import">
                 <Button size="sm" variant="secondary" className="gap-1.5">
                   <FileJson className="size-3.5" />
@@ -68,12 +71,12 @@ export default async function EndpointsPage({
                   New endpoint
                 </Button>
               </Link>
-            </div>
+            </>
           ) : (
             <p className="text-xs text-muted">View-only access</p>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       <EndpointsList endpoints={endpoints} />
 

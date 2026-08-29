@@ -6,6 +6,7 @@ import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { formatBytes, formatMs, formatRelativeTime } from "@/lib/utils";
+import { PageContainer } from "@/components/layout/page-header";
 
 export default async function BaselinesPage({
   params,
@@ -36,7 +37,7 @@ export default async function BaselinesPage({
     .order("version", { ascending: false });
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8">
+    <PageContainer>
       <div className="flex items-center gap-2 text-xs text-muted">
         <Link href="/endpoints" className="hover:text-foreground">
           Endpoints
@@ -81,7 +82,7 @@ export default async function BaselinesPage({
                     v{b.version}
                   </span>
                   {b.is_active ? (
-                    <span className="rounded bg-accent-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-accent">
+                    <span className="rounded bg-accent-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-accent-on-wash">
                       Active
                     </span>
                   ) : null}
@@ -109,6 +110,6 @@ export default async function BaselinesPage({
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

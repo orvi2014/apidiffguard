@@ -223,7 +223,10 @@ export function AppShell({
           <span className="size-1.5 rounded-full bg-success" />
           Signed in
         </span>
-        <span className="text-border">|</span>
+        {/* A drawn rule rather than a pipe character. As text it computed
+            1.27:1, and no colour fixes that without making a separator look
+            like content — a separator is a line, so it is drawn as one. */}
+        <span aria-hidden className="h-3 w-px bg-border" />
         <span>Workspace · {workspaceSlug}</span>
         {checksTodaySlot}
       </footer>

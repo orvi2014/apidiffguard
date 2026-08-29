@@ -17,7 +17,7 @@ const healthConfig: Record<
   },
   breaking: {
     label: "Breaking",
-    className: "text-danger bg-danger-muted",
+    className: "text-danger-on-wash bg-danger-muted",
     dot: "bg-danger",
   },
   unknown: {
@@ -83,7 +83,7 @@ const severityConfig: Record<
   },
   breaking: {
     label: "Breaking",
-    className: "text-danger bg-danger-muted",
+    className: "text-danger-on-wash bg-danger-muted",
   },
 };
 

@@ -30,3 +30,15 @@ export function formatMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(2)}s`;
 }
+
+/**
+ * "1 warning", "2 warnings".
+ *
+ * Counts were being interpolated with a hardcoded suffix, so the console said
+ * "1 warnings" on the endpoint card and "2 warning" on the drift card — the
+ * same mistake in both directions. Severity counts are the product's core
+ * output; getting their grammar wrong undercuts the numbers beside them.
+ */
+export function pluralize(count: number, singular: string, plural?: string) {
+  return `${count} ${count === 1 ? singular : (plural ?? `${singular}s`)}`;
+}
