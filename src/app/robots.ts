@@ -5,8 +5,6 @@ import { SITE_URL } from "@/lib/seo";
 const PRIVATE = [
   "/login",
   "/register",
-  "/forgot-password",
-  "/update-password",
   "/dashboard",
   "/endpoints",
   "/diff",

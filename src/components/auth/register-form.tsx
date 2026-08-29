@@ -1,23 +1,19 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { signInWithGitHub, signUp } from "@/app/actions/auth";
+import { GitHubSignIn } from "@/components/auth/github-sign-in";
 
 export function RegisterForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/dashboard";
   const plan = searchParams.get("plan") ?? "";
-  const [error, setError] = React.useState<string | null>(null);
-  const [pending, setPending] = React.useState(false);
 
-  const loginHref = `/login?next=${encodeURIComponent(next)}${
-    plan ? `&plan=${encodeURIComponent(plan)}` : ""
-  }`;
+  // A visitor who picked a plan on /pricing lands on billing with that plan
+  // preselected once GitHub sends them back, rather than on a dashboard that
+  // has forgotten what they came for.
+  const destination = plan
+    ? `/settings/billing?upgrade=${encodeURIComponent(plan)}`
+    : next;
 
   return (
     <div className="w-full max-w-sm">
@@ -28,98 +24,13 @@ export function RegisterForm() {
         Free for 3 endpoints. No credit card.
       </p>
 
-      <form
-        className="mt-8"
-        action={async (fd) => {
-          setPending(true);
-          setError(null);
-          fd.set("next", plan ? `/settings/billing?upgrade=${plan}` : next);
-          const result = await signInWithGitHub(fd);
-          if (result?.error) {
-            setError(result.error);
-            setPending(false);
-          }
-        }}
-      >
-        <Button
-          type="submit"
-          variant="secondary"
-          className="w-full"
-          disabled={pending}
-        >
-          Continue with GitHub
-        </Button>
-      </form>
-
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-[11px] uppercase tracking-wider text-muted">
-          or email
-        </span>
-        <div className="h-px flex-1 bg-border" />
+      <div className="mt-8">
+        <GitHubSignIn next={destination} label="Sign up with GitHub" />
       </div>
 
-      <form
-        className="space-y-4"
-        action={async (fd) => {
-          setPending(true);
-          setError(null);
-          fd.set("next", next);
-          if (plan) fd.set("plan", plan);
-          const result = await signUp(fd);
-          if (result?.error) {
-            setError(result.error);
-            setPending(false);
-          }
-        }}
-      >
-        <div className="space-y-1.5">
-          <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" placeholder="Ada Lovelace" />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="you@company.com"
-            required
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            minLength={8}
-            required
-            aria-describedby="password-hint"
-          />
-          <p id="password-hint" className="text-[11px] text-muted">
-            At least 8 characters.
-          </p>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="workspace">Workspace name</Label>
-          <Input id="workspace" name="workspace" placeholder="Acme" />
-        </div>
-        {error ? (
-          <p role="alert" className="text-xs text-danger">
-            {error}
-          </p>
-        ) : null}
-        <Button type="submit" className="w-full" disabled={pending}>
-          {pending ? "Creating…" : "Create account"}
-        </Button>
-      </form>
-
       <p className="mt-6 text-center text-sm text-muted">
-        Already have an account?{" "}
-        <Link href={loginHref} className="text-foreground hover:underline">
-          Sign in
-        </Link>
+        Your workspace is named after your GitHub account. Rename it any time in
+        Settings.
       </p>
     </div>
   );

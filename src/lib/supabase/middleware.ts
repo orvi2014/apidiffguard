@@ -36,10 +36,7 @@ function nextWithAuthHeaders(
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isAuthPage =
-    path.startsWith("/login") ||
-    path.startsWith("/register") ||
-    path.startsWith("/forgot-password") ||
-    path.startsWith("/update-password");
+    path.startsWith("/login") || path.startsWith("/register");
   const isProtected =
     path.startsWith("/dashboard") ||
     path.startsWith("/endpoints") ||
@@ -93,10 +90,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthPage) {
-    // Recovery flow must reach the password form while already signed in.
-    if (path.startsWith("/update-password")) {
-      return supabaseResponse;
-    }
     const url = request.nextUrl.clone();
     const plan = request.nextUrl.searchParams.get("plan");
     const next = request.nextUrl.searchParams.get("next");

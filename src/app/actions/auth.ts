@@ -6,56 +6,6 @@ import { safeNextPath } from "@/lib/safe-url";
 
 export type AuthResult = { error?: string; success?: boolean };
 
-export async function signUp(formData: FormData): Promise<AuthResult> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
-  const workspace = String(formData.get("workspace") ?? "").trim();
-  const next = safeNextPath(String(formData.get("next") ?? "/dashboard"));
-  const plan = String(formData.get("plan") ?? "").trim();
-
-  if (!email || !password) {
-    return { error: "Email and password are required." };
-  }
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        name: name || email.split("@")[0],
-        workspace_name: workspace || undefined,
-      },
-    },
-  });
-
-  if (error) return { error: error.message };
-
-  if (plan && ["/settings/billing", "/dashboard"].includes(next)) {
-    redirect(`/settings/billing?upgrade=${encodeURIComponent(plan)}`);
-  }
-  redirect(next);
-}
-
-export async function signIn(formData: FormData): Promise<AuthResult> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-
-  if (!email || !password) {
-    return { error: "Email and password are required." };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
-
-  redirect(safeNextPath(String(formData.get("next") ?? "/dashboard")));
-}
-
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -73,6 +23,16 @@ function oauthStartError(message: string): string {
   return message;
 }
 
+/**
+ * GitHub is the only way in.
+ *
+ * Email + password was removed rather than kept as a second option: the
+ * project runs with `mailer_autoconfirm` on, so anyone could have registered
+ * under an address they did not control — for a product whose whole job is
+ * emailing you about breaking changes, that is the wrong front door. GitHub
+ * hands us a verified address and an avatar, and there is no password to
+ * reset, leak, or store.
+ */
 export async function signInWithGitHub(formData?: FormData) {
   const supabase = await createClient();
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -88,33 +48,4 @@ export async function signInWithGitHub(formData?: FormData) {
   if (error) return { error: oauthStartError(error.message) };
   if (data.url) redirect(data.url);
   return { error: "Could not start GitHub login." };
-}
-
-export async function resetPassword(formData: FormData): Promise<AuthResult> {
-  const email = String(formData.get("email") ?? "").trim();
-  if (!email) return { error: "Email is required." };
-
-  const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/update-password")}`,
-  });
-  if (error) return { error: error.message };
-  return { success: true };
-}
-
-export async function updatePassword(formData: FormData): Promise<AuthResult> {
-  const password = String(formData.get("password") ?? "");
-  const confirm = String(formData.get("confirm") ?? "");
-  if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
-  }
-  if (password !== confirm) {
-    return { error: "Passwords do not match." };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: error.message };
-  redirect("/dashboard?password=updated");
 }
