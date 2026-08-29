@@ -1,26 +1,137 @@
 ---
 title: REST API
-description: Workspace API tokens and endpoint check API.
-lastModified: "2026-07-13"
+description: Read your endpoints and diffs, and run checks, with a workspace API token.
+lastModified: "2026-08-29"
 ---
 
-Authenticate with a workspace API token from **Settings → Tokens**.
+The REST API exposes what the console shows: which endpoints you monitor, how healthy they are, and what changed when a response drifted from its baseline.
+
+**Machine-readable spec:** [`/openapi.json`](https://apidiffguard.com/openapi.json) (OpenAPI 3.1). Point a client generator or an agent framework at it directly.
+
+## Authentication
+
+Create a token under **Settings → Tokens**, then send it as a bearer token:
 
 ```http
 Authorization: Bearer adg_live_…
 ```
 
-Tokens are shown once at creation and stored as SHA-256 hashes.
+Tokens are shown once at creation and stored as SHA-256 hashes. Every request is scoped to the workspace the token was created in.
 
-## Check an endpoint
+### Scopes
+
+| Scope | Grants |
+| --- | --- |
+| `endpoints:read` | `GET /endpoints`, `GET /endpoints/:id`, `GET /diffs`, `GET /diffs/:id` |
+| `checks:run` | `POST /endpoints/:id/check` |
+| `baselines:write` | Reserved — no route consumes it yet |
+
+A token without the required scope gets `403` with the scope named in the error, so a caller can tell a permission problem from a missing resource.
+
+### Conventions
+
+- Enumerated values are **lowercase** (`breaking`, `bearer`, `schema`). HTTP methods stay uppercase.
+- Timestamps are ISO 8601 with a UTC offset.
+- List routes take `limit` (default 25, max 100) and `offset`, and return a `pagination` object with the unpaginated `total`.
+- Read routes allow 120 requests per minute per workspace; `POST …/check` allows 30, because it makes an outbound request and spends check quota. Both return `429` with `Retry-After`.
+
+## List endpoints
 
 ```bash
-curl -X POST \
-  "https://YOUR_APP/api/v1/endpoints/$ENDPOINT_ID/check" \
+curl "https://apidiffguard.com/api/v1/endpoints?health=breaking" \
   -H "Authorization: Bearer adg_live_…"
 ```
 
-Successful response:
+```json
+{
+  "endpoints": [
+    {
+      "id": "…",
+      "name": "List Users",
+      "url": "https://api.example.com/v1/users",
+      "method": "GET",
+      "environment": "production",
+      "tags": ["core"],
+      "health": "breaking",
+      "authType": "bearer",
+      "diffMode": "schema",
+      "baselineVersion": 3,
+      "hasResponseContract": true,
+      "lastCheckedAt": "2026-08-29T09:14:02.117Z",
+      "responseTime": 214,
+      "breakingCount": 1,
+      "warningCount": 0
+    }
+  ],
+  "pagination": { "limit": 25, "offset": 0, "total": 1 }
+}
+```
+
+Filter with `health` (`healthy`, `warning`, `breaking`, `unknown`, `checking`) and `environment`.
+
+Credentials are never returned. `authType` tells you which credential style a check uses; the secret itself is sealed and unreadable by any user-facing role.
+
+## Get one endpoint
+
+```bash
+curl "https://apidiffguard.com/api/v1/endpoints/$ENDPOINT_ID" \
+  -H "Authorization: Bearer adg_live_…"
+```
+
+Returns the endpoint plus a `latestDiff` summary — `null` if it has never produced one — so "is this endpoint drifting, and what was the last damage" is a single call.
+
+## List diffs
+
+```bash
+curl "https://apidiffguard.com/api/v1/diffs?breakingOnly=true&since=2026-08-01T00:00:00Z" \
+  -H "Authorization: Bearer adg_live_…"
+```
+
+Filter with `endpointId`, `since` (ISO 8601), and `breakingOnly=true`.
+
+## Get a diff with its changes
+
+```bash
+curl "https://apidiffguard.com/api/v1/diffs/$DIFF_ID" \
+  -H "Authorization: Bearer adg_live_…"
+```
+
+```json
+{
+  "diff": {
+    "id": "…",
+    "endpointId": "…",
+    "endpointName": "List Users",
+    "createdAt": "2026-08-29T09:14:02.117Z",
+    "accepted": false,
+    "breakingCount": 1,
+    "warningCount": 0,
+    "infoCount": 0,
+    "changeCount": 1,
+    "changes": [
+      {
+        "id": "…",
+        "path": "data.users[id=1].email",
+        "type": "removed",
+        "severity": "breaking",
+        "message": "Field removed at data.users[id=1].email"
+      }
+    ]
+  }
+}
+```
+
+Object arrays are keyed by identity where the items carry a stable key, so `data.users[id=1]` survives reordering instead of reporting every row as changed.
+
+Response bodies are not included. They can be large and are the part most likely to carry customer data; the change list carries the meaning.
+
+## Run a check
+
+```bash
+curl -X POST \
+  "https://apidiffguard.com/api/v1/endpoints/$ENDPOINT_ID/check" \
+  -H "Authorization: Bearer adg_live_…"
+```
 
 ```json
 {
@@ -33,14 +144,24 @@ Successful response:
 }
 ```
 
-This runs the same hosted check path as the console (baseline diff, schema mode, OpenAPI contract, Slack/Discord fan-out).
+This runs the same hosted path as the console — baseline diff, schema mode, OpenAPI contract validation, and alert fan-out. `diffId` is `null` when nothing changed. A `400` means the check could not run: usually no baseline yet, or the monthly quota is spent.
 
-## Also available
+## Errors
+
+Every failure returns `{ "error": "…" }` with a status:
+
+| Status | Meaning |
+| --- | --- |
+| `400` | A parameter was malformed, or the check could not run |
+| `401` | No valid token or session |
+| `403` | Token lacks the scope, or the role cannot run checks |
+| `404` | No such resource **in this workspace** |
+| `429` | Rate limited — see `Retry-After` |
+
+## Other surfaces
 
 | Surface | Notes |
 | --- | --- |
-| Console | Full baseline / check / diff / alerts / schedules UI |
+| CLI | Offline / CI JSON gates — see [CLI](/docs/cli) |
 | `POST /api/check` | Signed-in one-off URL probe (session cookie) |
 | `POST /api/openapi/parse` | OpenAPI parse for import |
-| CLI | Offline / CI JSON gates — see [CLI](/docs/cli) |
-| Stripe webhooks | Billing only |

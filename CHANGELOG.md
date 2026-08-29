@@ -8,6 +8,8 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 ## [Unreleased]
 
 ### Added
+- **The REST API is now more than one route.** `GET /api/v1/endpoints`, `GET /api/v1/endpoints/:id`, `GET /api/v1/diffs`, and `GET /api/v1/diffs/:id` join the existing check route, so an integration can find an endpoint, read its health, and pull the changes from a diff without screen-scraping the console. The `endpoints:read` scope now actually grants something
+- **Published an OpenAPI 3.1 spec at [`/openapi.json`](https://apidiffguard.com/openapi.json)**, so clients and agent tooling can be generated rather than hand-written
 - **Landing page rebuilt around the diff itself.** The hero now shows a real check readout — every row is output the diff engine actually produces in schema mode, verified against it — instead of an illustrative mock. A side-by-side Diff Viewer pane sits beside the CLI transcript, so "same engine in the console and in CI" is shown rather than claimed
 - **The free tier, MIT licence, and the VPN limitation are stated at the signup button**, not buried thousands of pixels down. Cloud can only reach public endpoints; the page says so and points at self-hosting
 - **Polar checkout and billing portal**, as an alternative to Stripe. Polar is a merchant of record, so it collects and remits VAT/sales tax rather than leaving that to you. Whichever provider is configured is the one that's live; Polar wins if both are

@@ -1,0 +1,410 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "APIDiffGuard REST API",
+    "version": "1.0.0",
+    "summary": "Read and act on API contract drift detected by APIDiffGuard.",
+    "description": "Token-authenticated access to a workspace's monitored endpoints and the diffs produced when a live response drifts from its baseline.\n\nAll enumerated values are returned lowercase. HTTP methods are returned uppercase. Timestamps are ISO 8601 with a UTC offset.",
+    "license": { "name": "MIT", "identifier": "MIT" },
+    "contact": { "url": "https://apidiffguard.com/docs/api" }
+  },
+  "servers": [
+    { "url": "https://apidiffguard.com", "description": "Cloud" },
+    { "url": "http://localhost:3000", "description": "Self-hosted (default dev port)" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "tags": [
+    { "name": "Endpoints", "description": "Monitored API endpoints and their health." },
+    { "name": "Diffs", "description": "Detected changes between a baseline and a live response." }
+  ],
+  "paths": {
+    "/api/v1/endpoints": {
+      "get": {
+        "operationId": "listEndpoints",
+        "summary": "List monitored endpoints",
+        "description": "Returns the workspace's endpoints, newest first. Requires the `endpoints:read` scope.",
+        "tags": ["Endpoints"],
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          {
+            "name": "health",
+            "in": "query",
+            "description": "Only endpoints in this health state.",
+            "required": false,
+            "schema": { "$ref": "#/components/schemas/Health" }
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "description": "Only endpoints tagged with this environment, e.g. `production`.",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of endpoints.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["endpoints", "pagination"],
+                  "properties": {
+                    "endpoints": { "type": "array", "items": { "$ref": "#/components/schemas/Endpoint" } },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/endpoints/{id}": {
+      "get": {
+        "operationId": "getEndpoint",
+        "summary": "Get one endpoint",
+        "description": "Returns a single endpoint together with a summary of its most recent diff. Requires the `endpoints:read` scope.",
+        "tags": ["Endpoints"],
+        "parameters": [{ "$ref": "#/components/parameters/EndpointId" }],
+        "responses": {
+          "200": {
+            "description": "The endpoint, and its latest diff if one exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["endpoint", "latestDiff"],
+                  "properties": {
+                    "endpoint": { "$ref": "#/components/schemas/Endpoint" },
+                    "latestDiff": {
+                      "oneOf": [
+                        { "$ref": "#/components/schemas/LatestDiff" },
+                        { "type": "null" }
+                      ],
+                      "description": "Null when the endpoint has never produced a diff."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/endpoints/{id}/check": {
+      "post": {
+        "operationId": "runCheck",
+        "summary": "Run a check now",
+        "description": "Fetches the endpoint, diffs the response against the active baseline, records the result, and fans out alerts. Requires the `checks:run` scope.\n\nThis makes an outbound request and consumes one unit of the workspace's monthly check quota, so it is rate limited to 30 requests per minute rather than 120.",
+        "tags": ["Endpoints"],
+        "parameters": [{ "$ref": "#/components/parameters/EndpointId" }],
+        "responses": {
+          "200": {
+            "description": "The check ran. A `diffId` is present when the response differed from the baseline.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "diffId", "breakingCount", "warningCount", "changeCount", "alertsSent"],
+                  "properties": {
+                    "success": { "type": "boolean", "const": true },
+                    "diffId": { "type": ["string", "null"], "format": "uuid" },
+                    "breakingCount": { "type": "integer", "minimum": 0 },
+                    "warningCount": { "type": "integer", "minimum": 0 },
+                    "changeCount": { "type": "integer", "minimum": 0 },
+                    "alertsSent": { "type": "integer", "minimum": 0 }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The check could not run — no baseline captured yet, or the monthly quota is exhausted.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/diffs": {
+      "get": {
+        "operationId": "listDiffs",
+        "summary": "List recent diffs",
+        "description": "Returns diffs across the whole workspace, newest first. Requires the `endpoints:read` scope.",
+        "tags": ["Diffs"],
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" },
+          {
+            "name": "endpointId",
+            "in": "query",
+            "description": "Only diffs for this endpoint.",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Only diffs created at or after this ISO 8601 timestamp.",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "breakingOnly",
+            "in": "query",
+            "description": "When `true`, only diffs containing at least one breaking change.",
+            "required": false,
+            "schema": { "type": "string", "enum": ["true"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of diff summaries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["diffs", "pagination"],
+                  "properties": {
+                    "diffs": { "type": "array", "items": { "$ref": "#/components/schemas/DiffSummary" } },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/diffs/{id}": {
+      "get": {
+        "operationId": "getDiff",
+        "summary": "Get one diff with its changes",
+        "description": "Returns a diff and every change it recorded. Requires the `endpoints:read` scope.\n\nResponse bodies are deliberately excluded: they can be large and are the part most likely to carry customer data. The change list carries the meaning.",
+        "tags": ["Diffs"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Diff id.",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The diff and its changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["diff"],
+                  "properties": { "diff": { "$ref": "#/components/schemas/DiffDetail" } }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A workspace API token from Settings → Tokens, in the form `adg_live_…`. Tokens are shown once at creation and stored as SHA-256 hashes. Each token carries scopes: `endpoints:read`, `checks:run`, `baselines:write`."
+      }
+    },
+    "parameters": {
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Rows per page. Defaults to 25, clamped to 100.",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 25 }
+      },
+      "Offset": {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "description": "Rows to skip.",
+        "schema": { "type": "integer", "minimum": 0, "default": 0 }
+      },
+      "EndpointId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Endpoint id.",
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "A query parameter was malformed.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Unauthorized": {
+        "description": "No valid token or session was supplied.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Forbidden": {
+        "description": "The token lacks the required scope, or the role cannot perform this action.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "No such resource in this workspace.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded. Read `Retry-After` for the wait in seconds.",
+        "headers": {
+          "Retry-After": { "description": "Seconds to wait.", "schema": { "type": "integer" } }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": { "error": { "type": "string", "description": "Human-readable failure reason." } }
+      },
+      "Pagination": {
+        "type": "object",
+        "required": ["limit", "offset", "total"],
+        "properties": {
+          "limit": { "type": "integer" },
+          "offset": { "type": "integer" },
+          "total": { "type": "integer", "description": "Total rows matching the filters, ignoring pagination." }
+        }
+      },
+      "Health": {
+        "type": "string",
+        "enum": ["healthy", "warning", "breaking", "unknown", "checking"],
+        "description": "`breaking` means the last check found a breaking change. `checking` is transient."
+      },
+      "Severity": {
+        "type": "string",
+        "enum": ["info", "warning", "breaking"]
+      },
+      "ChangeType": {
+        "type": "string",
+        "enum": ["added", "removed", "changed", "type_changed", "nullability_changed", "status_changed", "header_changed", "contract_violation"]
+      },
+      "Endpoint": {
+        "type": "object",
+        "required": ["id", "name", "url", "method", "environment", "tags", "health", "authType", "diffMode"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] },
+          "environment": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "description": { "type": ["string", "null"] },
+          "health": { "$ref": "#/components/schemas/Health" },
+          "authType": {
+            "type": "string",
+            "enum": ["none", "bearer", "api_key", "basic", "oauth", "custom"],
+            "description": "Which credential style the check uses. The credential itself is sealed and never returned."
+          },
+          "diffMode": {
+            "type": "string",
+            "enum": ["schema", "full"],
+            "description": "`schema` ignores leaf value changes; `full` includes them."
+          },
+          "timeoutMs": { "type": ["integer", "null"] },
+          "baselineVersion": { "type": ["integer", "null"] },
+          "hasResponseContract": { "type": "boolean", "description": "Whether an OpenAPI response contract is in force." },
+          "lastCheckedAt": { "type": ["string", "null"], "format": "date-time" },
+          "responseTime": { "type": ["integer", "null"], "description": "Milliseconds, from the last check." },
+          "breakingCount": { "type": "integer" },
+          "warningCount": { "type": "integer" },
+          "createdAt": { "type": ["string", "null"], "format": "date-time" },
+          "updatedAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "LatestDiff": {
+        "type": "object",
+        "required": ["id", "createdAt", "breakingCount", "warningCount", "infoCount"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "breakingCount": { "type": "integer" },
+          "warningCount": { "type": "integer" },
+          "infoCount": { "type": "integer" }
+        }
+      },
+      "DiffSummary": {
+        "type": "object",
+        "required": ["id", "endpointId", "createdAt", "accepted", "breakingCount", "warningCount", "infoCount", "changeCount"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "endpointId": { "type": ["string", "null"], "format": "uuid" },
+          "endpointName": { "type": ["string", "null"] },
+          "createdAt": { "type": ["string", "null"], "format": "date-time" },
+          "accepted": { "type": "boolean", "description": "True once a human has acknowledged this diff." },
+          "breakingCount": { "type": "integer" },
+          "warningCount": { "type": "integer" },
+          "infoCount": { "type": "integer" },
+          "changeCount": { "type": "integer" }
+        }
+      },
+      "DiffChange": {
+        "type": "object",
+        "required": ["id", "path", "type", "severity", "message"],
+        "properties": {
+          "id": { "type": "string" },
+          "path": {
+            "type": "string",
+            "description": "Where the change occurred. Object arrays are keyed by identity where possible, e.g. `result.tools[name=ask_question].inputSchema`, so reordering does not read as a change."
+          },
+          "type": { "$ref": "#/components/schemas/ChangeType" },
+          "severity": { "$ref": "#/components/schemas/Severity" },
+          "message": { "type": "string" },
+          "oldValue": { "description": "Absent when the change has no prior value." },
+          "newValue": { "description": "Absent when the change has no new value." },
+          "oldType": { "type": "string" },
+          "newType": { "type": "string" }
+        }
+      },
+      "DiffDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DiffSummary" },
+          {
+            "type": "object",
+            "required": ["changes"],
+            "properties": {
+              "baselineId": { "type": ["string", "null"], "format": "uuid" },
+              "checkId": { "type": ["string", "null"], "format": "uuid" },
+              "summary": { "type": "object", "additionalProperties": true },
+              "changes": { "type": "array", "items": { "$ref": "#/components/schemas/DiffChange" } }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
