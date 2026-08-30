@@ -46,7 +46,7 @@ apidiff check \
       --fail-on breaking
 ```
 
-For **hosted** endpoint checks (baselines, alerts, schedules), create a token under **Settings → Tokens** and call:
+For **hosted** endpoint checks (baselines, alerts, schedules), create a token under **Settings → API tokens** and call:
 
 ```bash
 curl -X POST "$APP_URL/api/v1/endpoints/$ENDPOINT_ID/check" \

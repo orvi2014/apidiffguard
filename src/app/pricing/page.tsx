@@ -30,7 +30,7 @@ const faqs = [
   },
   {
     q: "Is there a CLI?",
-    a: "Yes. Use apidiff check from packages/cli (with --header for private APIs) or POST /api/v1/endpoints/:id/check with a workspace token from Settings → Tokens.",
+    a: "Yes. Use apidiff check from packages/cli (with --header for private APIs) or POST /api/v1/endpoints/:id/check with a workspace token from Settings → API tokens.",
   },
   {
     q: "What auth types are supported?",
