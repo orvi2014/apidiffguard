@@ -54,7 +54,7 @@ function EditorChrome({
         </label>
         <span
           className={cn(
-            "font-mono text-[11px] tabular-nums",
+            "font-mono text-xs tabular-nums",
             sizeTone === "block" && "text-danger",
             sizeTone === "warn" && "text-warning",
             (!sizeTone || sizeTone === "ok") && "text-muted-foreground"

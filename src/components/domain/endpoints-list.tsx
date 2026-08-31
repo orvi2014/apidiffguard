@@ -30,7 +30,7 @@ export function EndpointsList({ endpoints }: { endpoints: Endpoint[] }) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by name, URL, tag…"
+              placeholder="Filter this page by name, URL, tag…"
               className="h-8 pl-8"
               aria-label="Filter endpoints"
             />

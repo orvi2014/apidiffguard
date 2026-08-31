@@ -15,5 +15,12 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+  // Keep the destination through the failure so a retried sign-in still lands
+  // where the user was headed — an invite, a shared endpoint, a settings page.
+  const retry = new URL("/login", origin);
+  retry.searchParams.set("error", "auth");
+  if (next && next !== "/dashboard") retry.searchParams.set("next", next);
+  const plan = searchParams.get("plan");
+  if (plan) retry.searchParams.set("plan", plan);
+  return NextResponse.redirect(retry);
 }

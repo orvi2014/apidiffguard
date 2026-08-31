@@ -258,7 +258,7 @@ export async function createEndpoint(formData: FormData) {
     .select("id")
     .single();
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyEndpointError(error.message) };
 
   await supabase.from("activities").insert({
     type: "endpoint_added",
@@ -386,7 +386,7 @@ export async function deleteEndpoint(endpointId: string) {
     .eq("id", endpointId)
     .eq("workspace_id", ctx.workspaceId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyEndpointError(error.message) };
 
   revalidatePath("/endpoints");
   revalidatePath("/dashboard");
@@ -651,7 +651,7 @@ export async function updateEndpoint(formData: FormData) {
     .eq("id", endpointId)
     .eq("workspace_id", ctx.workspaceId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyEndpointError(error.message) };
 
   revalidatePath(`/endpoints/${endpointId}`);
   revalidatePath("/endpoints");
@@ -717,4 +717,16 @@ export async function restoreBaselineAction(
   revalidatePath(`/endpoints/${endpointId}/baselines`);
   revalidatePath("/dashboard");
   return { ok: true as const, version: baseline.version };
+}
+
+/**
+ * The count-then-insert guard has a race the database trigger closes, but the
+ * trigger's message is bare Postgres text with no next step. Rewrite it to the
+ * same wording the pre-check uses.
+ */
+function friendlyEndpointError(message: string): string {
+  if (/endpoint limit reached/i.test(message)) {
+    return "You've reached your plan's endpoint limit. Upgrade in Settings → Billing to add more.";
+  }
+  return message;
 }

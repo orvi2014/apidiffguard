@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { WORKSPACE_COOKIE } from "@/lib/workspace";
 
 export const runtime = "nodejs";
@@ -45,9 +45,27 @@ export async function GET(
   const destination = new URL("/invite/status", origin);
   destination.searchParams.set("state", status);
 
+  // Name the workspace on the status page. Every message said "the workspace",
+  // which tells a user with more than one pending invite nothing. Read with the
+  // service role because a failed invite leaves the user a non-member, and RLS
+  // would correctly hide the row from them.
+  if (data?.workspace_id) {
+    const { data: ws } = await createServiceClient()
+      .from("workspaces")
+      .select("name")
+      .eq("id", data.workspace_id)
+      .maybeSingle();
+    if (ws?.name) destination.searchParams.set("workspace", ws.name);
+  }
+
   const response = NextResponse.redirect(destination);
 
-  if (status === "accepted" && data?.workspace_id) {
+  // "Already a member" also refers to a specific workspace — without setting the
+  // cookie, the page's own CTA could open whichever one was last active.
+  if (
+    (status === "accepted" || status === "already-member") &&
+    data?.workspace_id
+  ) {
     response.cookies.set(WORKSPACE_COOKIE, data.workspace_id, {
       httpOnly: true,
       sameSite: "lax",

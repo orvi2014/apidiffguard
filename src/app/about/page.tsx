@@ -127,7 +127,7 @@ export default function AboutPage() {
           </AnswerBlock>
           <AnswerBlock
             question="Is APIDiffGuard open source?"
-            answer="Yes. The repository is MIT open-core. You can self-host and use the free browser tools. The diff engine package lives in-repo under packages/diff-engine (not published to npm yet). Cloud is hosted convenience — auth, workspaces, and managed monitoring."
+            answer="Yes. The repository is MIT open-core. You can self-host and use the free browser tools. The diff engine package lives in-repo under packages/diff-engine (published as @apidiffguard/diff). Cloud is hosted convenience — auth, workspaces, and managed monitoring."
           >
             <p className="mt-3 text-sm">
               <a

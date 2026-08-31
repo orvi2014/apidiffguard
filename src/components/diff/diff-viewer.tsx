@@ -300,6 +300,14 @@ export function DiffViewer({
                   ? "Accepting…"
                   : "Accept baseline"}
             </Button>
+            {/* A disabled button cannot take focus, so the title attribute was
+                unreachable by keyboard and unreliable for screen readers. The
+                endpoints and endpoint-detail pages already say this in text. */}
+            {!canEdit ? (
+              <p className="text-xs text-muted">
+                View-only — ask an editor to accept baselines.
+              </p>
+            ) : null}
           </div>
         </div>
         {acceptError ? (
@@ -352,10 +360,11 @@ export function DiffViewer({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search path…"
+            aria-label="Search path"
                 className="h-8 pl-8 font-mono text-xs"
               />
             </div>
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted">
               Jump <Kbd>n</Kbd> / <Kbd>p</Kbd>
             </div>
           </div>
@@ -386,14 +395,14 @@ export function DiffViewer({
               >
                 <div className="flex items-center gap-2">
                   <SeverityBadge severity={change.severity} />
-                  <span className="font-mono text-[11px] text-muted truncate">
+                  <span className="font-mono text-xs text-muted truncate">
                     {change.type}
                   </span>
                 </div>
                 <span className="font-mono text-xs text-foreground truncate">
                   {change.path}
                 </span>
-                <span className="text-[11px] text-muted line-clamp-2">
+                <span className="text-xs text-muted line-clamp-2">
                   {change.message}
                 </span>
               </button>
@@ -461,17 +470,28 @@ export function DiffViewer({
                   </div>
                   <div className="hidden w-10 shrink-0 flex-col items-center justify-center gap-2 border-r border-border bg-surface/50 lg:flex">
                     {diff.changes.slice(0, 8).map((c) => (
-                      <span
-                        key={c.id}
-                        className={cn(
-                          "size-1.5 rounded-full",
-                          c.severity === "breaking" && "bg-danger",
-                          c.severity === "warning" && "bg-warning",
-                          c.severity === "info" && "bg-info"
-                        )}
-                        title={c.path}
-                      />
-                    ))}
+                <span
+                  key={c.id}
+                  role="img"
+                  aria-label={`${c.severity} change at ${c.path}`}
+                  title={`${c.severity} · ${c.path}`}
+                  className={cn(
+                    "size-1.5",
+                    // Shape as well as colour: breaking is a square, so the
+                    // three severities differ without relying on hue.
+                    c.severity === "breaking"
+                      ? "bg-danger"
+                      : c.severity === "warning"
+                        ? "rounded-full bg-warning"
+                        : "rounded-full bg-accent"
+                  )}
+                />
+              ))}
+              {diff.changes.length > 8 ? (
+                <span className="text-[10px] tabular-nums text-muted">
+                  +{diff.changes.length - 8}
+                </span>
+              ) : null}
                   </div>
                   <div className="flex min-h-[min(40vh,420px)] min-w-0 flex-1 flex-col">
                     <PaneHeader
@@ -657,7 +677,7 @@ function PaneHeader({
       <div className="flex items-center gap-1">
         <span
           className={cn(
-            "text-[11px] font-mono",
+            "text-xs font-mono",
             tone === "old" ? "text-danger/80" : "text-success/80"
           )}
         >
@@ -752,7 +772,7 @@ function SummaryPanel({
                   </code>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-muted">{item.message}</p>
-                    <div className="mt-1 flex flex-wrap gap-3 font-mono text-[11px]">
+                    <div className="mt-1 flex flex-wrap gap-3 font-mono text-xs">
                       {item.oldValue !== undefined && (
                         <span className="text-danger">
                           − {JSON.stringify(item.oldValue)}

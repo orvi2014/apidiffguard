@@ -35,7 +35,9 @@ function OpenAPIImportWizard() {
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = React.useState<SourceTab>("url");
-  const [url, setUrl] = React.useState<string>(OPENAPI_PRESETS[0].url);
+  // Starts empty so a new user brings their own spec rather than importing
+  // whichever preset happened to be first.
+  const [url, setUrl] = React.useState<string>("");
   const [paste, setPaste] = React.useState("");
   const [serverOverride, setServerOverride] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -547,6 +549,7 @@ function OpenAPIImportWizard() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Filter operations…"
+              aria-label="Filter operations"
                     className="h-8 pl-8"
                   />
                 </div>

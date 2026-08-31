@@ -261,7 +261,7 @@ export default function LandingPage() {
                   the hero ledger deliberately does not show. Flat per the
                   Flat Ground Rule — tone and hairlines, no shadow. */}
               <div className="overflow-hidden rounded-lg border border-border bg-surface">
-                <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-2.5 text-[11px] text-muted">
+                <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle px-4 py-2.5 text-xs text-muted">
                   <span>Diff Viewer</span>
                   <span aria-hidden className="h-3 w-px bg-border" />
                   <span className="font-mono text-foreground">users · v4 → live</span>
@@ -269,7 +269,7 @@ export default function LandingPage() {
                 </div>
                 <div className="grid sm:grid-cols-2 sm:divide-x sm:divide-border-subtle">
                   <div className="border-b border-border-subtle sm:border-b-0">
-                    <div className="border-b border-border-subtle px-3 py-1.5 font-mono text-[11px] text-muted">
+                    <div className="border-b border-border-subtle px-3 py-1.5 font-mono text-xs text-muted">
                       baseline v4
                     </div>
                     <pre className="overflow-x-auto bg-background p-3 font-mono text-[13px] leading-6 text-muted">
@@ -287,7 +287,7 @@ export default function LandingPage() {
                     </pre>
                   </div>
                   <div>
-                    <div className="border-b border-border-subtle px-3 py-1.5 font-mono text-[11px] text-muted">
+                    <div className="border-b border-border-subtle px-3 py-1.5 font-mono text-xs text-muted">
                       live
                     </div>
                     <pre className="overflow-x-auto bg-background p-3 font-mono text-[13px] leading-6 text-muted">

@@ -101,7 +101,7 @@ export function MarketingFooter() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className="text-sm text-muted hover:text-foreground transition-colors"
+                    className="inline-flex min-h-6 items-center py-1 text-sm text-muted hover:text-foreground transition-colors pointer-coarse:min-h-11"
                   >
                     {label}
                   </Link>
@@ -115,16 +115,16 @@ export function MarketingFooter() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-xs text-muted-foreground sm:px-5">
           <span>© {new Date().getFullYear()} APIDiffGuard</span>
           <div className="flex flex-wrap gap-4">
-            <Link href="/privacy" className="hover:text-foreground">
+            <Link href="/privacy" className="inline-flex min-h-6 items-center py-1 hover:text-foreground pointer-coarse:min-h-11">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-foreground">
+            <Link href="/terms" className="inline-flex min-h-6 items-center py-1 hover:text-foreground pointer-coarse:min-h-11">
               Terms
             </Link>
-            <Link href="/llms.txt" className="hover:text-foreground">
+            <Link href="/llms.txt" className="inline-flex min-h-6 items-center py-1 hover:text-foreground pointer-coarse:min-h-11">
               llms.txt
             </Link>
-            <Link href="/llms-full.txt" className="hover:text-foreground">
+            <Link href="/llms-full.txt" className="inline-flex min-h-6 items-center py-1 hover:text-foreground pointer-coarse:min-h-11">
               llms-full.txt
             </Link>
             <span className="font-mono">v{APP_VERSION}</span>

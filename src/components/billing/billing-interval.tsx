@@ -21,10 +21,13 @@ export function useBillingInterval() {
 
 export function BillingIntervalProvider({
   children,
+  initialInterval = "month",
 }: {
   children: React.ReactNode;
+  /** Seeds the toggle — e.g. from the period the visitor chose on /pricing. */
+  initialInterval?: BillingInterval;
 }) {
-  const [interval, setInterval] = useState<BillingInterval>("month");
+  const [interval, setInterval] = useState<BillingInterval>(initialInterval);
   return (
     <BillingIntervalContext.Provider value={{ interval, setInterval }}>
       {children}

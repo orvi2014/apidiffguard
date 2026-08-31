@@ -269,7 +269,14 @@ export function EndpointDetailLive({
                   <Button
                     size="sm"
                     className="gap-1.5"
-                    disabled={busy !== null}
+                    // A check with no baseline has nothing to compare against
+                    // and always fails server-side; don't offer the round trip.
+                    disabled={busy !== null || baselines.length === 0}
+                    title={
+                      baselines.length === 0
+                        ? "Capture a baseline first — a check compares against it."
+                        : undefined
+                    }
                     onClick={() => void onCheck()}
                   >
                     {busy === "check" ? (

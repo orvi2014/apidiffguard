@@ -58,6 +58,10 @@ export function InviteMemberForm({
             {/* Owner is deliberately absent: ownership is transferred from the
                 member list, not handed out at invite time. */}
           </select>
+      <p className="mt-1 text-[11px] text-muted">
+        Admins manage members and billing · Members create and check endpoints ·
+        Viewers can only read
+      </p>
         </div>
       </div>
 

@@ -98,6 +98,7 @@ export function WorkspaceSwitcher({
                 <button
                   type="submit"
                   disabled={active}
+                  aria-current={active ? "true" : undefined}
                   className="flex w-full cursor-pointer items-center gap-2 text-left disabled:cursor-default"
                 >
                   <Check

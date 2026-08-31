@@ -46,6 +46,18 @@ export function ApiTokensManager({
   canEdit: boolean;
 }) {
   const [createdToken, setCreatedToken] = React.useState<string | null>(null);
+
+  // The plaintext token is shown exactly once. The page renders doc links right
+  // below it, so a click before copying loses the value permanently.
+  React.useEffect(() => {
+    if (!createdToken) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [createdToken]);
   const [error, setError] = React.useState<string | null>(null);
   const [copyState, setCopyState] = React.useState<
     "idle" | "copied" | "failed"

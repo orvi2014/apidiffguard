@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
+import { signOut } from "@/app/actions/auth";
 
 export const metadata = { title: "Workspace invite" };
 
@@ -43,10 +44,15 @@ const COPY: Record<string, { title: string; body: string; success?: boolean }> =
 export default async function InviteStatusPage({
   searchParams,
 }: {
-  searchParams: Promise<{ state?: string }>;
+  searchParams: Promise<{ state?: string; workspace?: string }>;
 }) {
-  const { state } = await searchParams;
+  const { state, workspace } = await searchParams;
   const copy = COPY[state ?? "invalid"] ?? COPY.invalid;
+  // Every message said "the workspace"; a user with more than one pending
+  // invite had no way to tell which one this was about.
+  const named = workspace
+    ? copy.body.replace(/this workspace|the workspace/i, `“${workspace}”`)
+    : copy.body;
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-16">
@@ -56,14 +62,26 @@ export default async function InviteStatusPage({
         </div>
         <div className="space-y-2">
           <h1 className="text-lg font-semibold tracking-tight">{copy.title}</h1>
-          <p className="text-sm text-muted">{copy.body}</p>
+          <p className="text-sm text-muted">{named}</p>
         </div>
-        <Link
-          href="/dashboard"
-          className="inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
-        >
-          {copy.success ? "Go to the workspace" : "Back to the console"}
-        </Link>
+        <div className="flex flex-col items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
+            {copy.success ? "Go to the workspace" : "Back to the console"}
+          </Link>
+          {state === "wrong-account" ? (
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="text-sm text-muted underline underline-offset-2 hover:text-foreground"
+              >
+                Sign out and try another account
+              </button>
+            </form>
+          ) : null}
+        </div>
       </div>
     </main>
   );

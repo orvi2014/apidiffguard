@@ -12,7 +12,7 @@ import {
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
-import { isPaidPlan, PLANS, type PlanId } from "@/lib/plans";
+import { getPlan, isPaidPlan, PLANS, type PlanId } from "@/lib/plans";
 import { getBillingProvider } from "@/lib/billing/provider";
 import { buildMetadata, faqJsonLd } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
@@ -36,7 +36,7 @@ const faqs = [
   },
   {
     q: "Is there a CLI?",
-    a: "Yes. Use apidiff check from packages/cli (with --header for private APIs) or POST /api/v1/endpoints/:id/check with a workspace token from Settings → API tokens.",
+    a: "Yes. Run npx @apidiffguard/cli check (with --header for private APIs) or POST /api/v1/endpoints/:id/check with a workspace token from Settings → API tokens.",
   },
   {
     q: "What happens if I run out of checks?",
@@ -80,7 +80,7 @@ async function ViewerPlanLine() {
       {" "}
       Signed in as {viewer.email} · current plan{" "}
       <strong className="font-medium text-foreground">
-        {viewer.currentPlan}
+        {getPlan(viewer.currentPlan).name}
       </strong>
       .
     </>

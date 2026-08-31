@@ -491,21 +491,15 @@ export function parseOpenAPIDocument(
 /** Well-known specs for one-click import */
 export const OPENAPI_PRESETS = [
   {
-    id: "agencyhandy",
-    name: "AgencyHandy API",
-    description: "Swagger UI docs — auto-resolves embedded OpenAPI",
-    url: "https://api.agencyhandy.com/docs/",
+    id: "petstore",
+    name: "Petstore (demo)",
+    description: "Swagger Petstore sample — safe to try",
+    url: "https://petstore3.swagger.io/api/v3/openapi.json",
   },
   {
     id: "openai",
     name: "OpenAI API",
     description: "Official OpenAI OpenAPI specification",
     url: "https://raw.githubusercontent.com/openai/openai-openapi/main/openapi.yaml",
-  },
-  {
-    id: "petstore",
-    name: "Petstore (demo)",
-    description: "Swagger Petstore sample for testing imports",
-    url: "https://petstore3.swagger.io/api/v3/openapi.json",
   },
 ] as const;

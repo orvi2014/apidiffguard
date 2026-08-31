@@ -33,11 +33,11 @@ export default function SettingsPage() {
           <div>
             <div className="text-sm">Fail CI on breaking</div>
             <div className="text-xs text-muted">
-              Use Settings → API tokens + CLI /api/v1 checks to gate CI
+              Available today — gate CI with an API token and the CLI or /api/v1 checks
             </div>
           </div>
           <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-            Coming soon
+            No toggle yet
           </span>
         </div>
       </fieldset>

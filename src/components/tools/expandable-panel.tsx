@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { useHydrated } from "@/lib/use-hydrated";
 
 /** Hook: Esc to collapse + lock body scroll while expanded. */
@@ -77,11 +78,13 @@ export function ExpandablePanel({
   const [expanded, setExpanded] = React.useState(false);
   const mounted = useHydrated();
   const collapse = React.useCallback(() => setExpanded(false), []);
+  const overlayRef = React.useRef<HTMLDivElement>(null);
   useExpandOverlay(expanded, collapse);
+  useFocusTrap(overlayRef, mounted && expanded, collapse);
 
   const header = (
     <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
-      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {title}
       </span>
       <div className="flex items-center gap-1">
@@ -111,6 +114,7 @@ export function ExpandablePanel({
       {mounted && expanded
         ? createPortal(
             <div
+              ref={overlayRef}
               role="dialog"
               aria-modal="true"
               aria-label={`${title} expanded`}
@@ -119,7 +123,7 @@ export function ExpandablePanel({
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-foreground">{title}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Expanded view · press Esc to exit
                   </p>
                 </div>
@@ -149,12 +153,17 @@ export function ExpandOverlayShell({
   footer?: React.ReactNode;
 }) {
   const mounted = useHydrated();
+  const overlayRef = React.useRef<HTMLDivElement>(null);
   useExpandOverlay(true, onClose);
+  // Declaring aria-modal without containing Tab strands keyboard users behind
+  // the overlay, in the page they cannot see.
+  useFocusTrap(overlayRef, mounted, onClose);
 
   if (!mounted) return null;
 
   return createPortal(
     <div
+      ref={overlayRef}
       role="dialog"
       aria-modal="true"
       aria-label={`${title} expanded`}
@@ -163,7 +172,7 @@ export function ExpandOverlayShell({
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div>
           <p className="text-sm font-medium text-foreground">{title}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Expanded view · press Esc to exit
           </p>
         </div>

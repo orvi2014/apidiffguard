@@ -2,6 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Check } from "lucide-react";
 import {
+  BillingIntervalProvider,
+  BillingIntervalToggle,
+} from "@/components/billing/billing-interval";
+import {
   CheckoutButton,
   PortalButton,
 } from "@/components/billing/stripe-actions";
@@ -67,7 +71,8 @@ export default async function BillingPage({
   // Carried from /pricing through /register. Without pinning it here the
   // CheckoutButton falls back to monthly and bills a yearly signup twelve
   // times instead of ten.
-  const chosenInterval = params.interval === "year" ? "year" : "month";
+  const chosenInterval: "month" | "year" =
+    params.interval === "year" ? "year" : "month";
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -175,7 +180,7 @@ export default async function BillingPage({
               disabledReason={
                 !stripeReady
                   ? "Billing is not configured for this deployment yet."
-                  : !ctx.stripeCustomerId
+                  : !billingCustomerId
                     ? `No ${providerLabel} customer yet — upgrade once to manage payment.`
                     : undefined
               }
@@ -200,7 +205,7 @@ export default async function BillingPage({
         <h3 id="usage-heading" className="text-sm font-medium">
           Usage this period
         </h3>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <div className="font-mono text-lg font-semibold tabular-nums">
               {usageLabel}
@@ -221,14 +226,6 @@ export default async function BillingPage({
               Checks
             </div>
           </div>
-          <div>
-            <div className="font-mono text-lg font-semibold tabular-nums text-muted">
-              Not tracked yet
-            </div>
-            <div className="text-[11px] uppercase tracking-wider text-muted">
-              Alerts
-            </div>
-          </div>
         </div>
       </section>
 
@@ -240,6 +237,8 @@ export default async function BillingPage({
           Paid plans check out with {providerLabel}. Manage or cancel anytime in the
           customer portal. Team plans need a conversation.
         </p>
+        <BillingIntervalProvider initialInterval={chosenInterval}>
+        <BillingIntervalToggle className="mt-4 flex flex-wrap items-center" />
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {PLANS.map((p) => {
             const current = p.id === ctx.plan;
@@ -312,7 +311,7 @@ export default async function BillingPage({
                       disabledReason={
                         !stripeReady
                           ? "Stripe is not configured for this deployment yet."
-                          : !ctx.stripeCustomerId
+                          : !billingCustomerId
                             ? `No ${providerLabel} customer yet — upgrade once to manage billing.`
                             : undefined
                       }
@@ -320,14 +319,8 @@ export default async function BillingPage({
                   ) : isPaidPlan(p.id) && stripeReady ? (
                     <CheckoutButton
                       plan={p.id}
-                      interval={
-                        p.yearlyPrice != null ? chosenInterval : "month"
-                      }
-                      label={
-                        chosenInterval === "year" && p.yearlyPrice != null
-                          ? `Upgrade to ${p.name} — $${p.yearlyPrice}/year`
-                          : `Upgrade to ${p.name}`
-                      }
+                      interval={p.yearlyPrice != null ? undefined : "month"}
+                      label={`Upgrade to ${p.name}`}
                       variant={p.highlighted ? "default" : "secondary"}
                     />
                   ) : (
@@ -340,6 +333,7 @@ export default async function BillingPage({
             );
           })}
         </div>
+        </BillingIntervalProvider>
         <p className="mt-4 text-xs text-muted">
           Looking for public pricing copy?{" "}
           <Link

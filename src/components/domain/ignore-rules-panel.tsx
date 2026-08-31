@@ -57,6 +57,15 @@ export function IgnoreRulesPanel({
                   className="text-danger"
                   aria-label={`Delete ignore rule ${rule.path}`}
                   onClick={async () => {
+                    // An ignore rule encodes why a field is excluded from
+                    // diffing — knowledge that is gone with one stray click.
+                    if (
+                      !confirm(
+                        `Delete the ignore rule for ${rule.path}? Changes at that path will start being reported again.`
+                      )
+                    ) {
+                      return;
+                    }
                     setError(null);
                     const result = await deleteIgnoreRule(endpointId, rule.id);
                     if (result.error) setError(result.error);

@@ -85,10 +85,10 @@ export default function NewEndpointPage() {
               onChange={(e) => setAuth(e.target.value as AuthOption)}
             >
               <option value="none">None</option>
-              <option value="bearer">Bearer token</option>
+              <option value="bearer">Bearer / access token</option>
               <option value="api_key">API key</option>
               <option value="basic">Basic auth</option>
-              <option value="oauth">Access token</option>
+              
               <option value="custom">Custom headers</option>
             </select>
           </div>

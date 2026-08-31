@@ -57,6 +57,19 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Downgraded workspaces stop running scheduled checks
 
 ### Fixed
+- **Yearly is now purchasable from inside the app.** Settings → Billing offered only monthly, so the natural place to upgrade could never reach the annual price
+- The invite flow now names the workspace it is talking about, keeps you on the right one when you already belong to it, and offers a way out of the "wrong account" dead end instead of only pointing at a console you didn't want
+- A failed GitHub sign-in keeps the page you were headed for, so retrying lands where you meant to go
+- "Run check" is disabled until a baseline exists, rather than failing on the server every time; hitting the plan cap explains how to lift it instead of surfacing raw database text
+- The endpoints filter says it searches the current page, which is all it ever did
+- Deleting an ignore rule confirms first — it encodes why a field is excluded, and there is no undo
+- Leaving the page while a newly created API token is still on screen now warns, since the value is shown exactly once
+- Invite and member forms explain what each role can actually do
+- The diff viewer's severity strip is readable without colour, names each change, and says how many it isn't showing; the view-only restriction is stated in text rather than a tooltip on a button that cannot take focus
+- Expanded tool overlays trap keyboard focus instead of letting Tab wander into the page behind them; the diff tree honours reduced-motion; search and filter inputs have accessible names; the active workspace is exposed to screen readers
+- Text that had been set at 11px — severity badges, byte counts, the hero mockup — is back at a readable size, and footer links are large enough to tap
+- Import no longer pre-fills a real third party's live API, and the duplicate "Access token" auth option is gone
+- Corrected the pricing FAQ's CLI command and the About page's claim that the diff engine is unpublished
 - **A plan-capped workspace no longer discovers the cap after filling in the form.** The endpoints page never showed usage against the limit, so a Free user typed a name, URL, and credentials before being told they had no room. The header now reads "3 of 3 endpoints used" and the action becomes "Upgrade to add more"
 - **Choosing Yearly is no longer silently discarded.** Picking the annual price and signing up carried only the plan through `/register`, so the checkout fell back to monthly — a customer who chose $190/year was billed $19/month. The billing period now travels with the plan and is honoured at checkout
 - **A workspace owner could be silently demoted.** For an admin viewing a co-owner, the role dropdown omitted the "Owner" option while defaulting to it, so the control silently displayed "Admin" and saving applied it. The option is always rendered now, disabled for those who cannot assign it

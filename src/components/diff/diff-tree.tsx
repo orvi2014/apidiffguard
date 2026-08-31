@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ChevronRight,
   Copy,
@@ -104,6 +104,7 @@ function TreeNode({
   ) => void;
 }) {
   const [copied, setCopied] = React.useState(false);
+  const reduceMotion = useReducedMotion();
   const isOpen = expanded.has(node.path);
   const hasChildren = Boolean(node.children?.length);
   const matchesSearch =
@@ -193,7 +194,7 @@ function TreeNode({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            transition={{ duration: reduceMotion ? 0 : 0.15, ease: "easeOut" }}
             className="overflow-hidden"
           >
             {node.children?.map((child) => (
@@ -365,7 +366,7 @@ export function DiffTree({
 
   return (
     <div className={cn("flex flex-col min-h-0", className)}>
-      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border-subtle text-[11px] text-muted">
+      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border-subtle text-xs text-muted">
         <button
           type="button"
           onClick={expandAll}
