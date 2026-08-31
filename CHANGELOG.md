@@ -8,6 +8,7 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 ## [Unreleased]
 
 ### Added
+- **Yearly billing.** Starter and Pro can be bought annually at ten months' price for twelve months of service — $190 and $490. The pricing page carries a monthly/yearly switch; Free and the contact-only Team tier are unaffected. Polar puts the billing period on the product rather than the price, so each annual plan is its own product, and the webhook's reverse lookup now recognises those ids — without that a customer could pay for a year and be granted nothing
 - **Error reporting.** The app had none: eleven `console.error` sites whose output nobody would ever read, so a production failure was something you learned about from a customer. Sentry is wired for server, edge, and browser, and stays completely inert until a DSN is set
 - **The REST API is now more than one route.** `GET /api/v1/endpoints`, `GET /api/v1/endpoints/:id`, `GET /api/v1/diffs`, and `GET /api/v1/diffs/:id` join the existing check route, so an integration can find an endpoint, read its health, and pull the changes from a diff without screen-scraping the console. The `endpoints:read` scope now actually grants something
 - **Published an OpenAPI 3.1 spec at [`/openapi.json`](https://apidiffguard.com/openapi.json)**, so clients and agent tooling can be generated rather than hand-written
@@ -56,6 +57,7 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Downgraded workspaces stop running scheduled checks
 
 ### Fixed
+- **A reactivated subscription now restores access.** `subscription.reactivated` was missing from the granting events, so a customer who came back after cancelling would be billed again and left on the free plan
 - **Diff highlights failed the WCAG AA contrast minimum** (4.49:1 against a 4.5 threshold). Code panes now sit on the ink surface, which the design system already specified, bringing them to 4.81:1
 - **Diff highlighting relied on colour alone.** Changed lines now carry `+`/`−` markers, so the information survives greyscale and colour blindness
 - **Touch targets in the site header were below the 44px minimum** — the menu toggle, signup button, brand link, and every mobile drawer row. Sized by pointer type rather than screen width, so a touchscreen laptop benefits and mouse density is unchanged

@@ -8,12 +8,19 @@ import {
 } from "@/lib/polar/billing";
 
 const saved: Record<string, string | undefined> = {};
-const KEYS = ["POLAR_PRODUCT_STARTER", "POLAR_PRODUCT_PRO"];
+const KEYS = [
+  "POLAR_PRODUCT_STARTER",
+  "POLAR_PRODUCT_PRO",
+  "POLAR_PRODUCT_STARTER_YEARLY",
+  "POLAR_PRODUCT_PRO_YEARLY",
+];
 
 before(() => {
   for (const k of KEYS) saved[k] = process.env[k];
   process.env.POLAR_PRODUCT_STARTER = "prod_starter_123";
   process.env.POLAR_PRODUCT_PRO = "prod_pro_456";
+  process.env.POLAR_PRODUCT_STARTER_YEARLY = "prod_starter_year_789";
+  process.env.POLAR_PRODUCT_PRO_YEARLY = "prod_pro_year_012";
 });
 
 after(() => {
@@ -117,5 +124,46 @@ describe("resolveWorkspaceId", () => {
       resolveWorkspaceId({ metadata: { workspace_id: 42 } as never }),
       null,
     );
+  });
+});
+
+describe("yearly billing", () => {
+  it("maps each plan to its yearly product when asked for one", () => {
+    assert.equal(
+      polarProductForPlan("starter", "year"),
+      "prod_starter_year_789"
+    );
+    assert.equal(polarProductForPlan("pro", "year"), "prod_pro_year_012");
+  });
+
+  it("defaults to monthly when no interval is given", () => {
+    assert.equal(polarProductForPlan("starter"), "prod_starter_123");
+    assert.equal(polarProductForPlan("starter", "month"), "prod_starter_123");
+  });
+
+  // The reverse lookup is the path that decides whether a paying customer gets
+  // access. An unrecognised yearly id makes the webhook grant nothing, so a
+  // successful charge would leave the customer on the free plan.
+  it("recognises yearly product ids in the reverse lookup", () => {
+    assert.equal(
+      resolvePolarPlanFromProduct("prod_starter_year_789"),
+      "starter"
+    );
+    assert.equal(resolvePolarPlanFromProduct("prod_pro_year_012"), "pro");
+  });
+
+  it("still rejects ids belonging to no plan", () => {
+    assert.equal(resolvePolarPlanFromProduct("prod_someone_elses"), null);
+  });
+
+  it("returns null when the yearly product is not configured", () => {
+    delete process.env.POLAR_PRODUCT_PRO_YEARLY;
+    try {
+      assert.equal(polarProductForPlan("pro", "year"), null);
+      // and the monthly id must not be mistaken for the yearly one
+      assert.notEqual(polarProductForPlan("pro", "year"), "prod_pro_456");
+    } finally {
+      process.env.POLAR_PRODUCT_PRO_YEARLY = "prod_pro_year_012";
+    }
   });
 });

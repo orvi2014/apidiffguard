@@ -15,6 +15,12 @@ export type PlanDefinition = {
   seatLimit: number | null;
   /** USD per month. `null` for contact-only tiers. */
   monthlyPrice: number | null;
+  /**
+   * USD per year, when the plan can be bought annually. Ten months' price for
+   * twelve months of service — the "two months free" discount. `null` means the
+   * plan is monthly-only.
+   */
+  yearlyPrice?: number | null;
   highlighted?: boolean;
   contactOnly?: boolean;
 };
@@ -55,6 +61,7 @@ export const PLANS: PlanDefinition[] = [
     checkQuota: 5000,
     seatLimit: 3,
     monthlyPrice: 19,
+    yearlyPrice: 190,
   },
   {
     id: "pro",
@@ -73,6 +80,7 @@ export const PLANS: PlanDefinition[] = [
     checkQuota: 25000,
     seatLimit: 10,
     monthlyPrice: 49,
+    yearlyPrice: 490,
     highlighted: true,
   },
   {

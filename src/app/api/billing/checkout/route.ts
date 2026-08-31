@@ -8,7 +8,10 @@
 
 import { NextResponse } from "next/server";
 import { getBillingProvider } from "@/lib/billing/provider";
-import { createPolarCheckoutUrl } from "@/lib/polar/billing";
+import {
+  createPolarCheckoutUrl,
+  type BillingInterval,
+} from "@/lib/polar/billing";
 import { isPaidPlan } from "@/lib/plans";
 import {
   createSubscriptionCheckoutUrl,
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { plan?: string };
+  let body: { plan?: string; interval?: string };
   try {
     body = await request.json();
   } catch {
@@ -53,6 +56,16 @@ export async function POST(request: Request) {
     );
   }
 
+  // Absent means monthly, so existing callers keep working unchanged.
+  const rawInterval = String(body.interval ?? "month").toLowerCase();
+  if (rawInterval !== "month" && rawInterval !== "year") {
+    return NextResponse.json(
+      { error: "interval must be month or year" },
+      { status: 400 }
+    );
+  }
+  const interval: BillingInterval = rawInterval;
+
   if (provider === "polar") {
     // No customer is created up front: Polar creates one at checkout and binds
     // it to the workspace through externalCustomerId, which the webhook reads
@@ -60,6 +73,7 @@ export async function POST(request: Request) {
     const result = await createPolarCheckoutUrl({
       workspaceId: ctx.workspaceId,
       targetPlan: plan,
+      interval,
       customerEmail: ctx.email,
       polarCustomerId: ctx.polarCustomerId,
     });
@@ -69,6 +83,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
     return NextResponse.json({ url: result.url });
+  }
+
+  // Stripe's lookup keys are monthly-only (`apidiffguard_*_monthly`), so a
+  // yearly request here would quietly bill monthly. Refuse instead of
+  // charging the customer something other than what they chose.
+  if (interval === "year") {
+    return NextResponse.json(
+      { error: "Yearly billing is not available on this payment provider." },
+      { status: 400 }
+    );
   }
 
   const supabase = await createClient();

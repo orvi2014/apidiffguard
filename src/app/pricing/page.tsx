@@ -3,6 +3,11 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import type { Metadata } from "next";
 import { CheckoutButton, PortalButton } from "@/components/billing/stripe-actions";
+import {
+  BillingIntervalProvider,
+  BillingIntervalToggle,
+  PlanPrice,
+} from "@/components/billing/billing-interval";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -116,7 +121,10 @@ export default function PricingPage() {
           </Suspense>
         </p>
 
-        <div className="mt-10 grid gap-3 sm:mt-14 sm:grid-cols-2 lg:grid-cols-4 lg:gap-px lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-border">
+        <BillingIntervalProvider>
+        <BillingIntervalToggle className="mt-8 flex flex-wrap items-center sm:mt-10" />
+
+        <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-px lg:overflow-hidden lg:rounded-lg lg:border lg:border-border lg:bg-border">
           {PLANS.map((plan) => (
             <article
               key={plan.id}
@@ -127,12 +135,11 @@ export default function PricingPage() {
               }`}
             >
               <div className="text-sm font-medium text-muted">{plan.name}</div>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold tracking-tight">
-                  {plan.priceLabel}
-                </span>
-                <span className="text-sm text-muted">{plan.period}</span>
-              </div>
+              <PlanPrice
+                priceLabel={plan.priceLabel}
+                period={plan.period}
+                yearlyPrice={plan.yearlyPrice}
+              />
               <p className="mt-3 text-sm text-muted leading-relaxed">
                 {plan.description}
               </p>
@@ -172,6 +179,7 @@ export default function PricingPage() {
             </article>
           ))}
         </div>
+        </BillingIntervalProvider>
 
         <section className="mt-16 max-w-2xl sm:mt-24" aria-labelledby="pricing-faq">
           <h2 id="pricing-faq" className="text-2xl font-semibold tracking-tight">

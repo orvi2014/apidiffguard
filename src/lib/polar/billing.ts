@@ -4,31 +4,59 @@ import { SITE_URL } from "@/lib/seo";
 
 export type PaidPlan = PaidPlanId;
 
+/** How often a subscription bills. Polar models this on the product. */
+export type BillingInterval = "month" | "year";
+
 /**
  * Plan ↔ Polar product mapping.
  *
  * Polar has no equivalent of Stripe's `lookup_key`, so the binding is an
  * environment variable per plan. Read at call time rather than module load so a
  * deployment that sets them later does not need a rebuild to pick them up.
+ *
+ * Polar puts `recurring_interval` on the product, not the price, so a yearly
+ * plan is a separate product with its own id — hence one variable per
+ * (plan, interval) pair rather than per plan.
  */
-export function polarProductForPlan(plan: PaidPlan): string | null {
+export function polarProductForPlan(
+  plan: PaidPlan,
+  interval: BillingInterval = "month"
+): string | null {
   const raw =
-    plan === "starter"
-      ? process.env.POLAR_PRODUCT_STARTER
-      : process.env.POLAR_PRODUCT_PRO;
+    interval === "year"
+      ? plan === "starter"
+        ? process.env.POLAR_PRODUCT_STARTER_YEARLY
+        : process.env.POLAR_PRODUCT_PRO_YEARLY
+      : plan === "starter"
+        ? process.env.POLAR_PRODUCT_STARTER
+        : process.env.POLAR_PRODUCT_PRO;
   const id = raw?.trim();
   return id ? id : null;
 }
 
-/** Reverse of {@link polarProductForPlan}, for webhook payloads. */
+/**
+ * Reverse of {@link polarProductForPlan}, for webhook payloads.
+ *
+ * Must know about every product id we ever sell, monthly and yearly alike: an
+ * id this does not recognise makes the webhook log "unmapped product" and grant
+ * nothing, which turns a successful charge into a customer with no access.
+ */
 export function resolvePolarPlanFromProduct(
   productId: string | null | undefined
 ): PaidPlan | null {
   if (!productId) return null;
   const id = productId.trim();
   if (!id) return null;
-  if (id === process.env.POLAR_PRODUCT_STARTER?.trim()) return "starter";
-  if (id === process.env.POLAR_PRODUCT_PRO?.trim()) return "pro";
+  const starter = [
+    process.env.POLAR_PRODUCT_STARTER,
+    process.env.POLAR_PRODUCT_STARTER_YEARLY,
+  ];
+  const pro = [
+    process.env.POLAR_PRODUCT_PRO,
+    process.env.POLAR_PRODUCT_PRO_YEARLY,
+  ];
+  if (starter.some((v) => v?.trim() === id)) return "starter";
+  if (pro.some((v) => v?.trim() === id)) return "pro";
   return null;
 }
 
@@ -74,16 +102,18 @@ export function resolveWorkspaceId(input: {
 export async function createPolarCheckoutUrl(input: {
   workspaceId: string;
   targetPlan: PaidPlan;
+  interval?: BillingInterval;
   customerEmail?: string;
   polarCustomerId?: string | null;
 }): Promise<{ url: string } | { error: string }> {
   const polar = getPolar();
   if (!polar) return { error: "Polar is not configured" };
 
-  const productId = polarProductForPlan(input.targetPlan);
+  const interval = input.interval ?? "month";
+  const productId = polarProductForPlan(input.targetPlan, interval);
   if (!productId) {
     return {
-      error: `No Polar product configured for the ${input.targetPlan} plan.`,
+      error: `No Polar product configured for the ${input.targetPlan} plan billed ${interval === "year" ? "yearly" : "monthly"}.`,
     };
   }
 
@@ -100,6 +130,7 @@ export async function createPolarCheckoutUrl(input: {
       metadata: {
         workspace_id: input.workspaceId,
         plan: input.targetPlan,
+        interval,
       },
     });
 

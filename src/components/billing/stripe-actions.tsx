@@ -2,18 +2,27 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useBillingInterval } from "@/components/billing/billing-interval";
 
 export function CheckoutButton({
   plan,
   label,
+  interval: pinnedInterval,
   variant = "default",
   className,
 }: {
   plan: "starter" | "pro";
   label: string;
+  /**
+   * Pin the period explicitly. Omitted, the button follows whatever the
+   * surrounding pricing toggle is set to, and monthly where there is no toggle.
+   */
+  interval?: "month" | "year";
   variant?: "default" | "secondary";
   className?: string;
 }) {
+  const { interval: contextInterval } = useBillingInterval();
+  const interval = pinnedInterval ?? contextInterval;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +33,7 @@ export function CheckoutButton({
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, interval }),
       });
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
