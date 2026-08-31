@@ -2,7 +2,7 @@
  * POST /api/webhooks/polar — sync workspace plan from Polar events.
  *
  * Grant on:  subscription.active, subscription.uncanceled, subscription.cycled,
- *            subscription.resumed, subscription.reactivated
+ *            subscription.resumed
  * Revoke on: subscription.revoked, subscription.canceled, subscription.paused
  * Dunning:   order.refunded, subscription.past_due
  *
@@ -30,9 +30,6 @@ const GRANTING = new Set([
   "subscription.uncanceled",
   "subscription.cycled",
   "subscription.resumed",
-  // A subscription coming back from cancellation must restore access; without
-  // this the customer is billed again and stays on the free plan.
-  "subscription.reactivated",
 ]);
 
 const REVOKING = new Set([

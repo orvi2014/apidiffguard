@@ -57,7 +57,6 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Downgraded workspaces stop running scheduled checks
 
 ### Fixed
-- **A reactivated subscription now restores access.** `subscription.reactivated` was missing from the granting events, so a customer who came back after cancelling would be billed again and left on the free plan
 - **Diff highlights failed the WCAG AA contrast minimum** (4.49:1 against a 4.5 threshold). Code panes now sit on the ink surface, which the design system already specified, bringing them to 4.81:1
 - **Diff highlighting relied on colour alone.** Changed lines now carry `+`/`−` markers, so the information survives greyscale and colour blindness
 - **Touch targets in the site header were below the 44px minimum** — the menu toggle, signup button, brand link, and every mobile drawer row. Sized by pointer type rather than screen width, so a touchscreen laptop benefits and mouse density is unchanged
