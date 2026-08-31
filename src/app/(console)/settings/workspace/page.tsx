@@ -13,6 +13,7 @@ import {
   removeMember,
   revokeInvite,
 } from "@/app/actions/members";
+import { DeleteWorkspace } from "@/components/settings/delete-workspace";
 import { createWorkspace } from "@/app/actions/workspaces";
 
 export const metadata = { title: "Workspace" };
@@ -46,6 +47,10 @@ export default async function WorkspaceSettingsPage({
   ]);
 
   const memberRows = members ?? [];
+  const { count: endpointCount } = await supabase
+    .from("endpoints")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", ctx.workspaceId);
   const ownerCount = memberRows.filter(
     (m) => String(m.role).toUpperCase() === "OWNER"
   ).length;
@@ -93,7 +98,13 @@ export default async function WorkspaceSettingsPage({
                       ? "Give the new workspace a name."
                       : params.error === "create-failed"
                         ? "Could not create the workspace. Try again."
-                        : "Could not update workspace. The slug may already be taken."}
+                        : params.error === "delete-forbidden"
+                          ? "Only an owner can delete a workspace."
+                          : params.error === "delete-name-mismatch"
+                            ? "The name didn't match, so nothing was deleted."
+                            : params.error === "delete-failed"
+                              ? "Could not delete the workspace. Nothing was removed."
+                              : "Could not update workspace. The slug may already be taken."}
         </p>
       ) : null}
       {params.members ? (
@@ -318,6 +329,17 @@ export default async function WorkspaceSettingsPage({
           </PendingSubmitButton>
         </form>
       </section>
+
+      {/* Owners only: an admin can manage members but must not be able to
+          destroy everyone's data. */}
+      {isOwner ? (
+        <DeleteWorkspace
+          workspaceId={ctx.workspaceId}
+          workspaceName={ctx.workspaceName}
+          endpointCount={endpointCount ?? 0}
+          memberCount={memberRows.length}
+        />
+      ) : null}
     </div>
   );
 }

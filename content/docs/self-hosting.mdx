@@ -1,0 +1,171 @@
+---
+title: Self-hosting
+description: Run APIDiffGuard on your own infrastructure, so it can reach APIs that are not exposed to the internet.
+lastModified: "2026-09-01"
+---
+
+The hosted version can only reach endpoints that are publicly resolvable. If
+your API sits behind a VPN, inside a private VPC, or on `localhost`, run
+APIDiffGuard yourself — the checker then runs on your network and the responses
+never leave it.
+
+It is the same application, not a reduced build: the diff engine, baselines,
+schedules, alerts, REST API, and CLI all behave identically.
+
+## What you need
+
+| | |
+| --- | --- |
+| Node | 20 or newer |
+| A Postgres database | Supabase (hosted or self-hosted) — the app uses its auth and row-level security, not just the database |
+| A GitHub OAuth app | Sign-in is GitHub-only |
+| Somewhere to run it | Any host that runs a Node server: a VM, a container, Fly, Railway, your own Kubernetes |
+
+Billing, error reporting, and email alerts are all optional and off unless you
+configure them.
+
+## 1. Get the code
+
+```bash
+git clone https://github.com/orvi2014/apidiffguard.git
+cd apidiffguard
+npm install
+```
+
+## 2. Create the database
+
+Self-hosting still uses Supabase, because the app relies on Supabase Auth and
+on row-level security policies defined in the migrations. You can point at
+[Supabase Cloud](https://supabase.com) or run
+[Supabase locally](https://supabase.com/docs/guides/self-hosting) — the app does
+not care which.
+
+Apply the schema:
+
+```bash
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
+```
+
+That applies every migration in `supabase/migrations/`, including the row-level
+security policies. Do not create the tables by hand — the policies are the
+tenant boundary.
+
+## 3. Add a GitHub OAuth app
+
+Create one at **GitHub → Settings → Developer settings → OAuth Apps**, with the
+callback URL:
+
+```
+https://<your-domain>/auth/callback
+```
+
+Then in the Supabase dashboard, under **Authentication → Providers**, enable
+**GitHub** and paste the client ID and secret. Leave the **Email** provider
+disabled unless you want password accounts — the UI does not offer them.
+
+Add your domain to **Authentication → URL Configuration**, both as the site URL
+and in the redirect allow-list.
+
+## 4. Configure the environment
+
+Create `.env.local`:
+
+```bash
+# --- required ---
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+SUPABASE_SERVICE_ROLE_KEY=<service role key>
+NEXT_PUBLIC_APP_URL=https://<your-domain>
+ENDPOINT_SECRET_KEY=<32-byte key, see below>
+
+# --- required only if you want scheduled checks ---
+CRON_SECRET=<any long random string>
+```
+
+`ENDPOINT_SECRET_KEY` encrypts the credentials you give each monitored
+endpoint. It is held outside the database on purpose: a database dump alone
+does not reveal your API keys. Generate one with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Hex or base64 both work, but it must decode to exactly 32 bytes. **Back it up.**
+Lose it and every stored endpoint credential becomes unreadable — the app will
+tell you so rather than silently checking endpoints unauthenticated.
+
+### Optional
+
+| Variable | Enables |
+| --- | --- |
+| `RESEND_API_KEY`, `ALERT_FROM_EMAIL` | Email alert channel. Slack, Discord, Mattermost, and generic webhooks need no configuration |
+| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Error reporting. Entirely inert without a DSN |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Shared rate limiting. Without it, limits are per-instance and in-memory — fine for one process, not for several |
+| `POLAR_*` / `STRIPE_*` | Billing. Almost certainly not wanted on a private deployment; plan limits still apply, so pick a plan per workspace in the database |
+| `TRUST_PROXY_HEADERS` | Set to `true` only when running behind a proxy you control, so client IPs are read from forwarded headers |
+
+## 5. Build and run
+
+```bash
+npm run build
+npm start
+```
+
+It listens on port 3000. Put your own TLS terminator in front of it.
+
+## 6. Schedule the workers
+
+Scheduled checks and maintenance do not run on a timer of their own — the app
+exposes two endpoints and expects something external to call them. Both
+authenticate with `CRON_SECRET` as a bearer token and fail closed when it is
+unset.
+
+| Endpoint | Suggested interval | Does |
+| --- | --- | --- |
+| `GET /api/cron/schedules` | every 5 minutes | Runs checks that are due |
+| `GET /api/cron/maintenance` | hourly | Trims old response bodies, releases checks stuck on "Checking…" |
+
+With cron:
+
+```
+*/5 * * * * curl -sS -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/schedules
+7   * * * * curl -sS -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/maintenance
+```
+
+Until `CRON_SECRET` is set, the Schedules page says so rather than quietly
+never running anything.
+
+## Reaching private endpoints
+
+This is the reason to self-host, and it needs one deliberate decision.
+
+By default the checker refuses to connect to private address ranges — loopback,
+link-local, and RFC 1918 — and re-validates on every redirect hop. That
+protects the hosted service from being used to probe internal networks. On your
+own deployment, the same guard blocks the internal APIs you are trying to
+monitor.
+
+Run the app **inside** the network that can reach those APIs and address them by
+a hostname that resolves there. Monitor them by their internal DNS name rather
+than by IP, and keep the deployment off the public internet or behind your own
+authentication.
+
+## Updating
+
+```bash
+git pull
+npm install
+npx supabase db push   # apply any new migrations
+npm run build
+npm start
+```
+
+Migrations are additive and safe to re-run; `db push` applies only what is
+missing.
+
+## What stays local
+
+Every outbound check is made by your deployment. Response bodies, baselines,
+diffs, and endpoint credentials live in your database and are never sent
+anywhere else. There is no phone-home.

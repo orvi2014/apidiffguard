@@ -92,7 +92,7 @@ export default function LandingPage() {
             <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-muted">
               Cloud reaches public endpoints only. Behind a VPN?{" "}
               <Link
-                href="/docs"
+                href="/docs/self-hosting"
                 className="underline underline-offset-4 transition-colors hover:text-foreground"
               >
                 Self-host it

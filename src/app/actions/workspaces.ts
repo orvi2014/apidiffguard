@@ -105,3 +105,75 @@ export async function createWorkspace(formData: FormData) {
 
   redirect("/dashboard");
 }
+
+/**
+ * Delete a workspace and everything in it.
+ *
+ * Owner-only, and gated on the operator typing the workspace name — this
+ * removes endpoints, baselines, diffs, schedules, alert channels, and tokens by
+ * cascade, and none of it is recoverable.
+ *
+ * The active-workspace cookie is re-pointed at another membership afterwards,
+ * because leaving it aimed at a deleted row logs the user into nothing.
+ */
+export async function deleteWorkspace(formData: FormData) {
+  const workspaceId = String(formData.get("workspace_id") ?? "").trim();
+  const typedName = String(formData.get("confirm_name") ?? "").trim();
+  if (!workspaceId) redirect("/settings/workspace?error=delete-failed");
+
+  const { user, supabase } = await requireUser();
+
+  // Re-read the role rather than trusting the form: this is the only thing
+  // standing between an admin and everyone else's data.
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!membership || membership.role !== "OWNER") {
+    redirect("/settings/workspace?error=delete-forbidden");
+  }
+
+  const { data: workspace } = await supabase
+    .from("workspaces")
+    .select("name")
+    .eq("id", workspaceId)
+    .maybeSingle();
+
+  if (!workspace) redirect("/settings/workspace?error=delete-failed");
+  if (typedName !== workspace.name) {
+    redirect("/settings/workspace?error=delete-name-mismatch");
+  }
+
+  const { error } = await supabase
+    .from("workspaces")
+    .delete()
+    .eq("id", workspaceId);
+
+  if (error) redirect("/settings/workspace?error=delete-failed");
+
+  // Land on whichever workspace remains, or let the app create a fresh one.
+  const { data: remaining } = await supabase
+    .from("memberships")
+    .select("workspace_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  const cookieStore = await cookies();
+  if (remaining?.workspace_id) {
+    cookieStore.set(WORKSPACE_COOKIE, remaining.workspace_id, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: ONE_YEAR_SECONDS,
+    });
+  } else {
+    cookieStore.delete(WORKSPACE_COOKIE);
+  }
+
+  redirect("/dashboard?deleted=workspace");
+}
