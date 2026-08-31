@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { createContext, useContext, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export type BillingInterval = "month" | "year";
 
@@ -56,7 +58,7 @@ export function BillingIntervalToggle({ className }: { className?: string }) {
               role="radio"
               aria-checked={active}
               onClick={() => setInterval(option.value)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors pointer-coarse:min-h-11 ${
                 active
                   ? "bg-accent text-accent-foreground"
                   : "text-muted hover:text-foreground"
@@ -99,5 +101,32 @@ export function PlanPrice({
       </span>
       <span className="text-sm text-muted">{yearly ? "/year" : period}</span>
     </div>
+  );
+}
+
+/**
+ * Sign-up CTA that carries the chosen billing period into the funnel.
+ *
+ * The server-rendered link could not see the toggle, so a visitor who picked
+ * Yearly was silently signed up for monthly and billed twelve times instead of
+ * ten — the choice has to travel in the URL.
+ */
+export function PlanStartLink({
+  planId,
+  label,
+  variant = "default",
+}: {
+  planId: string;
+  label: string;
+  variant?: "default" | "secondary";
+}) {
+  const { interval } = useBillingInterval();
+  const query = new URLSearchParams({ plan: planId, next: "/settings/billing" });
+  if (interval === "year") query.set("interval", "year");
+
+  return (
+    <Button asChild variant={variant} className="w-full min-h-10">
+      <Link href={`/register?${query.toString()}`}>{label}</Link>
+    </Button>
   );
 }

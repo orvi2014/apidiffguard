@@ -6,7 +6,7 @@ import { EndpointsList } from "@/components/domain/endpoints-list";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { pluralize } from "@/lib/utils";
-import { canEditWorkspace } from "@/lib/plans";
+import { canEditWorkspace, planEndpointLimit } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceContext } from "@/lib/workspace";
 import { mapEndpoint, type DbEndpoint } from "@/lib/mappers";
@@ -41,6 +41,11 @@ export default async function EndpointsPage({
 
   const endpoints = (data as DbEndpoint[] | null)?.map(mapEndpoint) ?? [];
   const total = count ?? endpoints.length;
+  // The plan cap is enforced in the action and again by a database trigger, but
+  // it was never shown here — so a user at the cap only discovered it after
+  // filling in the whole form, secrets included.
+  const limit = planEndpointLimit(ctx.plan);
+  const atLimit = limit !== null && total >= limit;
   const breaking = endpoints.filter((e) => e.health === "breaking").length;
   const warning = endpoints.filter((e) => e.health === "warning").length;
   const healthy = endpoints.filter((e) => e.health === "healthy").length;
@@ -51,27 +56,37 @@ export default async function EndpointsPage({
         title="Endpoints"
         description={
           <>
-            {pluralize(total, "endpoint")} monitored
+            {limit === null
+              ? `${pluralize(total, "endpoint")} monitored`
+              : `${total} of ${limit} endpoints used`}
             {breaking > 0 ? ` · ${breaking} breaking on this page` : ""} ·{" "}
             {ctx.workspaceName}
           </>
         }
         actions={
           canEdit ? (
-            <>
-              <Link href="/endpoints/import">
-                <Button size="sm" variant="secondary" className="gap-1.5">
-                  <FileJson className="size-3.5" />
-                  Import
-                </Button>
-              </Link>
-              <Link href="/endpoints/new">
+            atLimit ? (
+              <Link href="/settings/billing">
                 <Button size="sm" className="gap-1.5">
-                  <Plus className="size-3.5" />
-                  New endpoint
+                  Upgrade to add more
                 </Button>
               </Link>
-            </>
+            ) : (
+              <>
+                <Link href="/endpoints/import">
+                  <Button size="sm" variant="secondary" className="gap-1.5">
+                    <FileJson className="size-3.5" />
+                    Import
+                  </Button>
+                </Link>
+                <Link href="/endpoints/new">
+                  <Button size="sm" className="gap-1.5">
+                    <Plus className="size-3.5" />
+                    New endpoint
+                  </Button>
+                </Link>
+              </>
+            )
           ) : (
             <p className="text-xs text-muted">View-only access</p>
           )

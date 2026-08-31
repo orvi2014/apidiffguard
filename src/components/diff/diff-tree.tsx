@@ -9,6 +9,7 @@ import {
   Minus,
   Plus,
   TriangleAlert,
+  OctagonAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DiffChange, DiffChangeType, Severity } from "@/lib/types";
@@ -38,13 +39,40 @@ const severityBorder: Record<Severity, string> = {
   breaking: "border-l-danger",
 };
 
+/** Change types the engine classifies as breaking (see severityFor). */
+const BREAKING_TYPES = new Set<DiffChangeType>([
+  "type_changed",
+  "nullability_changed",
+  "status_changed",
+  "contract_violation",
+]);
+
 function ChangeGlyph({ type }: { type?: DiffChangeType }) {
   if (!type) return null;
   if (type === "added")
-    return <Plus className="size-3 text-success shrink-0" />;
+    return (
+      <Plus className="size-3 text-success shrink-0" aria-label="Added" />
+    );
   if (type === "removed")
-    return <Minus className="size-3 text-danger shrink-0" />;
-  return <TriangleAlert className="size-3 text-warning shrink-0" />;
+    return (
+      <Minus className="size-3 text-danger shrink-0" aria-label="Removed" />
+    );
+  // Breaking and warning changes previously shared one amber triangle, so the
+  // only difference was hue — unreadable for anyone who cannot separate red
+  // from amber, on the surface where "is this safe to ship" gets decided.
+  if (BREAKING_TYPES.has(type))
+    return (
+      <OctagonAlert
+        className="size-3 text-danger shrink-0"
+        aria-label="Breaking change"
+      />
+    );
+  return (
+    <TriangleAlert
+      className="size-3 text-warning shrink-0"
+      aria-label="Warning"
+    />
+  );
 }
 
 function TreeNode({
@@ -55,6 +83,9 @@ function TreeNode({
   search,
   selectedPath,
   onSelect,
+  focusedPath,
+  onFocusNode,
+  onKeyDown,
 }: {
   node: JsonTreeNode;
   depth: number;
@@ -63,6 +94,14 @@ function TreeNode({
   search: string;
   selectedPath: string | null;
   onSelect: (path: string) => void;
+  focusedPath: string | null;
+  onFocusNode: (path: string) => void;
+  onKeyDown: (
+    e: React.KeyboardEvent,
+    node: JsonTreeNode,
+    hasChildren: boolean,
+    isOpen: boolean
+  ) => void;
 }) {
   const [copied, setCopied] = React.useState(false);
   const isOpen = expanded.has(node.path);
@@ -85,20 +124,16 @@ function TreeNode({
     <div>
       <div
         role="treeitem"
-        tabIndex={0}
+        data-tree-node={node.path}
+        tabIndex={focusedPath === node.path ? 0 : -1}
         aria-expanded={hasChildren ? isOpen : undefined}
         aria-selected={selectedPath === node.path}
         onClick={() => {
           onSelect(node.path);
           if (hasChildren) onToggle(node.path);
         }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onSelect(node.path);
-            if (hasChildren) onToggle(node.path);
-          }
-        }}
+        onKeyDown={(e) => onKeyDown(e, node, hasChildren, isOpen)}
+        onFocus={() => onFocusNode(node.path)}
         className={cn(
           "group flex items-center gap-1.5 py-[3px] pr-2 text-[12.5px] font-mono cursor-pointer border-l-2 border-transparent hover:bg-surface-elevated/80 transition-colors duration-100",
           selectedPath === node.path && "bg-accent-muted border-l-accent",
@@ -141,7 +176,7 @@ function TreeNode({
         <button
           type="button"
           onClick={copyPath}
-          className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-border cursor-pointer"
+          className="ml-auto opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 transition-opacity p-0.5 rounded hover:bg-border cursor-pointer"
           aria-label={`Copy path ${node.path}`}
         >
           {copied ? (
@@ -171,6 +206,9 @@ function TreeNode({
                 search={search}
                 selectedPath={selectedPath}
                 onSelect={onSelect}
+                focusedPath={focusedPath}
+                onFocusNode={onFocusNode}
+                onKeyDown={onKeyDown}
               />
             ))}
           </motion.div>
@@ -198,10 +236,114 @@ export function DiffTree({
   className?: string;
 }) {
   const allPaths = React.useMemo(() => collectPaths(tree), [tree]);
+
+  // Expand every ancestor of every change, so a breaking change is never
+  // hidden inside a collapsed branch. The old behaviour took the first 12
+  // paths in depth-first order, which usually spent the whole budget inside
+  // the first top-level key and left later branches — and their breaking
+  // changes — collapsed and invisible.
   const [manualExpanded, setManualExpanded] = React.useState<Set<string>>(
-    () => new Set(allPaths.slice(0, 12))
+    () => {
+      const open = new Set<string>([tree.path]);
+      for (const change of changes ?? []) {
+        const segments = change.path.split(".");
+        for (let i = 1; i < segments.length; i += 1) {
+          open.add(segments.slice(0, i).join("."));
+        }
+        open.add(change.path);
+      }
+      // With no changes to guide it, fall back to the first level only.
+      if (open.size <= 1) {
+        tree.children?.forEach((c) => open.add(c.path));
+      }
+      return open;
+    }
   );
   const [selectedPath, setSelectedPath] = React.useState<string | null>(null);
+  const [focusedPath, setFocusedPath] = React.useState<string | null>(null);
+  const toggle = React.useCallback((path: string) => {
+    setManualExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }, []);
+  const treeRef = React.useRef<HTMLDivElement>(null);
+
+  /** Move DOM focus to a node, which also updates the roving tabindex. */
+  const focusNode = React.useCallback((path: string) => {
+    setFocusedPath(path);
+    const el = treeRef.current?.querySelector<HTMLElement>(
+      `[data-tree-node="${CSS.escape(path)}"]`
+    );
+    el?.focus();
+  }, []);
+
+  /**
+   * WAI-ARIA treeview keys. The tree already claimed role="tree"/"treeitem",
+   * which promises this interaction model; without it a keyboard user had to
+   * Tab once per node through a diff that can run to hundreds of rows.
+   */
+  const handleTreeKeyDown = React.useCallback(
+    (
+      e: React.KeyboardEvent,
+      node: JsonTreeNode,
+      hasChildren: boolean,
+      isOpen: boolean
+    ) => {
+      const visible = treeRef.current
+        ? Array.from(
+            treeRef.current.querySelectorAll<HTMLElement>("[data-tree-node]")
+          ).map((el) => el.dataset.treeNode as string)
+        : [];
+      const index = visible.indexOf(node.path);
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          if (index >= 0 && index < visible.length - 1)
+            focusNode(visible[index + 1]);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          if (index > 0) focusNode(visible[index - 1]);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          if (hasChildren && !isOpen) toggle(node.path);
+          else if (hasChildren && index >= 0 && index < visible.length - 1)
+            focusNode(visible[index + 1]);
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          if (hasChildren && isOpen) toggle(node.path);
+          else {
+            // Step out to the parent path.
+            const parent = node.path.split(".").slice(0, -1).join(".");
+            if (parent && visible.includes(parent)) focusNode(parent);
+          }
+          break;
+        case "Home":
+          e.preventDefault();
+          if (visible.length) focusNode(visible[0]);
+          break;
+        case "End":
+          e.preventDefault();
+          if (visible.length) focusNode(visible[visible.length - 1]);
+          break;
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          setSelectedPath(node.path);
+          if (hasChildren) toggle(node.path);
+          break;
+        default:
+          break;
+      }
+    },
+    [focusNode, toggle]
+  );
 
   const searchMatches = React.useMemo(() => {
     if (!search) return [] as string[];
@@ -217,14 +359,6 @@ export function DiffTree({
 
   const activeSelected = searchMatches[0] ?? selectedPath;
 
-  const toggle = (path: string) => {
-    setManualExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  };
 
   const expandAll = () => setManualExpanded(new Set(allPaths));
   const collapseAll = () => setManualExpanded(new Set([tree.path]));
@@ -254,7 +388,7 @@ export function DiffTree({
           </>
         )}
       </div>
-      <div role="tree" className="overflow-auto flex-1 py-1">
+      <div role="tree" ref={treeRef} className="overflow-auto flex-1 py-1">
         <TreeNode
           node={tree}
           depth={0}
@@ -263,6 +397,9 @@ export function DiffTree({
           search={search}
           selectedPath={activeSelected}
           onSelect={setSelectedPath}
+          focusedPath={focusedPath ?? tree.path}
+          onFocusNode={setFocusedPath}
+          onKeyDown={handleTreeKeyDown}
         />
       </div>
     </div>

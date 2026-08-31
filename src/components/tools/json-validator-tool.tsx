@@ -40,7 +40,7 @@ export function JsonValidatorTool() {
             <p className="text-sm font-medium">
               {valid ? "Valid JSON" : "Invalid JSON"}
             </p>
-            <p className="mt-1 text-xs opacity-90">
+            <p className="mt-1 text-xs">
               {valid
                 ? `Parsed successfully as ${Array.isArray(parsed.value) ? "array" : typeof parsed.value}.`
                 : parsed.error}

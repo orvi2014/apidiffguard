@@ -198,18 +198,29 @@ export default async function WorkspaceSettingsPage({
                         className="h-8 rounded-md border border-border bg-background px-2 text-xs"
                         aria-label={`Role for ${profile?.email ?? "member"}`}
                       >
-                        {isOwner ? <option value="OWNER">Owner</option> : null}
+                        {/* Always rendered so defaultValue={role} can match an
+                            owner's actual role. Disabled for non-owners, who
+                            may see the value but must not assign it —
+                            previously the option was absent, the select fell
+                            back to "Admin", and saving silently demoted an
+                            owner. */}
+                        <option value="OWNER" disabled={!isOwner}>
+                          Owner
+                        </option>
                         <option value="ADMIN">Admin</option>
                         <option value="MEMBER">Member</option>
                         <option value="VIEWER">Viewer</option>
                       </select>
-                      <PendingSubmitButton
+                      <ConfirmSubmitButton
                         size="sm"
                         variant="secondary"
                         pendingLabel="Saving…"
+                        confirmMessage={`Change ${
+                          profile?.email ?? "this member"
+                        }'s role? This takes effect immediately.`}
                       >
                         Save
-                      </PendingSubmitButton>
+                      </ConfirmSubmitButton>
                     </form>
                   ) : (
                     <span className="text-xs capitalize text-muted">

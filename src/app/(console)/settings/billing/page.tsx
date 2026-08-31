@@ -21,6 +21,7 @@ export default async function BillingPage({
 }: {
   searchParams: Promise<{
     upgraded?: string;
+    interval?: string;
     error?: string;
     upgrade?: string;
     checkout?: string;
@@ -63,6 +64,10 @@ export default async function BillingPage({
   const billingCustomerId =
     billingProvider === "polar" ? ctx.polarCustomerId : ctx.stripeCustomerId;
   const highlightUpgrade = params.upgrade as PlanId | undefined;
+  // Carried from /pricing through /register. Without pinning it here the
+  // CheckoutButton falls back to monthly and bills a yearly signup twelve
+  // times instead of ten.
+  const chosenInterval = params.interval === "year" ? "year" : "month";
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -315,7 +320,14 @@ export default async function BillingPage({
                   ) : isPaidPlan(p.id) && stripeReady ? (
                     <CheckoutButton
                       plan={p.id}
-                      label={`Upgrade to ${p.name}`}
+                      interval={
+                        p.yearlyPrice != null ? chosenInterval : "month"
+                      }
+                      label={
+                        chosenInterval === "year" && p.yearlyPrice != null
+                          ? `Upgrade to ${p.name} — $${p.yearlyPrice}/year`
+                          : `Upgrade to ${p.name}`
+                      }
                       variant={p.highlighted ? "default" : "secondary"}
                     />
                   ) : (

@@ -57,6 +57,18 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Downgraded workspaces stop running scheduled checks
 
 ### Fixed
+- **A plan-capped workspace no longer discovers the cap after filling in the form.** The endpoints page never showed usage against the limit, so a Free user typed a name, URL, and credentials before being told they had no room. The header now reads "3 of 3 endpoints used" and the action becomes "Upgrade to add more"
+- **Choosing Yearly is no longer silently discarded.** Picking the annual price and signing up carried only the plan through `/register`, so the checkout fell back to monthly — a customer who chose $190/year was billed $19/month. The billing period now travels with the plan and is honoured at checkout
+- **A workspace owner could be silently demoted.** For an admin viewing a co-owner, the role dropdown omitted the "Owner" option while defaulting to it, so the control silently displayed "Admin" and saving applied it. The option is always rendered now, disabled for those who cannot assign it
+- **Breaking changes hidden inside collapsed branches.** The diff tree auto-expanded the first twelve nodes in depth-first order, which typically exhausted itself inside the first key and left later branches — and their breaking changes — collapsed. It now expands the ancestors of every change
+- **The diff tree claimed to be a tree without behaving like one.** It declared the ARIA tree role but implemented no arrow keys, so a keyboard user pressed Tab once per node through diffs that run to hundreds of rows. Arrow keys, Home, and End now work, with a single tab stop into the tree
+- **Breaking and warning changes shared one amber icon**, leaving hue as the only difference on the screen where "is this safe to ship" gets decided. Breaking changes now carry a distinct shape and label
+- Revoking an API token, restoring a baseline, and changing a member's role now confirm first — each is immediate and irreversible, and the first can stop a CI pipeline mid-run
+- Test notifications work for workspaces whose only channel is email; the button was disabled on a setup the server would happily have delivered to
+- Paying through Polar no longer shows "no Stripe customer" on the billing entry point
+- Buttons meet the 44px touch minimum, and the diff viewer's copy-path control is reachable without a mouse
+- Monthly check quotas are stated on the pricing page, and the FAQ explains what happens when they run out
+- A cancelled GitHub sign-in no longer reports itself as a provider misconfiguration
 - **Diff highlights failed the WCAG AA contrast minimum** (4.49:1 against a 4.5 threshold). Code panes now sit on the ink surface, which the design system already specified, bringing them to 4.81:1
 - **Diff highlighting relied on colour alone.** Changed lines now carry `+`/`−` markers, so the information survives greyscale and colour blindness
 - **Touch targets in the site header were below the 44px minimum** — the menu toggle, signup button, brand link, and every mobile drawer row. Sized by pointer type rather than screen width, so a touchscreen laptop benefits and mouse density is unchanged

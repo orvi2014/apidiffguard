@@ -7,6 +7,7 @@ import {
   BillingIntervalProvider,
   BillingIntervalToggle,
   PlanPrice,
+  PlanStartLink,
 } from "@/components/billing/billing-interval";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/chrome";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,10 @@ const faqs = [
     a: "Yes. Use apidiff check from packages/cli (with --header for private APIs) or POST /api/v1/endpoints/:id/check with a workspace token from Settings → API tokens.",
   },
   {
+    q: "What happens if I run out of checks?",
+    a: "Scheduled and manual checks pause until the next monthly period — nothing is deleted, and your baselines and history stay intact. Free includes 250 checks/month, Starter 5,000, and Pro 25,000.",
+  },
+  {
     q: "What auth types are supported?",
     a: "Bearer, API key, Basic, OAuth token, and custom headers.",
   },
@@ -57,7 +62,13 @@ const getPricingViewer = cache(async () => {
     signedIn: !!user,
     email: ctx?.email ?? null,
     currentPlan: ctx?.plan ?? null,
-    hasCustomer: Boolean(ctx?.stripeCustomerId),
+    // Whichever provider is live owns the customer id. Checking Stripe's
+    // unconditionally left real Polar customers unable to reach billing.
+    hasCustomer: Boolean(
+      getBillingProvider() === "polar"
+        ? ctx?.polarCustomerId
+        : ctx?.stripeCustomerId
+    ),
   };
 });
 
@@ -275,11 +286,11 @@ function PlanCta({
   }
 
   return (
-    <Button asChild variant={variant} className="w-full min-h-10">
-      <Link href={`/register?plan=${planId}&next=/settings/billing`}>
-        {planId === "free" ? "Start free" : `Start ${label(planId)}`}
-      </Link>
-    </Button>
+    <PlanStartLink
+      planId={planId}
+      variant={variant}
+      label={planId === "free" ? "Start free" : `Start ${label(planId)}`}
+    />
   );
 }
 

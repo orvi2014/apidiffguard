@@ -34,6 +34,7 @@ export const PLANS: PlanDefinition[] = [
     description: "For trying the diff engine on a handful of endpoints.",
     features: [
       "3 endpoints",
+      "250 checks/month",
       "Manual checks",
       "Baseline history",
       "Slack + Discord + webhooks",
@@ -52,6 +53,7 @@ export const PLANS: PlanDefinition[] = [
     description: "Scheduled monitoring for small teams and side projects.",
     features: [
       "20 endpoints",
+      "5,000 checks/month",
       "Scheduled checks",
       "Slack + Discord + webhooks",
       "Alert history",
@@ -71,6 +73,7 @@ export const PLANS: PlanDefinition[] = [
     description: "More endpoints and schedules for growing monitoring needs.",
     features: [
       "100 endpoints",
+      "25,000 checks/month",
       "Scheduled checks",
       "Slack + Discord + webhooks",
       "Alert history",

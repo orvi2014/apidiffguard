@@ -8,7 +8,7 @@ export function LoginForm() {
   const next = searchParams.get("next") ?? "/dashboard";
   const initialError =
     searchParams.get("error") === "auth"
-      ? "GitHub sign-in failed. If this keeps happening, the GitHub provider may not be enabled in Supabase Auth."
+      ? "Sign-in didn't complete. If you cancelled on GitHub, just try again."
       : null;
 
   return (

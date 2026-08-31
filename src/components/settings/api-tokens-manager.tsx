@@ -5,6 +5,7 @@ import { createApiToken, revokeApiToken } from "@/app/actions/api-tokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ConfirmSubmitButton } from "@/components/form/confirm-submit-button";
 import { PendingSubmitButton } from "@/components/form/pending-submit-button";
 import { formatRelativeTime } from "@/lib/utils";
 import { copyText } from "@/lib/clipboard";
@@ -213,14 +214,15 @@ export function ApiTokensManager({
                       await revokeApiToken(key.id);
                     }}
                   >
-                    <PendingSubmitButton
+                    <ConfirmSubmitButton
+              confirmMessage="Revoke this token? Anything using it — including CI — stops working immediately, and it cannot be undone."
                       size="sm"
                       variant="ghost"
                       className="text-danger"
                       pendingLabel="Revoking…"
                     >
                       Revoke
-                    </PendingSubmitButton>
+                    </ConfirmSubmitButton>
                   </form>
                 ) : null}
               </li>
