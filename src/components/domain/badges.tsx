@@ -53,7 +53,7 @@ export function HealthBadge({
   return (
     <span
       className={cn(
-        "relative inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] font-medium tracking-wide",
+        "relative inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs font-medium tracking-wide",
         config.className,
         // Clipped only while scanning, so the sliver stays inside the pill.
         // The verdict bloom has to escape the pill, so the clip is lifted for it.
@@ -98,7 +98,7 @@ export function SeverityBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium tracking-wide uppercase",
+        "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium tracking-wide uppercase",
         config.className,
         className
       )}
@@ -128,7 +128,7 @@ export function MethodBadge({
   return (
     <span
       className={cn(
-        "font-mono text-[11px] font-semibold tracking-wider",
+        "font-mono text-xs font-semibold tracking-wider",
         methodColors[method],
         className
       )}

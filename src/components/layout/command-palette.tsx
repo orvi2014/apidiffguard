@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   Webhook,
+  CalendarClock,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -29,7 +30,7 @@ const navCommands = [
   { id: "dashboard", label: "Go to Overview", href: "/dashboard", icon: LayoutDashboard },
   { id: "endpoints", label: "Go to Endpoints", href: "/endpoints", icon: Webhook },
   { id: "alerts", label: "Go to Alerts", href: "/alerts", icon: Bell },
-  { id: "schedules", label: "Go to Schedules", href: "/schedules", icon: Settings },
+  { id: "schedules", label: "Go to Schedules", href: "/schedules", icon: CalendarClock },
   { id: "diffs", label: "Go to Diffs", href: "/diffs", icon: GitCompare },
   { id: "diff", label: "Open latest diff", href: "/diff/latest", icon: GitCompare },
   { id: "settings", label: "Workspace settings", href: "/settings", icon: Settings },

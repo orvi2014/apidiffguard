@@ -16,12 +16,15 @@ Those breaks show up in production dashboards, not unit tests. The fix is not an
 3. Diff the bodies. Fail the job on breaking changes (removed fields, type changes).
 
 ```bash
-# Conceptual gate — published CLI coming soon
-# Until then: use console checks + schedules, or @apidiffguard/diff in your own job
-npx apidiff check --fail-on breaking
+npx --yes @apidiffguard/cli check \
+  --baseline ./fixtures/users.json \
+  --url "$API_URL/users" \
+  --header "Authorization: Bearer $API_TOKEN" \
+  --schema-only \
+  --fail-on breaking
 ```
 
-Under the hood that’s a JSON compare with severity rules — the same engine behind our free [JSON Diff tool](/tools/json-diff) and the open-source `@apidiffguard/diff` package. A hosted `apidiff` CLI is not published yet; wire the package into CI yourself, or run checks from the console.
+Under the hood that’s a JSON compare with severity rules — the same engine behind our free [JSON Diff tool](/tools/json-diff) and the open-source `@apidiffguard/diff` package. The CLI ships on npm as [`@apidiffguard/cli`](/docs/cli) — `npx apidiff` alone resolves an unrelated package, so use the scoped name.
 
 ## What counts as breaking?
 

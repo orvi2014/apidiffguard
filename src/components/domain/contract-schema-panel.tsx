@@ -50,7 +50,7 @@ export function ContractSchemaPanel({
           baseline-only diffs.
         </p>
       ) : (
-        <pre className="mt-3 max-h-56 overflow-auto rounded-md border border-border bg-surface px-3 py-2 font-mono text-[11px] leading-relaxed text-muted">
+        <pre className="mt-3 max-h-56 overflow-auto rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs leading-relaxed text-muted">
           {preview}
           {preview && preview.length >= 2400 ? "\n…" : null}
         </pre>

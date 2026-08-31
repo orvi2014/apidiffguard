@@ -342,7 +342,7 @@ function OpenAPIImportWizard() {
                   )}
                 >
                   <span className="text-sm font-medium">{preset.name}</span>
-                  <span className="mt-0.5 text-[11px] text-muted">
+                  <span className="mt-0.5 text-xs text-muted">
                     {preset.description}
                   </span>
                 </button>
@@ -423,7 +423,7 @@ function OpenAPIImportWizard() {
                   <Upload className="size-5 text-muted" />
                 )}
                 <span className="text-sm">Drop or choose a file</span>
-                <span className="text-[11px] text-muted">
+                <span className="text-xs text-muted">
                   .json · .yaml · .yml
                 </span>
               </button>
@@ -464,7 +464,7 @@ function OpenAPIImportWizard() {
               placeholder="https://api.openai.com/v1"
               className="font-mono text-xs"
             />
-            <p className="text-[11px] text-muted">
+            <p className="text-xs text-muted">
               Overrides the spec server when building endpoint URLs.
             </p>
           </div>
@@ -536,7 +536,7 @@ function OpenAPIImportWizard() {
                   )}
                 </p>
               ) : (
-                <p className="mt-2 text-[11px] text-muted">
+                <p className="mt-2 text-xs text-muted">
                   Imported operations start with auth=none. Add credentials on
                   each endpoint after import if needed.
                 </p>
@@ -600,7 +600,7 @@ function OpenAPIImportWizard() {
                   {!showAllTags && tags.length > 12 ? (
                     <button
                       type="button"
-                      className="rounded px-2 py-1 text-[11px] text-muted hover:text-foreground"
+                      className="rounded px-2 py-1 text-xs text-muted hover:text-foreground"
                       onClick={() => setShowAllTags(true)}
                     >
                       +{tags.length - 12} more
@@ -610,7 +610,7 @@ function OpenAPIImportWizard() {
               ) : null}
             </div>
 
-            <div className="hidden border-b border-border-subtle px-5 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:grid-cols-[28px_72px_1fr_160px] sm:gap-3">
+            <div className="hidden border-b border-border-subtle px-5 py-2 text-xs uppercase tracking-wider text-muted sm:grid sm:grid-cols-[28px_72px_1fr_160px] sm:gap-3">
               <span />
               <span>Method</span>
               <span>Operation</span>
@@ -652,11 +652,11 @@ function OpenAPIImportWizard() {
                               </span>
                             ) : null}
                           </div>
-                          <div className="truncate font-mono text-[11px] text-muted">
+                          <div className="truncate font-mono text-xs text-muted">
                             {ep.path}
                           </div>
                         </div>
-                        <div className="mt-1 truncate text-[11px] text-muted sm:mt-0">
+                        <div className="mt-1 truncate text-xs text-muted sm:mt-0">
                           {ep.tags.join(", ")}
                         </div>
                       </div>
@@ -666,7 +666,7 @@ function OpenAPIImportWizard() {
               )}
             </div>
 
-            <div className="flex items-center justify-between border-t border-border px-5 py-2 text-[11px] text-muted">
+            <div className="flex items-center justify-between border-t border-border px-5 py-2 text-xs text-muted">
               <span>
                 {selected.size} selected · {filteredEndpoints.length} visible
               </span>
@@ -695,7 +695,7 @@ function TagChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded px-2 py-1 text-[11px] transition-colors cursor-pointer",
+        "rounded px-2 py-1 text-xs transition-colors cursor-pointer",
         active
           ? "bg-surface-elevated text-foreground"
           : "text-muted hover:text-foreground hover:bg-surface"

@@ -38,7 +38,7 @@ export default function ToolsIndexPage() {
     <div className="min-h-screen">
       <MarketingHeader />
       <main id="main" className="mx-auto max-w-6xl px-5 py-16">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
           Free tools
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">

@@ -251,9 +251,9 @@ export function DiffViewer({
               <ChevronRight className="size-3" aria-hidden />
               <Link
                 href="/diffs"
-                className="font-mono text-muted hover:text-foreground transition-colors"
+                className="text-muted hover:text-foreground transition-colors"
               >
-                diffs
+                Diffs
               </Link>
               <ChevronRight className="size-3" aria-hidden />
               <span className="font-mono text-muted">

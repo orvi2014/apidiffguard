@@ -27,7 +27,7 @@ export default async function TokensPage() {
         <h2 className="text-base font-medium">API tokens</h2>
         <p className="mt-1 text-sm text-muted">
           Authenticate{" "}
-          <code className="font-mono text-[11px]">
+          <code className="font-mono text-xs">
             POST /api/v1/endpoints/:id/check
           </code>{" "}
           from CI. Tokens are shown once at creation.

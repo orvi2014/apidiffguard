@@ -7,6 +7,7 @@
  */
 export const API_SCOPES = [
   "endpoints:read",
+  "endpoints:write",
   "checks:run",
   "baselines:write",
 ] as const;

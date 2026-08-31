@@ -210,7 +210,7 @@ export default async function BillingPage({
             <div className="font-mono text-lg font-semibold tabular-nums">
               {usageLabel}
             </div>
-            <div className="text-[11px] uppercase tracking-wider text-muted">
+            <div className="text-xs uppercase tracking-wider text-muted">
               Endpoints
             </div>
           </div>
@@ -222,7 +222,7 @@ export default async function BillingPage({
             >
               {checksLabel}
             </div>
-            <div className="text-[11px] uppercase tracking-wider text-muted">
+            <div className="text-xs uppercase tracking-wider text-muted">
               Checks
             </div>
           </div>

@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -29,17 +31,30 @@ export default function SettingsPage() {
           <Label htmlFor="retries">Retry failed checks</Label>
           <Input id="retries" defaultValue="2" className="font-mono" readOnly />
         </div>
-        <div className="flex items-center justify-between border-y border-border py-3">
+        </fieldset>
+
+      {/* Pulled out of the disabled fieldset: this works today, and reading as
+          greyed-out placeholder meant people skipped past a shipped feature. */}
+      <div className="mt-6 rounded-lg border border-border bg-surface px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm">Fail CI on breaking</div>
-            <div className="text-xs text-muted">
-              Available today — gate CI with an API token and the CLI or /api/v1 checks
+            <div className="text-sm">Fail CI on breaking changes</div>
+            <div className="mt-0.5 text-xs text-muted">
+              Available now — gate a pipeline with an API token and the CLI, or
+              call the REST API directly.
             </div>
           </div>
-          <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-            No toggle yet
-          </span>
+          <div className="flex gap-2">
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/settings/tokens">Create a token</Link>
+            </Button>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/docs/cli">CLI docs</Link>
+            </Button>
+          </div>
         </div>
+      </div>
+      <fieldset disabled className="hidden">
       </fieldset>
     </div>
   );

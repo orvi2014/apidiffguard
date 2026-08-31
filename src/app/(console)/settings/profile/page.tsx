@@ -68,7 +68,7 @@ export default async function ProfilePage({
             defaultValue={profile?.email ?? ctx.email}
             disabled
           />
-          <p className="text-[11px] text-muted">
+          <p className="text-xs text-muted">
             Email is managed by your sign-in provider and cannot be changed
             here.
           </p>

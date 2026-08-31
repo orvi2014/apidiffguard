@@ -46,7 +46,7 @@ export function IgnoreRulesPanel({
               <div className="min-w-0">
                 <p className="truncate font-mono text-xs">{rule.path}</p>
                 {rule.reason ? (
-                  <p className="text-[11px] text-muted">{rule.reason}</p>
+                  <p className="text-xs text-muted">{rule.reason}</p>
                 ) : null}
               </div>
               {canEdit ? (
@@ -91,7 +91,7 @@ export function IgnoreRulesPanel({
           }}
         >
           <div className="space-y-1">
-            <Label htmlFor="ignore-path" className="text-[11px]">
+            <Label htmlFor="ignore-path" className="text-xs">
               Path
             </Label>
             <Input
@@ -103,7 +103,7 @@ export function IgnoreRulesPanel({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="ignore-reason" className="text-[11px]">
+            <Label htmlFor="ignore-reason" className="text-xs">
               Reason
             </Label>
             <Input

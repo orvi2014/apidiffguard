@@ -381,12 +381,22 @@ export function EndpointDetailLive({
                 Open diff
               </Link>
             </div>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               {local.breakingCount ? (
-                <SeverityBadge severity="breaking" />
+                <span className="inline-flex items-center gap-1.5">
+                  <SeverityBadge severity="breaking" />
+                  <span className="font-mono text-xs tabular-nums text-muted">
+                    {local.breakingCount}
+                  </span>
+                </span>
               ) : null}
               {local.warningCount ? (
-                <SeverityBadge severity="warning" />
+                <span className="inline-flex items-center gap-1.5">
+                  <SeverityBadge severity="warning" />
+                  <span className="font-mono text-xs tabular-nums text-muted">
+                    {local.warningCount}
+                  </span>
+                </span>
               ) : null}
             </div>
           </section>
@@ -442,7 +452,7 @@ export function EndpointDetailLive({
                       {formatBytes(b.contentSize)}
                     </p>
                   </div>
-                  <time className="text-[11px] text-muted-foreground">
+                  <time className="text-xs text-muted-foreground">
                     {formatRelativeTime(b.createdAt)}
                   </time>
                 </div>

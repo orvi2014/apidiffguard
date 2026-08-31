@@ -56,7 +56,10 @@ export default function JsonFormatterPage() {
         <div className="mt-10">
           <JsonFormatterTool />
         </div>
-        <ProductCta />
+        <ProductCta
+        title="Formatting a payload before you check it?"
+        body="APIDiffGuard fetches the response itself, keeps every version as a baseline, and tells you what changed since last time."
+      />
         <ToolFaq items={faqs} />
       </main>
       <MarketingFooter />

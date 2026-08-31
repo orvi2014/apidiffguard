@@ -60,7 +60,7 @@ export function ActivityFeed({
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="truncate text-sm text-foreground">{item.title}</p>
-                <time className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                <time className="shrink-0 text-xs text-muted-foreground tabular-nums">
                   {formatRelativeTime(item.createdAt)}
                 </time>
               </div>
@@ -116,7 +116,7 @@ export function Timeline({
           />
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-sm">{item.title}</p>
-            <time className="text-[11px] text-muted-foreground">
+            <time className="text-xs text-muted-foreground">
               {formatRelativeTime(item.at)}
             </time>
           </div>
@@ -171,7 +171,7 @@ export function MetricStrip({
           >
             {item.value}
           </div>
-          <div className="mt-1 text-[11px] uppercase tracking-wider text-muted">
+          <div className="mt-1 text-xs uppercase tracking-wider text-muted">
             {item.label}
           </div>
         </div>

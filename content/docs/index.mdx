@@ -6,6 +6,17 @@ lastModified: "2026-07-13"
 
 APIDiffGuard watches your endpoints, captures baselines, and flags breaking response changes before they hit production.
 
+Try it without an account — this diffs two JSON files and exits non-zero on a
+breaking change, which is all a CI gate needs:
+
+```bash
+npx --yes @apidiffguard/cli check \
+  --baseline old.json \
+  --current new.json \
+  --schema-only \
+  --fail-on breaking
+```
+
 ## What you can do
 
 - Capture a known-good response as a **baseline**

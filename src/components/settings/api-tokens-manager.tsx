@@ -27,6 +27,11 @@ const SCOPE_OPTIONS: Array<{ value: ApiScope; label: string; hint: string }> = [
     hint: "List and inspect endpoint configuration.",
   },
   {
+    value: "endpoints:write",
+    label: "Create endpoints",
+    hint: "Register endpoints, including their stored credentials.",
+  },
+  {
     value: "checks:run",
     label: "Run checks",
     hint: "Trigger checks, which makes outbound requests and can fire alerts.",
@@ -201,7 +206,7 @@ export function ApiTokensManager({
               >
                 <div>
                   <p className="text-sm font-medium">{key.name}</p>
-                  <p className="font-mono text-[11px] text-muted">
+                  <p className="font-mono text-xs text-muted">
                     {key.prefix}… · created {formatRelativeTime(key.created_at)}
                     {key.last_used_at
                       ? ` · last used ${formatRelativeTime(key.last_used_at)}`
@@ -245,7 +250,7 @@ export function ApiTokensManager({
 
       <div className="rounded-md border border-border bg-surface px-4 py-3 text-xs text-muted">
         <p className="font-medium text-foreground">Usage</p>
-        <pre className="mt-2 overflow-x-auto font-mono text-[11px] leading-relaxed">
+        <pre className="mt-2 overflow-x-auto font-mono text-xs leading-relaxed">
 {`curl -X POST \\
   "$APP_URL/api/v1/endpoints/$ENDPOINT_ID/check" \\
   -H "Authorization: Bearer adg_live_…"`}

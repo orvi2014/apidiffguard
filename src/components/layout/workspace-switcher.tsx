@@ -50,7 +50,7 @@ export function WorkspaceSwitcher({
       >
         <span
           aria-hidden
-          className="inline-flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-[9px] font-semibold text-foreground"
+          className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-xs font-semibold leading-none text-foreground"
         >
           {workspaceInitials(workspaceName)}
         </span>
@@ -71,7 +71,7 @@ export function WorkspaceSwitcher({
         >
           <span
             aria-hidden
-            className="inline-flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-[9px] font-semibold text-foreground"
+            className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-xs font-semibold leading-none text-foreground"
           >
             {workspaceInitials(workspaceName)}
           </span>

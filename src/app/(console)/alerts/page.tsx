@@ -261,7 +261,7 @@ export default async function AlertsPage({
                 >
                   {String(alert.status).toLowerCase()}
                 </span>
-                <time className="text-right text-[11px] text-muted-foreground">
+                <time className="text-right text-xs text-muted-foreground">
                   {formatRelativeTime(alert.created_at)}
                 </time>
               </div>

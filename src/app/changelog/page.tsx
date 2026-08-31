@@ -25,17 +25,36 @@ export default function ChangelogPage() {
         <div className="mt-12 space-y-12">
           {entries.map((e) => (
             <article key={e.version}>
-              <div className="flex items-baseline gap-3">
-                <h2 className="text-lg font-medium">v{e.version}</h2>
+              <div className="flex flex-wrap items-baseline gap-3">
+                <h2 className="text-lg font-medium">
+                  {e.version === "Unreleased" ? "Unreleased" : `v${e.version}`}
+                </h2>
                 {e.date ? (
-                  <time className="text-xs text-muted">{e.date}</time>
+                  <time className="text-xs tabular-nums text-muted">
+                    {e.date}
+                  </time>
+                ) : e.version === "Unreleased" ? (
+                  <span className="text-xs text-muted">
+                    shipped, not yet versioned
+                  </span>
                 ) : null}
               </div>
-              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-muted">
-                {e.items.map((item) => (
-                  <li key={item}>{item}</li>
+              <div className="mt-4 space-y-5">
+                {e.groups.map((group) => (
+                  <div key={group.heading ?? "ungrouped"}>
+                    {group.heading ? (
+                      <h3 className="font-mono text-xs uppercase tracking-[0.14em] text-accent">
+                        {group.heading}
+                      </h3>
+                    ) : null}
+                    <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-muted">
+                      {group.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </article>
           ))}
         </div>

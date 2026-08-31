@@ -102,7 +102,7 @@ export default async function BaselinesPage({
                     baselineId={b.id}
                   />
                 ) : null}
-                <time className="text-[11px] text-muted-foreground">
+                <time className="text-xs text-muted-foreground">
                   {formatRelativeTime(b.created_at)}
                 </time>
               </div>

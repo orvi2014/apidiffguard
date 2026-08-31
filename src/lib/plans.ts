@@ -70,7 +70,7 @@ export const PLANS: PlanDefinition[] = [
     name: "Pro",
     priceLabel: "$49",
     period: "/month",
-    description: "More endpoints and schedules for growing monitoring needs.",
+    description: "100 endpoints and 10 teammates, for teams watching more than a handful of integrations.",
     features: [
       "100 endpoints",
       "25,000 checks/month",

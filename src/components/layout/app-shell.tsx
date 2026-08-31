@@ -165,7 +165,7 @@ export function AppShell({
               >
                 <span
                   aria-hidden
-                  className="inline-flex size-6 items-center justify-center rounded-full bg-surface-elevated text-[10px] font-semibold text-foreground"
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-xs font-semibold leading-none text-foreground"
                 >
                   {accountInitial(email)}
                 </span>
@@ -218,7 +218,7 @@ export function AppShell({
         {children}
       </main>
 
-      <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-border bg-surface px-3 text-[11px] text-muted">
+      <footer className="flex h-7 shrink-0 items-center gap-3 border-t border-border bg-surface px-3 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5">
           <span className="size-1.5 rounded-full bg-success" />
           Signed in

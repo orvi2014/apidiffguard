@@ -23,10 +23,13 @@ Tokens are shown once at creation and stored as SHA-256 hashes. Every request is
 | Scope | Grants |
 | --- | --- |
 | `endpoints:read` | `GET /endpoints`, `GET /endpoints/:id`, `GET /diffs`, `GET /diffs/:id` |
+| `endpoints:write` | `POST /endpoints` |
 | `checks:run` | `POST /endpoints/:id/check` |
 | `baselines:write` | Reserved — no route consumes it yet |
 
 A token without the required scope gets `403` with the scope named in the error, so a caller can tell a permission problem from a missing resource.
+
+`endpoints:write` is off by default. It is the only scope that can store credentials, so grant it deliberately.
 
 ### Conventions
 
@@ -70,6 +73,43 @@ curl "https://apidiffguard.com/api/v1/endpoints?health=breaking" \
 Filter with `health` (`healthy`, `warning`, `breaking`, `unknown`, `checking`) and `environment`.
 
 Credentials are never returned. `authType` tells you which credential style a check uses; the secret itself is sealed and unreadable by any user-facing role.
+
+## Register endpoints
+
+`POST /endpoints` creates one or many endpoints, with credentials and an optional schedule. Requires `endpoints:write`.
+
+```bash
+curl -X POST "https://apidiffguard.com/api/v1/endpoints" \
+  -H "Authorization: Bearer adg_live_…" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "List orders",
+    "url": "https://api.example.com/v1/orders",
+    "method": "GET",
+    "tags": ["core"],
+    "auth": { "type": "api_key", "header": "x-api-key", "key": "…" },
+    "schedule": { "frequency": "DAILY" }
+  }'
+```
+
+```json
+{
+  "endpoints": [{ "id": "…", "name": "List orders", "authType": "api_key", "…": "…" }],
+  "created": 1,
+  "scheduled": 1,
+  "skipped": []
+}
+```
+
+Send a single object, a bare array, or `{ "endpoints": [...] }` — up to **200 per request**. The route is rate-limited to 30 requests per minute, like the check route.
+
+This is the path to use when a script or an agent needs to register an authenticated endpoint. [OpenAPI import](/docs/openapi-import) deliberately lands every endpoint as `auth_type: none`, because a spec file should never carry secrets; this route takes credentials directly and seals them per row.
+
+### Partial success
+
+An entry that fails validation — a missing `name`, a private-network `url`, a `bearer` auth block with no token — is returned in `skipped` with a reason, and the rest of the batch is still written. One bad row in a large import does not discard the good ones, so check `skipped` rather than assuming a `201` covered everything.
+
+Endpoints beyond the plan's limit are reported the same way. If the workspace is already at its limit, the whole request returns `402`.
 
 ## Get one endpoint
 

@@ -17,13 +17,20 @@ const PAGE_SIZE = 50;
 export default async function DiffsListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; severity?: string }>;
 }) {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/login");
 
-  const page = parsePage((await searchParams).page);
+  const params = await searchParams;
+  const page = parsePage(params.page);
   const from = (page - 1) * PAGE_SIZE;
+  // The one core list with no way to narrow it. Server-side so it filters the
+  // whole workspace rather than the fifty rows that happen to be on this page.
+  const severity =
+    params.severity === "breaking" || params.severity === "warning"
+      ? params.severity
+      : null;
 
   const supabase = await createClient();
   // Join on the workspace and ask for an exact count so the pager knows the
@@ -38,10 +45,28 @@ export default async function DiffsListPage({
       { count: "exact" }
     )
     .eq("endpoints.workspace_id", ctx.workspaceId)
+    .gt(severity === "breaking" ? "breaking_count" : "warning_count", severity ? 0 : -1)
     .order("created_at", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
 
   if (!rows?.length) {
+    // A filter that matches nothing is a different situation from having no
+    // diffs at all, and needs a different way out.
+    if (severity) {
+      return (
+        <EmptyState
+          title={`No ${severity} diffs`}
+          description="Nothing at this severity yet. Clear the filter to see everything."
+          action={
+            <Link href="/diffs">
+              <Button size="sm" variant="secondary">
+                Show all diffs
+              </Button>
+            </Link>
+          }
+        />
+      );
+    }
     return (
       <EmptyState
         title="No diffs yet"
@@ -63,13 +88,39 @@ export default async function DiffsListPage({
         title="Diffs"
         description="Recent response comparisons across your workspace."
         actions={
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/diff/latest">Open latest</Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {(
+              [
+                ["All", null],
+                ["Breaking", "breaking"],
+                ["Warning", "warning"],
+              ] as const
+            ).map(([label, value]) => {
+              const active = severity === value;
+              return (
+                <Button
+                  key={label}
+                  asChild
+                  size="sm"
+                  variant={active ? "default" : "ghost"}
+                >
+                  <Link
+                    href={value ? `/diffs?severity=${value}` : "/diffs"}
+                    aria-current={active ? "true" : undefined}
+                  >
+                    {label}
+                  </Link>
+                </Button>
+              );
+            })}
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/diff/latest">Open latest</Link>
+            </Button>
+          </div>
         }
       />
 
-      <div className="hidden border-b border-border-subtle px-5 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:grid-cols-[1fr_100px_100px_100px_120px] sm:gap-4">
+      <div className="hidden border-b border-border-subtle px-5 py-2 text-xs uppercase tracking-wider text-muted sm:grid sm:grid-cols-[1fr_100px_100px_100px_120px] sm:gap-4">
         <span>Endpoint</span>
         <span>Breaking</span>
         <span>Warnings</span>

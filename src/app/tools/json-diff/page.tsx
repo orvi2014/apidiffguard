@@ -69,7 +69,8 @@ export default function JsonDiffPage() {
           <JsonDiffTool />
         </div>
 
-        <ProductCta title="Need automatic API change monitoring?" />
+        <ProductCta title="Liked schema mode?"
+        body="That is how hosted checks run by default — APIDiffGuard fetches your endpoint on a schedule, diffs it against a stored baseline, and only alerts when the contract actually breaks." />
 
         <ToolFaq items={faqs} />
       </main>

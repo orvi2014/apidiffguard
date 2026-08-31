@@ -8,6 +8,7 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 ## [Unreleased]
 
 ### Added
+- **Endpoints can be created through the REST API.** `POST /api/v1/endpoints` registers one or up to 200 endpoints per call, behind a new `endpoints:write` scope that is off by default. Until now every write path had a human in it: the console form takes one endpoint at a time, and OpenAPI import deliberately lands everything as `auth_type: none` because a spec file should never carry secrets — so registering a few hundred *authenticated* endpoints meant editing each one by hand afterwards. This route takes credentials directly and seals them per row with the same AES-256-GCM envelope the console uses, and accepts an optional `schedule` so an endpoint arrives already monitored. Entries that fail validation come back in `skipped` with a reason instead of failing the batch, so one bad URL in a large import no longer discards the rest
 - **A self-hosting guide** at [`/docs/self-hosting`](https://apidiffguard.com/docs/self-hosting). The landing page has always offered "Behind a VPN? Self-host it" and linked to docs that said nothing about it. The guide covers the database, the GitHub OAuth app, every environment variable and which are genuinely required, generating and backing up the endpoint encryption key, scheduling the two workers, and the one deliberate decision self-hosting involves — the SSRF guard that blocks private address ranges is the same guard that blocks the internal APIs you are trying to monitor
 - **Workspaces can be deleted from the UI.** The database has supported it since the last release, but nothing in the product called it — closing a workspace meant asking someone to run SQL. Owners now get a danger zone that names what is about to be destroyed, counts the endpoints and the members who lose access, and requires the workspace name to be typed before the button will do anything
 - **Yearly billing.** Starter and Pro can be bought annually at ten months' price for twelve months of service — $190 and $490. The pricing page carries a monthly/yearly switch; Free and the contact-only Team tier are unaffected. Polar puts the billing period on the product rather than the price, so each annual plan is its own product, and the webhook's reverse lookup now recognises those ids — without that a customer could pay for a year and be granted nothing
@@ -59,6 +60,15 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Downgraded workspaces stop running scheduled checks
 
 ### Fixed
+- **The changelog page had shown nothing since July.** The parser dropped the `[Unreleased]` heading outright, so roughly ninety bullets of shipped work were invisible while the page advertised two releases from mid-July. Added/Changed/Fixed groupings are kept now too, instead of collapsing a thirty-bullet release into one undifferentiated list
+- **The CI blog post's only code sample did not work.** `npx apidiff` resolves an unrelated package; the real command is the scoped one, now shown verbatim and verified to exit non-zero on a breaking change. The post also still claimed the CLI was unpublished
+- The Concepts page said a public REST API was "on the roadmap" - it shipped weeks ago
+- **The free JSON Diff tool opened in the mode that hides schema filtering**, showing first-time visitors exactly the value churn the product exists to suppress. It now matches hosted checks and explains the toggle
+- Each free tool's closing call to action references what the visitor just did, rather than one identical line on all three
+- The endpoints table shows breaking and warning counts, so triage does not require opening every row; the endpoint page's drift badges show the counts they already had
+- Diffs can be filtered by severity, with its own empty state when a filter matches nothing
+- CI gating moved out of the disabled "coming soon" fieldset - it works today, and reading as greyed-out placeholder meant people skipped a shipped feature
+- Forty-seven console labels were set below the readable minimum; the workspace and account avatars in the same header used two different visual systems; the diff breadcrumb rendered one segment in lowercase mono
 - **Yearly is now purchasable from inside the app.** Settings → Billing offered only monthly, so the natural place to upgrade could never reach the annual price
 - The invite flow now names the workspace it is talking about, keeps you on the right one when you already belong to it, and offers a way out of the "wrong account" dead end instead of only pointing at a console you didn't want
 - A failed GitHub sign-in keeps the page you were headed for, so retrying lands where you meant to go

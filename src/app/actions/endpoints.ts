@@ -22,28 +22,18 @@ import { hydrateResponseBody } from "@/lib/response-body-store";
 import { runEndpointCheck } from "@/lib/run-endpoint-check";
 import { activateBaseline, promoteBaseline } from "@/lib/baselines";
 import { parseAndAssertPublicUrl } from "@/lib/safe-url";
+import {
+  authConfigValid,
+  normalizeAuthType,
+  normalizeMethod,
+  type AuthTypeName,
+} from "@/lib/endpoint-input";
 
-function mapMethod(method: string) {
-  return method.toUpperCase() as
-    | "GET"
-    | "POST"
-    | "PUT"
-    | "PATCH"
-    | "DELETE"
-    | "HEAD"
-    | "OPTIONS";
-}
-
-function mapAuth(auth: string) {
-  const key = auth.toUpperCase().replace("-", "_");
-  const allowed = ["NONE", "BEARER", "API_KEY", "BASIC", "OAUTH", "CUSTOM"] as const;
-  return (allowed.includes(key as (typeof allowed)[number])
-    ? key
-    : "NONE") as (typeof allowed)[number];
-}
+const mapMethod = normalizeMethod;
+const mapAuth = normalizeAuthType;
 
 function buildAuthConfig(
-  authType: ReturnType<typeof mapAuth>,
+  authType: AuthTypeName,
   formData: FormData,
 ): Record<string, string> {
   switch (authType) {
@@ -68,25 +58,6 @@ function buildAuthConfig(
       };
     default:
       return {};
-  }
-}
-
-function authConfigValid(
-  authType: ReturnType<typeof mapAuth>,
-  config: Record<string, string>,
-) {
-  switch (authType) {
-    case "BEARER":
-    case "OAUTH":
-      return Boolean(config.token);
-    case "API_KEY":
-      return Boolean(config.key);
-    case "BASIC":
-      return Boolean(config.username);
-    case "CUSTOM":
-      return Boolean(config.header && config.value);
-    default:
-      return true;
   }
 }
 

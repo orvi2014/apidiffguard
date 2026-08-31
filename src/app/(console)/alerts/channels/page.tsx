@@ -177,7 +177,7 @@ export default async function AlertChannelsPage({
                     >
                       {row.enabled ? "On" : "Off"}
                     </span>
-                    <span className="text-[11px] text-muted">
+                    <span className="text-xs text-muted">
                       ≥ {String(row.min_severity).toLowerCase()}
                     </span>
                     {row.channel === "EMAIL" && !row.verified_at ? (

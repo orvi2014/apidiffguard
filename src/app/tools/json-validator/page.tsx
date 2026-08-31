@@ -56,7 +56,10 @@ export default function JsonValidatorPage() {
         <div className="mt-10">
           <JsonValidatorTool />
         </div>
-        <ProductCta />
+        <ProductCta
+        title="Valid today is not valid forever."
+        body="APIDiffGuard re-checks the same endpoint on a schedule and flags the moment a field is removed or a type changes."
+      />
         <ToolFaq items={faqs} />
       </main>
       <MarketingFooter />

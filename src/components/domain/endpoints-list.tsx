@@ -43,7 +43,7 @@ export function EndpointsList({ endpoints }: { endpoints: Endpoint[] }) {
         </div>
       </div>
 
-      <div className="hidden border-b border-border-subtle px-4 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:grid-cols-[72px_1fr_120px_100px_88px] sm:gap-x-4">
+      <div className="hidden border-b border-border-subtle px-4 py-2 text-xs uppercase tracking-wider text-muted sm:grid sm:grid-cols-[72px_1fr_120px_100px_88px] sm:gap-x-4">
         <span>Method</span>
         <span>Endpoint</span>
         <span className="text-right">Env</span>

@@ -26,8 +26,22 @@ export function EndpointRow({
           </span>
           <HealthBadge status={endpoint.health} />
         </div>
-        <div className="truncate font-mono text-[11px] text-muted">
-          {endpoint.url}
+        <div className="flex items-center gap-2">
+          <span className="truncate font-mono text-xs text-muted">
+            {endpoint.url}
+          </span>
+          {/* The triage signal the dashboard card already showed. Without it
+              the main endpoints table could not answer "how bad is it"
+              without opening each row. */}
+          {endpoint.breakingCount ? (
+            <span className="shrink-0 font-mono text-xs tabular-nums text-danger">
+              {endpoint.breakingCount} breaking
+            </span>
+          ) : endpoint.warningCount ? (
+            <span className="shrink-0 font-mono text-xs tabular-nums text-warning">
+              {endpoint.warningCount} warning
+            </span>
+          ) : null}
         </div>
       </div>
       <div className="hidden text-right text-xs text-muted sm:block">
@@ -36,7 +50,7 @@ export function EndpointRow({
       <div className="hidden text-right font-mono text-xs tabular-nums text-muted sm:block">
         {endpoint.responseTime != null ? formatMs(endpoint.responseTime) : "—"}
       </div>
-      <div className="text-right text-xs text-muted-foreground">
+      <div className="text-right text-xs tabular-nums text-muted-foreground">
         {endpoint.lastCheckedAt
           ? formatRelativeTime(endpoint.lastCheckedAt)
           : "—"}
@@ -57,7 +71,7 @@ export function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
             <MethodBadge method={endpoint.method} />
             <span className="truncate text-sm font-medium">{endpoint.name}</span>
           </div>
-          <p className="truncate font-mono text-[11px] text-muted">
+          <p className="truncate font-mono text-xs text-muted">
             {endpoint.url}
           </p>
         </div>

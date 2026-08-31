@@ -102,7 +102,7 @@ export default async function EndpointsPage({
         basePath="/endpoints"
       />
 
-      <div className="flex items-center gap-3 border-t border-border px-4 py-2 text-[11px] text-muted">
+      <div className="flex items-center gap-3 border-t border-border px-4 py-2 text-xs text-muted">
         <HealthBadge status="breaking" />
         <span>{breaking}</span>
         <HealthBadge status="warning" />

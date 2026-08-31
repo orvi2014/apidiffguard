@@ -94,7 +94,7 @@ export function ListHeader({
   return (
     <div
       className={cn(
-        "hidden border-b border-border-subtle px-5 py-2 text-[11px] uppercase tracking-wider text-muted sm:grid sm:gap-4",
+        "hidden border-b border-border-subtle px-5 py-2 text-xs uppercase tracking-wider text-muted sm:grid sm:gap-4",
         className
       )}
     >

@@ -58,7 +58,7 @@ export function InviteMemberForm({
             {/* Owner is deliberately absent: ownership is transferred from the
                 member list, not handed out at invite time. */}
           </select>
-      <p className="mt-1 text-[11px] text-muted">
+      <p className="mt-1 text-xs text-muted">
         Admins manage members and billing · Members create and check endpoints ·
         Viewers can only read
       </p>
@@ -91,7 +91,7 @@ export function InviteMemberForm({
           <p className="text-xs text-muted">
             Share this link with them — it expires in seven days.
           </p>
-          <code className="block break-all rounded bg-background px-2 py-1.5 font-mono text-[11px]">
+          <code className="block break-all rounded bg-background px-2 py-1.5 font-mono text-xs">
             {state.inviteUrl}
           </code>
           <Button
