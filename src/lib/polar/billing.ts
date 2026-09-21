@@ -18,18 +18,37 @@ export type BillingInterval = "month" | "year";
  * plan is a separate product with its own id — hence one variable per
  * (plan, interval) pair rather than per plan.
  */
+/**
+ * One (plan, interval) pair per entry. Adding a paid plan means adding a row
+ * here AND creating the product in Polar — a plan with no row silently cannot
+ * be bought, and a product id missing from here cannot be granted.
+ */
+const POLAR_PRODUCT_ENV: Record<
+  PaidPlan,
+  { monthly: () => string | undefined; yearly: () => string | undefined }
+> = {
+  starter: {
+    monthly: () => process.env.POLAR_PRODUCT_STARTER,
+    yearly: () => process.env.POLAR_PRODUCT_STARTER_YEARLY,
+  },
+  pro: {
+    monthly: () => process.env.POLAR_PRODUCT_PRO,
+    yearly: () => process.env.POLAR_PRODUCT_PRO_YEARLY,
+  },
+  scale: {
+    monthly: () => process.env.POLAR_PRODUCT_SCALE,
+    yearly: () => process.env.POLAR_PRODUCT_SCALE_YEARLY,
+  },
+};
+
 export function polarProductForPlan(
   plan: PaidPlan,
   interval: BillingInterval = "month"
 ): string | null {
   const raw =
     interval === "year"
-      ? plan === "starter"
-        ? process.env.POLAR_PRODUCT_STARTER_YEARLY
-        : process.env.POLAR_PRODUCT_PRO_YEARLY
-      : plan === "starter"
-        ? process.env.POLAR_PRODUCT_STARTER
-        : process.env.POLAR_PRODUCT_PRO;
+      ? POLAR_PRODUCT_ENV[plan].yearly()
+      : POLAR_PRODUCT_ENV[plan].monthly();
   const id = raw?.trim();
   return id ? id : null;
 }
@@ -47,16 +66,10 @@ export function resolvePolarPlanFromProduct(
   if (!productId) return null;
   const id = productId.trim();
   if (!id) return null;
-  const starter = [
-    process.env.POLAR_PRODUCT_STARTER,
-    process.env.POLAR_PRODUCT_STARTER_YEARLY,
-  ];
-  const pro = [
-    process.env.POLAR_PRODUCT_PRO,
-    process.env.POLAR_PRODUCT_PRO_YEARLY,
-  ];
-  if (starter.some((v) => v?.trim() === id)) return "starter";
-  if (pro.some((v) => v?.trim() === id)) return "pro";
+  for (const plan of Object.keys(POLAR_PRODUCT_ENV) as PaidPlan[]) {
+    const { monthly, yearly } = POLAR_PRODUCT_ENV[plan];
+    if ([monthly(), yearly()].some((v) => v?.trim() === id)) return plan;
+  }
   return null;
 }
 

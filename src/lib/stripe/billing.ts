@@ -14,11 +14,13 @@ export type PaidPlan = PaidPlanId;
 export const LOOKUP_KEY_TO_PLAN: Record<string, PaidPlan> = {
   apidiffguard_starter_monthly: "starter",
   apidiffguard_pro_monthly: "pro",
+  apidiffguard_scale_monthly: "scale",
 };
 
 export const PLAN_TO_LOOKUP_KEY: Record<PaidPlan, string> = {
   starter: "apidiffguard_starter_monthly",
   pro: "apidiffguard_pro_monthly",
+  scale: "apidiffguard_scale_monthly",
 };
 
 export { isPaidPlan };
