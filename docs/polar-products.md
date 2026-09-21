@@ -24,19 +24,30 @@ here rather than picking by name in the dashboard.
 | Pro | $49/mo | `dea6cecc-7fed-4b50-b121-5ff19ddbe278` |
 | Pro Yearly | $490/yr | `57cb9208-c41b-4744-8269-e3d94c366d76` |
 
-Existing subscriptions still bill against these. `resolvePolarPlanFromProduct()`
-maps **only** the ids named by the env vars above, so once the vars repoint, a
-webhook for a legacy subscription resolves to `null` and grants nothing.
+Existing subscriptions still bill against these ids.
 
-**Before repointing, decide one of:**
+`resolvePolarPlanFromProduct()` maps **only** the ids named by the env vars
+above, so a legacy id does not resolve by product. The webhook, however, calls
+`resolvePolarPlan()`, which falls back to `metadata.plan` — and checkout writes
+that on every purchase it creates. **So a legacy subscription bought through the
+app keeps resolving correctly after the env vars repoint.** That fallback exists
+for exactly this case.
 
-1. **Grandfather** — keep legacy subscribers on the old products. Requires the
-   reverse lookup to recognise legacy ids too (extra entries in
-   `POLAR_PRODUCT_ENV`, or a separate legacy map).
+The residual risk is narrower: a subscription with no `metadata.plan` — created
+by hand in the Polar dashboard, imported, or predating the metadata write —
+resolves to `null`, and its renewal grants nothing. Check for those before
+repointing:
+
+```
+GET /v1/subscriptions/?active=true   # confirm every row has metadata.plan
+```
+
+**Then decide:**
+
+1. **Grandfather** — keep legacy subscribers on the old products and prices.
+   Nothing to change; the metadata fallback already covers them.
 2. **Migrate** — move existing subscriptions onto the new products in Polar,
    accepting the price change for those customers.
-
-Doing neither silently breaks renewals for anyone already paying.
 
 Archive the superseded products in Polar only after every subscription has left
 them; archiving stops new checkouts, it does not cancel existing subscriptions.
