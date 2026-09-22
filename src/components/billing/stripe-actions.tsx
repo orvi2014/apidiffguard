@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useBillingInterval } from "@/components/billing/billing-interval";
+import type { PaidPlanId } from "@/lib/plans";
 
 export function CheckoutButton({
   plan,
@@ -11,7 +12,7 @@ export function CheckoutButton({
   variant = "default",
   className,
 }: {
-  plan: "starter" | "pro";
+  plan: PaidPlanId;
   label: string;
   /**
    * Pin the period explicitly. Omitted, the button follows whatever the

@@ -13,6 +13,8 @@ const KEYS = [
   "POLAR_PRODUCT_PRO",
   "POLAR_PRODUCT_STARTER_YEARLY",
   "POLAR_PRODUCT_PRO_YEARLY",
+  "POLAR_PRODUCT_SCALE",
+  "POLAR_PRODUCT_SCALE_YEARLY",
 ];
 
 before(() => {
@@ -21,6 +23,8 @@ before(() => {
   process.env.POLAR_PRODUCT_PRO = "prod_pro_456";
   process.env.POLAR_PRODUCT_STARTER_YEARLY = "prod_starter_year_789";
   process.env.POLAR_PRODUCT_PRO_YEARLY = "prod_pro_year_012";
+  process.env.POLAR_PRODUCT_SCALE = "prod_scale_345";
+  process.env.POLAR_PRODUCT_SCALE_YEARLY = "prod_scale_year_678";
 });
 
 after(() => {
@@ -164,6 +168,26 @@ describe("yearly billing", () => {
       assert.notEqual(polarProductForPlan("pro", "year"), "prod_pro_456");
     } finally {
       process.env.POLAR_PRODUCT_PRO_YEARLY = "prod_pro_year_012";
+  process.env.POLAR_PRODUCT_SCALE = "prod_scale_345";
+  process.env.POLAR_PRODUCT_SCALE_YEARLY = "prod_scale_year_678";
     }
+  });
+});
+
+describe("scale plan", () => {
+  it("maps to its own Polar products, monthly and yearly", () => {
+    assert.equal(polarProductForPlan("scale"), "prod_scale_345");
+    assert.equal(polarProductForPlan("scale", "year"), "prod_scale_year_678");
+  });
+
+  it("resolves back from both product ids", () => {
+    // An unmapped id makes the webhook grant nothing after a real charge.
+    assert.equal(resolvePolarPlanFromProduct("prod_scale_345"), "scale");
+    assert.equal(resolvePolarPlanFromProduct("prod_scale_year_678"), "scale");
+  });
+
+  it("does not collide with the other tiers", () => {
+    assert.equal(resolvePolarPlanFromProduct("prod_pro_456"), "pro");
+    assert.equal(resolvePolarPlanFromProduct("prod_starter_123"), "starter");
   });
 });

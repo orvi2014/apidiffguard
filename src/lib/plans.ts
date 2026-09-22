@@ -1,4 +1,4 @@
-export const PLAN_IDS = ["free", "starter", "pro", "team"] as const;
+export const PLAN_IDS = ["free", "starter", "pro", "scale", "team"] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
 
 export type PlanDefinition = {
@@ -48,53 +48,76 @@ export const PLANS: PlanDefinition[] = [
   {
     id: "starter",
     name: "Starter",
-    priceLabel: "$19",
+    priceLabel: "$29",
     period: "/month",
-    description: "Scheduled monitoring for small teams and side projects.",
+    description: "Hourly monitoring for a small set of endpoints you own.",
     features: [
-      "20 endpoints",
-      "5,000 checks/month",
+      "25 endpoints",
+      "20,000 checks/month — hourly on every endpoint",
       "Scheduled checks",
       "Slack + Discord + webhooks",
       "Alert history",
       "OpenAPI import",
     ],
-    endpointLimit: 20,
-    checkQuota: 5000,
+    endpointLimit: 25,
+    checkQuota: 20_000,
     seatLimit: 3,
-    monthlyPrice: 19,
-    yearlyPrice: 190,
+    monthlyPrice: 29,
+    yearlyPrice: 290,
   },
   {
     id: "pro",
     name: "Pro",
-    priceLabel: "$49",
+    priceLabel: "$99",
     period: "/month",
-    description: "100 endpoints and 10 teammates, for teams watching more than a handful of integrations.",
+    description:
+      "For teams watching their own API plus the third-party endpoints they depend on.",
     features: [
       "100 endpoints",
-      "25,000 checks/month",
+      "80,000 checks/month — hourly on every endpoint",
       "Scheduled checks",
+      "Severity-classified diffs",
       "Slack + Discord + webhooks",
-      "Alert history",
       "OpenAPI import",
     ],
     endpointLimit: 100,
-    checkQuota: 25000,
+    checkQuota: 80_000,
     seatLimit: 10,
-    monthlyPrice: 49,
-    yearlyPrice: 490,
+    monthlyPrice: 99,
+    yearlyPrice: 990,
+  },
+  {
+    id: "scale",
+    name: "Scale",
+    priceLabel: "$299",
+    period: "/month",
+    description:
+      "For integration platforms: every third-party API you depend on but do not control, checked hourly.",
+    features: [
+      "300 endpoints",
+      "250,000 checks/month — hourly on every endpoint",
+      "Scheduled checks",
+      "Severity-classified diffs",
+      "Ignore rules for noisy upstream paths",
+      "Slack + Discord + webhooks + API",
+    ],
+    endpointLimit: 300,
+    checkQuota: 250_000,
+    seatLimit: 25,
+    monthlyPrice: 299,
+    yearlyPrice: 2_990,
     highlighted: true,
   },
   {
     id: "team",
-    name: "Team",
+    name: "Enterprise",
     priceLabel: "Custom",
     period: "",
     description:
-      "Custom limits and priority support, arranged directly with us. Not a self-serve tier.",
+      "Past 300 endpoints, or self-hosted. Custom limits and priority support, arranged directly with us.",
     features: [
-      "Custom endpoint limits",
+      "Unlimited endpoints",
+      "Custom check volume",
       "Priority support",
       "Dedicated onboarding",
     ],
@@ -153,5 +176,5 @@ export function canManageWorkspace(role: string): boolean {
 export type PaidPlanId = Exclude<PlanId, "free" | "team">;
 
 export function isPaidPlan(value: string): value is PaidPlanId {
-  return value === "starter" || value === "pro";
+  return value === "starter" || value === "pro" || value === "scale";
 }
