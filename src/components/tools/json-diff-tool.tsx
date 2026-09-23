@@ -234,6 +234,7 @@ export function JsonDiffTool() {
               sizeBytes={leftBytes}
               sizeTone={leftTone}
               hideExpand
+              focusOnOpen
               className="min-h-0"
             />
             <JsonTextarea

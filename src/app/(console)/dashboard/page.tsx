@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  FileJson,
-  GitCompare,
-  Play,
-  Plus,
-  Shield,
-  Webhook,
-} from "lucide-react";
+import { FileJson, Plus, Webhook } from "lucide-react";
 import {
   ActivityFeed,
   EmptyState,
@@ -15,7 +8,6 @@ import {
 } from "@/components/domain/activity";
 import { PageHeader } from "@/components/layout/page-header";
 import { EndpointCard } from "@/components/domain/endpoint-card";
-import { DriftAttentionCard } from "@/components/domain/drift-attention-card";
 import { Button } from "@/components/ui/button";
 import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
@@ -50,9 +42,7 @@ export default async function DashboardPage() {
         .limit(12),
       supabase
         .from("diffs")
-        .select(
-          "id, breaking_count, warning_count, created_at, endpoint_id, endpoints!inner(name, baseline_version, workspace_id)"
-        )
+        .select("id, endpoints!inner(workspace_id)")
         .eq("endpoints.workspace_id", ctx.workspaceId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -71,7 +61,15 @@ export default async function DashboardPage() {
   const healthy = endpoints.filter((e) => e.health === "healthy").length;
   const breaking = endpoints.filter((e) => e.health === "breaking").length;
   const warnings = endpoints.filter((e) => e.health === "warning").length;
-  const lastChecked = endpoints.find((e) => e.lastCheckedAt)?.lastCheckedAt;
+  // Endpoints arrive ordered by last edit, not last check, so the first one
+  // with a timestamp was not necessarily the most recent check.
+  const lastChecked = endpoints.reduce<string | undefined>(
+    (latest, e) =>
+      e.lastCheckedAt && (!latest || e.lastCheckedAt > latest)
+        ? e.lastCheckedAt
+        : latest,
+    undefined
+  );
 
   const activities: ActivityItem[] =
     activityRows?.map((a) => ({
@@ -89,22 +87,6 @@ export default async function DashboardPage() {
           : undefined,
     })) ?? [];
 
-  const endpointRel = latestDiff?.endpoints;
-  const endpointName = Array.isArray(endpointRel)
-    ? endpointRel[0]?.name
-    : endpointRel && typeof endpointRel === "object" && "name" in endpointRel
-      ? String((endpointRel as { name: string }).name)
-      : "Endpoint";
-  const baselineVersion = Array.isArray(endpointRel)
-    ? endpointRel[0]?.baseline_version
-    : endpointRel &&
-        typeof endpointRel === "object" &&
-        "baseline_version" in endpointRel
-      ? (endpointRel as { baseline_version: number | null }).baseline_version
-      : null;
-
-  const primaryEndpoint = endpoints[0];
-
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <div className="min-w-0 flex-1">
@@ -121,33 +103,23 @@ export default async function DashboardPage() {
           actions={
             /* On a first-run workspace the empty state below states the same
                two actions. Offering them twice in one viewport is the same
-               defect this page already had between its two list sections. */
-            endpoints.length === 0 ? undefined : (
+               defect this page already had between its two list sections.
+               "Open endpoint" used to sit here too, pointing at whichever
+               endpoint was edited last — a primary action with no subject. */
+            endpoints.length === 0 || !canEdit ? undefined : (
               <>
-                {canEdit ? (
-                  <>
-                    <Link href="/endpoints/new">
-                      <Button size="sm" variant="secondary" className="gap-1.5">
-                        <Plus className="size-3.5" />
-                        Endpoint
-                      </Button>
-                    </Link>
-                    <Link href="/endpoints/import">
-                      <Button size="sm" variant="secondary" className="gap-1.5">
-                        <FileJson className="size-3.5" />
-                        Import OpenAPI
-                      </Button>
-                    </Link>
-                  </>
-                ) : null}
-                {primaryEndpoint ? (
-                  <Link href={`/endpoints/${primaryEndpoint.id}`}>
-                    <Button size="sm" className="gap-1.5">
-                      <Play className="size-3.5" />
-                      Open endpoint
-                    </Button>
+                <Button asChild size="sm" variant="secondary" className="gap-1.5">
+                  <Link href="/endpoints/new">
+                    <Plus className="size-3.5" aria-hidden />
+                    Endpoint
                   </Link>
-                ) : null}
+                </Button>
+                <Button asChild size="sm" variant="secondary" className="gap-1.5">
+                  <Link href="/endpoints/import">
+                    <FileJson className="size-3.5" aria-hidden />
+                    Import OpenAPI
+                  </Link>
+                </Button>
               </>
             )
           }
@@ -159,9 +131,24 @@ export default async function DashboardPage() {
         {endpoints.length > 0 ? (
           <MetricStrip
             items={[
-              { label: "Healthy", value: healthy, tone: "text-success" },
-              { label: "Breaking", value: breaking, tone: "text-danger" },
-              { label: "Warnings", value: warnings, tone: "text-warning" },
+              /* A status colour is a reading. "0" in red announces a break
+                 that does not exist, so a count only takes its colour when
+                 there is something to count. */
+              {
+                label: "Healthy",
+                value: healthy,
+                tone: healthy > 0 ? "text-success" : "text-muted",
+              },
+              {
+                label: "Breaking",
+                value: breaking,
+                tone: breaking > 0 ? "text-danger" : "text-muted",
+              },
+              {
+                label: "Warnings",
+                value: warnings,
+                tone: warnings > 0 ? "text-warning" : "text-muted",
+              },
               {
                 label: "Checks today",
                 value: checksToday ?? 0,
@@ -210,19 +197,9 @@ export default async function DashboardPage() {
                 ) : null}
               </div>
 
-              {latestDiff &&
-              (latestDiff.breaking_count > 0 ||
-                latestDiff.warning_count > 0) ? (
-                <DriftAttentionCard
-                  href={`/diff/${latestDiff.id}`}
-                  endpointName={endpointName}
-                  breakingCount={latestDiff.breaking_count}
-                  warningCount={latestDiff.warning_count}
-                  baselineVersion={baselineVersion}
-                  createdAt={latestDiff.created_at}
-                />
-              ) : null}
-
+              {/* The latest diff used to get its own animated card here, naming
+                  an endpoint that the list below repeated with the same counts.
+                  The list carries the counts; the link above opens the diff. */}
               {drifting.length > 0 ? (
                 <div className="mt-3 divide-y divide-border-subtle border-y border-border-subtle">
                   {drifting.map((e) => (
@@ -278,53 +255,8 @@ export default async function DashboardPage() {
             <ActivityFeed items={activities} />
           )}
         </div>
-        <div className="border-t border-border px-4 py-4">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted">
-            Quick actions
-          </h2>
-          <div className="mt-3 space-y-1">
-            {[
-              /* "Open endpoint to capture" and "Open endpoint to check" were
-                 two rows pointing at the identical href — one destination
-                 wearing two labels. Every row here now goes somewhere else. */
-              primaryEndpoint
-                ? {
-                    href: `/endpoints/${primaryEndpoint.id}`,
-                    label: `Open ${primaryEndpoint.name}`,
-                    icon: Play,
-                  }
-                : {
-                    href: canEdit ? "/endpoints/new" : "/endpoints",
-                    label: canEdit ? "Add an endpoint" : "Browse endpoints",
-                    icon: Plus,
-                  },
-              { href: "/diffs", label: "Review recent diffs", icon: GitCompare },
-              {
-                href: "/alerts/channels",
-                label: "Configure alert channels",
-                icon: Shield,
-              },
-              ...(canEdit
-                ? [
-                    {
-                      href: "/endpoints/import",
-                      label: "Import OpenAPI",
-                      icon: FileJson,
-                    },
-                  ]
-                : []),
-            ].map((a) => (
-              <Link
-                key={a.label}
-                href={a.href}
-                className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted transition-colors hover:bg-surface hover:text-foreground cursor-pointer"
-              >
-                <a.icon className="size-3.5" />
-                {a.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+        {/* "Quick actions" repeated the header buttons and the console nav —
+            Diffs, Alerts, Import — as a third copy of the same destinations. */}
       </aside>
     </div>
   );

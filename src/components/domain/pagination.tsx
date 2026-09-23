@@ -39,9 +39,9 @@ export function Pagination({
   const last = Math.min(page * pageSize, total);
 
   const linkClass =
-    "inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs transition-colors hover:border-[#3f3f46] hover:text-foreground";
+    "inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs transition-colors hover:border-border-strong hover:text-foreground";
   const disabledClass =
-    "pointer-events-none border-border-subtle text-muted/40";
+    "pointer-events-none border-border-subtle text-muted-foreground/40";
 
   return (
     <nav

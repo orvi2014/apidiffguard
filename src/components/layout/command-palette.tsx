@@ -174,7 +174,7 @@ export function CommandPaletteTrigger({
       type="button"
       aria-label="Search"
       onClick={onOpen}
-      className="hidden items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-[#3f3f46] hover:text-foreground sm:inline-flex cursor-pointer"
+      className="hidden items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-border-strong hover:text-foreground sm:inline-flex cursor-pointer"
     >
       <Search className="size-3.5" aria-hidden />
       <span>Search…</span>

@@ -45,12 +45,12 @@ export function WorkspaceSwitcher({
     return (
       <Link
         href="/settings/workspace"
-        className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted transition-colors hover:border-[#3f3f46] hover:text-foreground"
+        className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted transition-colors hover:border-border-strong hover:text-foreground"
         title="Workspace settings"
       >
         <span
           aria-hidden
-          className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-xs font-semibold leading-none text-foreground"
+          className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-border text-xs font-semibold leading-none text-foreground"
         >
           {workspaceInitials(workspaceName)}
         </span>
@@ -66,12 +66,12 @@ export function WorkspaceSwitcher({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted transition-colors hover:border-[#3f3f46] hover:text-foreground"
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted transition-colors hover:border-border-strong hover:text-foreground"
           aria-label={`Workspace: ${workspaceName}. Switch workspace`}
         >
           <span
             aria-hidden
-            className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-xs font-semibold leading-none text-foreground"
+            className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-border text-xs font-semibold leading-none text-foreground"
           >
             {workspaceInitials(workspaceName)}
           </span>
@@ -108,7 +108,7 @@ export function WorkspaceSwitcher({
                   <span className="min-w-0 flex-1 truncate">
                     {workspace.name}
                   </span>
-                  <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted">
+                  <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted">
                     {workspace.role.toLowerCase()}
                   </span>
                 </button>

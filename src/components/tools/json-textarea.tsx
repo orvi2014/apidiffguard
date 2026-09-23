@@ -18,6 +18,8 @@ export function byteLength(value: string): number {
   return new TextEncoder().encode(value).length;
 }
 
+type CopyState = "idle" | "copied" | "failed";
+
 function EditorChrome({
   label,
   textareaId,
@@ -39,7 +41,7 @@ function EditorChrome({
   onToggleExpand: () => void;
   onClear: () => void;
   onCopy: () => void;
-  copied: boolean;
+  copied: CopyState;
   value: string;
   hideExpand?: boolean;
 }) {
@@ -68,7 +70,7 @@ function EditorChrome({
           type="button"
           size="sm"
           variant="ghost"
-          className="h-7 px-2 text-xs"
+          className="h-8 px-2 text-xs"
           onClick={onClear}
           disabled={!value}
         >
@@ -79,16 +81,24 @@ function EditorChrome({
           type="button"
           size="sm"
           variant="ghost"
-          className="h-7 px-2 text-xs"
+          className="h-8 px-2 text-xs"
           onClick={onCopy}
           disabled={!value}
         >
-          {copied ? (
-            <Check className="size-3.5 text-success" />
+          {copied === "copied" ? (
+            <Check className="size-3.5 text-success" aria-hidden />
           ) : (
-            <Copy className="size-3.5" />
+            <Copy className="size-3.5" aria-hidden />
           )}
-          Copy
+          {/* The label itself changes, inside a live region, so the result is
+              announced — a swapped icon alone says nothing to a screen reader. */}
+          <span aria-live="polite">
+            {copied === "copied"
+              ? "Copied"
+              : copied === "failed"
+                ? "Copy failed"
+                : "Copy"}
+          </span>
         </Button>
         {!hideExpand ? (
           <ExpandToggleButton expanded={expanded} onToggle={onToggleExpand} />
@@ -111,6 +121,7 @@ export function JsonTextarea({
   /** Controlled expand from parent (e.g. expand-both). */
   expanded: expandedProp,
   onExpandedChange,
+  focusOnOpen,
 }: {
   label: string;
   value: string;
@@ -122,8 +133,10 @@ export function JsonTextarea({
   hideExpand?: boolean;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  /** Take focus when a surrounding overlay opens (see useFocusTrap). */
+  focusOnOpen?: boolean;
 }) {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = React.useState<CopyState>("idle");
   const [internalExpanded, setInternalExpanded] = React.useState(false);
   const size = sizeBytes ?? byteLength(value);
   const textareaId = React.useId();
@@ -131,9 +144,15 @@ export function JsonTextarea({
   const setExpanded = onExpandedChange ?? setInternalExpanded;
 
   const copy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    // The Clipboard API is absent on insecure origins and can be refused by
+    // permissions. Say so rather than leaving an unhandled rejection.
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied("copied");
+    } catch {
+      setCopied("failed");
+    }
+    setTimeout(() => setCopied("idle"), 1600);
   };
 
   const fieldClass = cn(
@@ -145,11 +164,17 @@ export function JsonTextarea({
         : "border-border"
   );
 
-  const status = (
+  const statusId = `${textareaId}-status`;
+  const expandedStatusId = `${textareaId}-expanded-status`;
+  const hasStatus = Boolean(error) || sizeTone === "warn" || sizeTone === "block";
+
+  // Rendered once inline and once in the expanded overlay; each copy needs its
+  // own id, or the overlay's textarea is described by the hidden inline one.
+  const renderStatus = (id: string) => (
     <>
       {sizeTone === "warn" ? (
         <p
-          id={`${textareaId}-status`}
+          id={id}
           role="status"
           className="mt-2 flex items-start gap-1.5 text-xs text-warning"
         >
@@ -160,7 +185,7 @@ export function JsonTextarea({
       ) : null}
       {sizeTone === "block" ? (
         <p
-          id={`${textareaId}-status`}
+          id={id}
           role="alert"
           className="mt-2 flex items-start gap-1.5 text-xs text-danger"
         >
@@ -172,7 +197,7 @@ export function JsonTextarea({
       ) : null}
       {error && sizeTone !== "block" ? (
         <p
-          id={`${textareaId}-status`}
+          id={id}
           role="alert"
           className="mt-2 text-xs text-danger"
         >
@@ -202,13 +227,10 @@ export function JsonTextarea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}
+        data-autofocus={focusOnOpen || undefined}
         placeholder={'{\n  "hello": "world"\n}'}
         aria-invalid={Boolean(error) || sizeTone === "block"}
-        aria-describedby={
-          error || sizeTone === "warn" || sizeTone === "block"
-            ? `${textareaId}-status`
-            : undefined
-        }
+        aria-describedby={hasStatus ? statusId : undefined}
         className={cn(
           fieldClass,
           hideExpand
@@ -216,7 +238,7 @@ export function JsonTextarea({
             : "min-h-[min(52vh,560px)] flex-1 resize-y"
         )}
       />
-      {status}
+      {renderStatus(statusId)}
 
       {expanded && !hideExpand ? (
         <ExpandOverlayShell title={label} onClose={() => setExpanded(false)}>
@@ -224,11 +246,13 @@ export function JsonTextarea({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             spellCheck={false}
-            autoFocus
+            data-autofocus
             aria-label={`${label} expanded`}
+            aria-invalid={Boolean(error) || sizeTone === "block"}
+            aria-describedby={hasStatus ? expandedStatusId : undefined}
             className={cn(fieldClass, "min-h-0 flex-1 resize-none")}
           />
-          <div className="shrink-0">{status}</div>
+          <div className="shrink-0">{renderStatus(expandedStatusId)}</div>
         </ExpandOverlayShell>
       ) : null}
     </div>

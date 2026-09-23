@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLinkStatus } from "next/link";
@@ -55,8 +56,16 @@ export function ConsoleNavLink({
     (href === "/diffs" &&
       (pathname.startsWith("/diffs") || pathname.startsWith("/diff")));
 
+  // On a phone the nav scrolls. Landing on Schedules with the row scrolled to
+  // Overview hid the one item that says where you are.
+  const ref = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    if (active) ref.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [active]);
+
   return (
     <Link
+      ref={ref}
       href={href}
       prefetch
       aria-current={active ? "page" : undefined}

@@ -26,7 +26,7 @@ export default async function ConsoleLayout({
       checksTodaySlot={
         <Suspense
           fallback={
-            <span className="ml-auto font-mono tabular-nums text-muted/70">
+            <span className="ml-auto font-mono tabular-nums text-muted-foreground/70">
               … checks today
             </span>
           }

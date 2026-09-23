@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -26,15 +24,19 @@ const icons: Record<ActivityItem["type"], ReactNode> = {
   workspace_created: <Shield className="size-3.5" />,
 };
 
+/* Every non-grey in this system is a reading. Only two events are readings:
+   a check that found breaking changes (the runner writes `diff_detected` only
+   then), and a baseline accepted back to matching. Adding an endpoint is not
+   "healthy", and inviting someone is not "scanning" — those stay grey. */
 const tones: Record<ActivityItem["type"], string> = {
-  baseline_created: "text-accent",
-  endpoint_added: "text-success",
+  baseline_created: "text-muted",
+  endpoint_added: "text-muted",
   diff_detected: "text-danger",
-  alert_sent: "text-warning",
+  alert_sent: "text-muted",
   baseline_accepted: "text-success",
   check_run: "text-muted",
-  member_invited: "text-info",
-  workspace_created: "text-accent",
+  member_invited: "text-muted",
+  workspace_created: "text-muted",
 };
 
 export function ActivityFeed({
@@ -51,7 +53,7 @@ export function ActivityFeed({
           <div className="flex gap-3 px-1 py-3">
             <div
               className={cn(
-                "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded border border-border bg-surface",
+                "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface",
                 tones[item.type]
               )}
             >
@@ -142,10 +144,10 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="mb-4 flex size-10 items-center justify-center rounded border border-border text-muted">
+      <div className="mb-4 flex size-10 items-center justify-center rounded-md border border-border text-muted">
         {icon ?? <AlertTriangle className="size-4" />}
       </div>
-      <h3 className="text-sm font-medium">{title}</h3>
+      <h2 className="text-sm font-medium">{title}</h2>
       <p className="mt-1 max-w-sm text-xs text-muted leading-relaxed">
         {description}
       </p>
@@ -160,9 +162,15 @@ export function MetricStrip({
   items: { label: string; value: string | number; tone?: string }[];
 }) {
   return (
-    <div className="grid grid-cols-2 divide-x divide-border border-y border-border sm:grid-cols-4">
+    /* Borders per cell rather than `divide-x`: in the two-column phone grid,
+       divide-x drew a rule down the left edge of the second row and none
+       between the rows. */
+    <div className="grid grid-cols-2 border-y border-border sm:grid-cols-4">
       {items.map((item) => (
-        <div key={item.label} className="px-4 py-4 sm:px-5">
+        <div
+          key={item.label}
+          className="border-border px-4 py-4 even:border-l max-sm:[&:nth-child(-n+2)]:border-b sm:px-5 sm:[&:not(:first-child)]:border-l"
+        >
           <div
             className={cn(
               "font-mono text-2xl font-semibold tabular-nums tracking-tight",

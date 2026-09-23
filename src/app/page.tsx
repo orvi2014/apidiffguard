@@ -73,7 +73,7 @@ export default function LandingPage() {
                 </span>
               </Link>
               <Link href="/tools/json-diff">
-                <span className="inline-flex h-11 items-center rounded-md border border-border px-6 text-sm font-medium text-foreground transition-colors hover:border-[#3f3f46] hover:bg-surface">
+                <span className="inline-flex h-11 items-center rounded-md border border-border px-6 text-sm font-medium text-foreground transition-colors hover:border-border-strong hover:bg-surface">
                   Free JSON Diff
                 </span>
               </Link>
@@ -439,7 +439,7 @@ export default function LandingPage() {
                 </span>
               </Link>
               <Link href="/pricing">
-                <span className="inline-flex h-11 items-center rounded-md border border-border px-6 text-sm font-medium text-foreground transition-colors hover:border-[#3f3f46] hover:bg-surface">
+                <span className="inline-flex h-11 items-center rounded-md border border-border px-6 text-sm font-medium text-foreground transition-colors hover:border-border-strong hover:bg-surface">
                   View pricing
                 </span>
               </Link>

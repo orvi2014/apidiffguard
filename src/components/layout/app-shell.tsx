@@ -1,17 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
   CalendarClock,
+  Building2,
   CreditCard,
   GitCompare,
   LayoutDashboard,
   LogOut,
-  Plus,
   Search,
   Settings,
   User,
@@ -46,6 +46,38 @@ const CommandPalette = dynamic(
   { ssr: false }
 );
 
+/**
+ * Which ends of the horizontally scrolling nav hide more items. On a phone the
+ * nav gets ~200px for five destinations, and with the scrollbar hidden nothing
+ * said the row continued — Diffs, Alerts, and Schedules were undiscoverable.
+ */
+function useScrollEdges() {
+  const ref = useRef<HTMLElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const start = el.scrollLeft > 1;
+      const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      setEdges((prev) =>
+        prev.start === start && prev.end === end ? prev : { start, end }
+      );
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, []);
+
+  return { ref, edges };
+}
+
 const nav = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/endpoints", label: "Endpoints", icon: Webhook },
@@ -75,6 +107,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const { ref: navRef, edges } = useScrollEdges();
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
@@ -95,7 +128,19 @@ export function AppShell({
         </Link>
 
         <nav
-          className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          ref={navRef}
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            edges.start &&
+              edges.end &&
+              "[mask-image:linear-gradient(to_right,transparent,black_24px,black_calc(100%-24px),transparent)]",
+            edges.start &&
+              !edges.end &&
+              "[mask-image:linear-gradient(to_right,transparent,black_24px)]",
+            !edges.start &&
+              edges.end &&
+              "[mask-image:linear-gradient(to_left,transparent,black_24px)]"
+          )}
           aria-label="Console"
         >
           {nav.map((item) => (
@@ -108,7 +153,7 @@ export function AppShell({
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
@@ -118,30 +163,24 @@ export function AppShell({
             <Search className="size-4" />
           </button>
           <CommandPaletteTrigger onOpen={() => setPaletteOpen(true)} />
+          {/* Below md the header has room for navigation or for shortcuts, not
+              both. The Overview and Endpoints headers already carry "add
+              endpoint", so the phone header gives that space to the nav. */}
           {canEdit ? (
-            <>
-              <Link
-                href="/endpoints/new"
-                prefetch
-                className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface-elevated text-foreground transition-colors hover:bg-[#1f1f23] md:hidden"
-                aria-label="New endpoint"
-              >
-                <Plus className="size-4" />
-              </Link>
-              <Link
-                href="/endpoints/new"
-                prefetch
-                className="hidden h-8 items-center rounded-md border border-border bg-surface-elevated px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-[#1f1f23] md:inline-flex"
-              >
-                New endpoint
-              </Link>
-            </>
+            <Link
+              href="/endpoints/new"
+              prefetch
+              className="hidden h-8 items-center rounded-md border border-border bg-surface-elevated px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-border-subtle md:inline-flex"
+            >
+              New endpoint
+            </Link>
           ) : null}
           <Link
             href="/settings"
             prefetch
             className={cn(
-              "inline-flex size-8 items-center justify-center rounded-md transition-colors cursor-pointer",
+              // Hidden on phones: the account menu carries the same settings.
+              "hidden size-8 items-center justify-center rounded-md transition-colors cursor-pointer sm:inline-flex",
               pathname.startsWith("/settings")
                 ? "bg-surface-elevated text-foreground"
                 : "text-muted hover:text-foreground hover:bg-surface-elevated"
@@ -165,7 +204,7 @@ export function AppShell({
               >
                 <span
                   aria-hidden
-                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 text-xs font-semibold leading-none text-foreground"
+                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-border text-xs font-semibold leading-none text-foreground"
                 >
                   {accountInitial(email)}
                 </span>
@@ -180,6 +219,12 @@ export function AppShell({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
+                <Link href="/settings">
+                  <Settings className="size-3.5" aria-hidden />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link href="/settings/profile">
                   <User className="size-3.5" aria-hidden />
                   Profile
@@ -187,7 +232,7 @@ export function AppShell({
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings/workspace">
-                  <Settings className="size-3.5" aria-hidden />
+                  <Building2 className="size-3.5" aria-hidden />
                   Workspace settings
                 </Link>
               </DropdownMenuItem>
