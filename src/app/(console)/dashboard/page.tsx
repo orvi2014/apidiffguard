@@ -4,7 +4,7 @@ import { FileJson, Plus, Webhook } from "lucide-react";
 import {
   ActivityFeed,
   EmptyState,
-  MetricStrip,
+  MetricReadout,
 } from "@/components/domain/activity";
 import { PageHeader } from "@/components/layout/page-header";
 import { EndpointCard } from "@/components/domain/endpoint-card";
@@ -123,40 +123,44 @@ export default async function DashboardPage() {
               </>
             )
           }
-        />
+        >
+          {/* Counts of nothing are not a measurement: before the first endpoint
+              exists the readout would say 0 · 0 · 0 · 0.
 
-        {/* Counts of nothing are not a measurement. Before the first endpoint
-            exists the strip would read 0 · 0 · 0 · 0 across the widest band on
-            the page. */}
-        {endpoints.length > 0 ? (
-          <MetricStrip
-            items={[
-              /* A status colour is a reading. "0" in red announces a break
-                 that does not exist, so a count only takes its colour when
-                 there is something to count. */
-              {
-                label: "Healthy",
-                value: healthy,
-                tone: healthy > 0 ? "text-success" : "text-muted",
-              },
-              {
-                label: "Breaking",
-                value: breaking,
-                tone: breaking > 0 ? "text-danger" : "text-muted",
-              },
-              {
-                label: "Warnings",
-                value: warnings,
-                tone: warnings > 0 ? "text-warning" : "text-muted",
-              },
-              {
-                label: "Checks today",
-                value: checksToday ?? 0,
-                tone: "text-foreground",
-              },
-            ]}
-          />
-        ) : null}
+              These four numbers used to be a band of large tiles — the loudest
+              thing on the page and ~340px of a phone screen before the first
+              endpoint that needs attention. State is one line of the header;
+              the list below is where the work is. */}
+          {endpoints.length > 0 ? (
+            <MetricReadout
+              items={[
+                /* A status colour is a reading. "0" in red announces a break
+                   that does not exist, so a count only takes its colour when
+                   there is something to count. */
+                {
+                  label: "Healthy",
+                  value: healthy,
+                  tone: healthy > 0 ? "text-success" : "text-muted",
+                },
+                {
+                  label: "Breaking",
+                  value: breaking,
+                  tone: breaking > 0 ? "text-danger" : "text-muted",
+                },
+                {
+                  label: "Warnings",
+                  value: warnings,
+                  tone: warnings > 0 ? "text-warning" : "text-muted",
+                },
+                {
+                  label: "Checks today",
+                  value: checksToday ?? 0,
+                  tone: "text-foreground",
+                },
+              ]}
+            />
+          ) : null}
+        </PageHeader>
 
         {endpoints.length === 0 ? (
           /* A first-run workspace used to get three grey sentences spread over
@@ -184,8 +188,13 @@ export default async function DashboardPage() {
           />
         ) : (
           <>
-            <section className="border-b border-border px-5 py-6">
-              <div className="flex items-center justify-between">
+            {/* Every block shares the page header's edge (16px, 20px from sm).
+                Lists run full-bleed like the header rules; each row owns its
+                bottom hairline, so the wrapper only draws the top one — and the
+                last row's hairline closes the section. A section rule after
+                24px of padding drew two lines around an empty band. */}
+            <section className="pt-6">
+              <div className="flex items-center justify-between px-4 sm:px-5">
                 <h2 className="text-sm font-medium">Needs attention</h2>
                 {latestDiff ? (
                   <Link
@@ -201,7 +210,7 @@ export default async function DashboardPage() {
                   an endpoint that the list below repeated with the same counts.
                   The list carries the counts; the link above opens the diff. */}
               {drifting.length > 0 ? (
-                <div className="mt-3 divide-y divide-border-subtle border-y border-border-subtle">
+                <div className="mt-3 border-t border-border-subtle">
                   {drifting.map((e) => (
                     <EndpointCard key={e.id} endpoint={e} />
                   ))}
@@ -209,7 +218,7 @@ export default async function DashboardPage() {
               ) : (
                 /* Matching the baseline is a result, not an absence. It gets
                    the success voice rather than the same grey as "no data". */
-                <p className="mt-4 flex items-center gap-2 text-sm text-muted">
+                <p className="mt-3 flex items-center gap-2 border-b border-border-subtle px-4 pb-6 text-sm text-muted sm:px-5">
                   <span className="size-1.5 shrink-0 rounded-full bg-success" />
                   {lastChecked
                     ? `All ${pluralize(endpoints.length, "endpoint")} match their baselines.`
@@ -219,8 +228,8 @@ export default async function DashboardPage() {
             </section>
 
             {steady.length > 0 ? (
-              <section className="px-5 py-6">
-                <div className="flex items-center justify-between">
+              <section className="pt-6">
+                <div className="flex items-center justify-between px-4 sm:px-5">
                   <h2 className="text-sm font-medium">
                     {drifting.length > 0 ? "Everything else" : "Monitored"}
                   </h2>
@@ -231,7 +240,7 @@ export default async function DashboardPage() {
                     View all
                   </Link>
                 </div>
-                <div className="mt-3 divide-y divide-border-subtle border-y border-border-subtle">
+                <div className="mt-3 border-t border-border-subtle">
                   {steady.slice(0, 5).map((e) => (
                     <EndpointCard key={e.id} endpoint={e} />
                   ))}
@@ -243,11 +252,10 @@ export default async function DashboardPage() {
       </div>
 
       <aside className="w-full shrink-0 border-t border-border lg:w-80 lg:border-l lg:border-t-0">
-        <div className="border-b border-border px-4 py-3">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted">
-            Activity
-          </h2>
-        </div>
+        {/* The column's heading used to sit on its own hairline ~40px above
+            the page header's, two rules side by side at different heights.
+            It now matches the main column's section headings. */}
+        <h2 className="px-4 pb-3 pt-6 text-sm font-medium">Activity</h2>
         <div className="px-3">
           {activities.length === 0 ? (
             <p className="px-1 py-4 text-sm text-muted">No activity yet.</p>

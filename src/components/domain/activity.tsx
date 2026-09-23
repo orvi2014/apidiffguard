@@ -187,3 +187,32 @@ export function MetricStrip({
     </div>
   );
 }
+
+/**
+ * A single line of counts for a page header. MetricStrip gives each number a
+ * tile; this is for pages where the counts are context for a list, not the
+ * point of the page.
+ */
+export function MetricReadout({
+  items,
+}: {
+  items: { label: string; value: string | number; tone?: string }[];
+}) {
+  return (
+    <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+      {items.map((item) => (
+        <div key={item.label} className="flex items-baseline gap-1.5">
+          <dt className="order-2 text-xs text-muted">{item.label}</dt>
+          <dd
+            className={cn(
+              "order-1 font-mono text-base font-medium tabular-nums",
+              item.tone
+            )}
+          >
+            {item.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}

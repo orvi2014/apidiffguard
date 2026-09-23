@@ -38,6 +38,7 @@ Format: Keep a **newest-first** `[Unreleased]` section, then dated version headi
 - Retention and reaper maintenance job (hourly), trimming old response bodies and releasing checks stuck on "Checking…"
 
 ### Changed
+- **Overview leads with what needs attention.** The four counts were a band of large tiles, the loudest thing on the page and about a third of a phone screen before the first endpoint that needed attention. They're now one line in the header. The title, section headings and endpoint rows share one left edge, rows no longer draw doubled hairlines, and the Activity column's heading matches the rest of the page
 - **Overview shows each thing once.** The animated "latest diff" card repeated the endpoint listed directly under it, and "Quick actions" repeated the header buttons and the navigation. Both are gone; the drifting list already carries the breaking and warning counts, and "Open latest diff" is still one click. The header's "Open endpoint" button, which opened whichever endpoint was edited last, is gone too
 - **Colour on Overview means something again.** A zero in the Breaking or Warnings count is drawn grey instead of red or amber, and activity icons are coloured only for breaking changes found (red) and baselines accepted (green) — adding an endpoint or inviting a member is no longer painted as a health reading
 - **"Last check" on Overview is the most recent check**, not the check time of whichever endpoint was edited last
