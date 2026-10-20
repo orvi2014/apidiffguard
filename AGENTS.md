@@ -18,9 +18,11 @@ Whenever you **commit and push** product changes to `main` (this repo’s defaul
 
 ## Brand
 
-- Official mark: [`public/brand/logo-mark.svg`](./public/brand/logo-mark.svg) (Split — solid + outlined panes on accent tile).
+- Official mark: [`public/brand/logo-mark.svg`](./public/brand/logo-mark.svg) — the Diff-eyed Watchdog: a blue dog whose eyes are the − and + diff-gutter markers.
 - Wordmark lockup: [`public/brand/logo.svg`](./public/brand/logo.svg).
-- Use [`BrandLogo`](./src/components/brand/logo.tsx) in UI — do not reintroduce the old “A” letter tile.
+- Shapes live in [`src/lib/brand-mark.ts`](./src/lib/brand-mark.ts); the SVG files, favicon, Apple icon and social card all derive from it. Change the mark there, then regenerate the SVG files.
+- Favicon and Apple icon put the mark on a dark tile — it is too wide to read alone at 16px.
+- Use [`BrandLogo`](./src/components/brand/logo.tsx) in UI — do not reintroduce the old “A” letter tile or the retired Split panes mark (kept for reference in `public/brand/options/02-split.svg`).
 
 ## CLI
 
