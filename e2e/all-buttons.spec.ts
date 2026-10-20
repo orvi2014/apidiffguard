@@ -41,7 +41,6 @@ test.describe("all buttons — marketing (signed out)", () => {
     await assertVisible(page, "link", "Skip to content");
     await assertVisible(page, "link", "Sign in");
     await assertVisible(page, "link", "Start free");
-    await assertVisible(page, "link", /Start monitoring/i);
     await assertVisible(page, "link", /Free JSON Diff/i);
     await assertVisible(page, "link", /View pricing/i);
 

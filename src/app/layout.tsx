@@ -34,7 +34,7 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — Catch breaking API changes before production`,
+    default: `${SITE_NAME} — Third-party API change monitoring`,
     template: `%s · ${SITE_NAME}`,
   },
   description: DEFAULT_DESCRIPTION,
@@ -71,20 +71,20 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Catch breaking API changes before production`,
+    title: `${SITE_NAME} — Third-party API change monitoring`,
     description: DEFAULT_DESCRIPTION,
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: `${SITE_NAME} — Catch breaking API changes before production`,
+        alt: `${SITE_NAME} — Third-party API change monitoring`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Catch breaking API changes before production`,
+    title: `${SITE_NAME} — Third-party API change monitoring`,
     description: DEFAULT_DESCRIPTION,
     images: ["/twitter-image"],
   },

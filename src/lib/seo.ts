@@ -12,7 +12,7 @@ export const SITE_URL =
 export const SITE_NAME = "APIDiffGuard";
 
 export const DEFAULT_DESCRIPTION =
-  "Monitor API responses, detect schema drift, and catch breaking JSON changes before production. Free JSON Diff tools plus hosted API change monitoring.";
+  "Monitor the live responses of third-party APIs and catch breaking changes, like removed fields and type flips, even behind a 200 OK. MIT open source, CLI and cloud.";
 
 type BuildMetaInput = {
   title: string;
