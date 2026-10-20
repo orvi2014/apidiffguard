@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const SOCIAL_IMAGE_ALT =
-  "APIDiffGuard — Catch breaking API changes before production";
+  "APIDiffGuard — Third-party API change monitoring";
 export const SOCIAL_IMAGE_SIZE = { width: 1200, height: 630 };
 export const SOCIAL_IMAGE_TYPE = "image/png";
 
@@ -133,7 +133,7 @@ export function createSocialImage() {
                   letterSpacing: -1.2,
                 }}
               >
-                Catch breaking API changes before production
+                Third-party APIs change. Know before your users do.
               </div>
               <div
                 style={{

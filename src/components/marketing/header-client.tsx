@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 const navLinks = [
-  { href: "/#features", label: "Product" },
+  { href: "/#how", label: "Product" },
   { href: "/about", label: "About" },
   { href: "/tools", label: "Tools" },
   { href: "/blog", label: "Blog" },
