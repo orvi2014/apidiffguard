@@ -1,9 +1,13 @@
 import { ImageResponse } from "next/og";
+import { BRAND_INK, watchdogDataUri } from "@/lib/brand-mark";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-/** Apple touch / home-screen icon — Split mark. */
+/**
+ * Apple touch / home-screen icon — the Watchdog on an opaque dark tile. iOS
+ * applies its own corner mask, so the tile is square and full-bleed.
+ */
 export default function AppleIcon() {
   return new ImageResponse(
     (
@@ -14,32 +18,10 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#4F7FFF",
-          borderRadius: 40,
-          gap: 0,
-          paddingLeft: 28,
-          paddingRight: 28,
+          background: BRAND_INK,
         }}
       >
-        <div
-          style={{
-            width: 58,
-            height: 96,
-            borderRadius: 14,
-            background: "#fff",
-          }}
-        />
-        <div
-          style={{
-            width: 58,
-            height: 96,
-            borderRadius: 14,
-            background: "rgba(255,255,255,0.28)",
-            border: "5px solid #fff",
-            boxSizing: "border-box",
-            marginLeft: 0,
-          }}
-        />
+        <img src={watchdogDataUri()} width={148} height={148} alt="" />
       </div>
     ),
     { ...size }
