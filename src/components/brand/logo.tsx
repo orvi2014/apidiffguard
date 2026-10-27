@@ -8,7 +8,7 @@ type BrandLogoProps = {
   size?: number;
 };
 
-/** Official APIDiffGuard mark — Split (before/after panes) on accent tile. */
+/** Official APIDiffGuard mark — the Diff-eyed Watchdog (− and + eyes). */
 export function BrandLogo({
   className,
   withWordmark = false,

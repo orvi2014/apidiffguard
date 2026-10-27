@@ -1,9 +1,14 @@
 import { ImageResponse } from "next/og";
+import { BRAND_INK, watchdogDataUri } from "@/lib/brand-mark";
 
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
-/** Tab favicon — Split mark (before/after panes) on accent tile. */
+/**
+ * Tab favicon — the Watchdog on a dark tile. The mark alone is wider than it
+ * is tall and shrinks to a sliver at 16px; the tile gives it a solid,
+ * recognisable shape in light and dark tab strips alike.
+ */
 export default function Icon() {
   return new ImageResponse(
     (
@@ -14,32 +19,11 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#4F7FFF",
+          background: BRAND_INK,
           borderRadius: 8,
-          gap: 0,
-          paddingLeft: 5,
-          paddingRight: 5,
         }}
       >
-        <div
-          style={{
-            width: 11,
-            height: 18,
-            borderRadius: 2.5,
-            background: "#fff",
-          }}
-        />
-        <div
-          style={{
-            width: 11,
-            height: 18,
-            borderRadius: 2.5,
-            background: "rgba(255,255,255,0.28)",
-            border: "1.75px solid #fff",
-            marginLeft: 0,
-            boxSizing: "border-box",
-          }}
-        />
+        <img src={watchdogDataUri()} width={28} height={28} alt="" />
       </div>
     ),
     { ...size }

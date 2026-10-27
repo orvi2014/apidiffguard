@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
+import { watchdogDataUri } from "@/lib/brand-mark";
 
 export const SOCIAL_IMAGE_ALT =
-  "APIDiffGuard — Catch breaking API changes before production";
+  "APIDiffGuard — Third-party API change monitoring";
 export const SOCIAL_IMAGE_SIZE = { width: 1200, height: 630 };
 export const SOCIAL_IMAGE_TYPE = "image/png";
 
@@ -60,39 +61,8 @@ export function createSocialImage() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: "#4F7FFF",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 0,
-                paddingLeft: 8,
-                paddingRight: 8,
-              }}
-            >
-              <div
-                style={{
-                  width: 15,
-                  height: 28,
-                  borderRadius: 4,
-                  background: "#fff",
-                }}
-              />
-              <div
-                style={{
-                  width: 15,
-                  height: 28,
-                  borderRadius: 4,
-                  background: "rgba(255,255,255,0.28)",
-                  border: "2px solid #fff",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={watchdogDataUri()} width={52} height={52} alt="" />
             <div
               style={{
                 display: "flex",
@@ -126,14 +96,17 @@ export function createSocialImage() {
               <div
                 style={{
                   display: "flex",
-                  fontSize: 58,
+                  flexDirection: "column",
+                  fontSize: 50,
                   fontWeight: 700,
                   color: "#fafafa",
                   lineHeight: 1.08,
                   letterSpacing: -1.2,
                 }}
               >
-                Catch breaking API changes before production
+                {/* One sentence per line, as in the hero, so neither wraps. */}
+                <div style={{ display: "flex" }}>Third-party APIs change.</div>
+                <div style={{ display: "flex", color: "#a1a1aa" }}>Know before your users do.</div>
               </div>
               <div
                 style={{

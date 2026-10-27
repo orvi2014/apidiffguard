@@ -19,15 +19,17 @@ Third-party and internal APIs change shape without warning (removed fields, type
 
 ## Free vs Cloud
 - **Free tools** (no login): JSON Diff, Formatter, Validator at ${SITE_URL}/tools — run in the browser.
-- **Cloud**: Hosted auth, workspaces, baselines, checks, Diff Viewer, schedules (Starter+), and Slack/Discord/webhook alerts.
-- **Self-host**: MIT open-core at https://github.com/orvi2014/apidiffguard — you operate Supabase/Vercel yourself.
-- **Roadmap**: Public REST API (not available yet). CLI apidiff check works from packages/cli today.
+- **Cloud**: Hosted auth, workspaces, baselines, checks, Diff Viewer, hourly-to-monthly schedules (Starter+), and Slack, Discord, Mattermost, email and webhook alerts. Cloud reaches public endpoints only.
+- **Self-host**: MIT-licensed at https://github.com/orvi2014/apidiffguard — you operate Supabase/Vercel yourself. Self-hosting is how to monitor APIs behind a VPN.
+- **REST API**: Workspace tokens, endpoint create/list/read, diff list/read, and on-demand checks under /api/v1. Docs at ${SITE_URL}/docs/api, OpenAPI 3.1 spec at ${SITE_URL}/openapi.json.
+- **CLI**: npx @apidiffguard/cli check --baseline <file> --url <endpoint> --schema-only --fail-on breaking exits non-zero on breaking changes, for CI gates.
 
 ## Who it is for
 Backend and platform engineers, agencies integrating partner APIs (e.g. Stripe), and teams that want scheduled response-contract monitoring.
 
 ## How it differs from alternatives
-- Not only a status ping: it compares response *shape*.
+- Not only a status ping: it compares response *shape*, so a 200 OK with a missing field is still caught.
+- Not a spec diff: OpenAPI diff tools such as oasdiff compare two spec files; APIDiffGuard compares live responses, so it works for vendors with no spec or a spec that has drifted from production.
 - Not only a static JSON diff: it stores baselines and re-runs against live URLs.
 - Diff engine is reusable as @apidiffguard/diff (MIT).
 

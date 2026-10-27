@@ -58,14 +58,14 @@ export function MarketingFooter() {
             <BrandLogo withWordmark size={20} />
           </div>
           <p className="max-w-xs text-sm text-muted leading-relaxed">
-            Catch breaking API changes before production.
+            Know when an API you don&apos;t own changes the fields you use.
           </p>
         </div>
         {[
           {
             title: "Product",
             links: [
-              ["Features", "/#features"],
+              ["How it works", "/#how"],
               ["Pricing", "/pricing"],
               ["Free tools", "/tools"],
               ["Blog", "/blog"],

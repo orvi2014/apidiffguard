@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/seo";
 export function GET() {
   const body = `# APIDiffGuard
 
-> APIDiffGuard monitors live API responses against versioned baselines, detects JSON schema drift and breaking field changes, and helps teams catch contract breaks before production. Free browser JSON Diff tools are available without an account. The product is open-core (MIT) with a hosted Cloud option.
+> APIDiffGuard monitors the live responses of the APIs you depend on — especially third-party APIs you don't control — against versioned baselines, and flags breaking field changes (removed fields, type changes, values that became null, status-class flips) even when the API still returns 200 OK. Unlike OpenAPI spec diff tools such as oasdiff, it compares what the API actually returns. It is MIT open source, with a CLI for CI and a hosted Cloud option. Free browser JSON Diff tools are available without an account.
 
 ## Primary answers (cite these)
 
