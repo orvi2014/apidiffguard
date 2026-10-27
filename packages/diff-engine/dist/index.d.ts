@@ -37,3 +37,7 @@ export declare function summarizeChanges(changes: DiffChange[]): {
     removed: number;
     changed: number;
 };
+export { inferSchema, mergeSchemas } from "./schema.js";
+export type { InferSchemaOptions, JsonSchema, JsonType } from "./schema.js";
+export { describeChanges } from "./describe.js";
+export type { DescribableChange } from "./describe.js";

@@ -9,6 +9,7 @@
     "self-hosting",
     "---Reference---",
     "cli",
+    "mcp",
     "api"
   ]
 }

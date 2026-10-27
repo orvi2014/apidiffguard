@@ -13,6 +13,7 @@
  * because that is the convention everywhere else in HTTP.
  */
 
+import { describeChanges } from "@/lib/agent-readable";
 import type { DiffChange } from "@/lib/types";
 
 function lower(value: unknown, fallback: string): string {
@@ -83,6 +84,10 @@ export function serializeDiffSummary(row: DiffRow) {
     warningCount: (row.warning_count as number) ?? 0,
     infoCount: (row.info_count as number) ?? 0,
     changeCount: changes.length,
+    // One sentence a person or an agent can act on without walking `changes`.
+    overview: describeChanges(
+      changes.map(normalizeChange).filter((c): c is DiffChange => c !== null)
+    ),
   };
 }
 

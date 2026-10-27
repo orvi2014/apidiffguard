@@ -1,0 +1,84 @@
+---
+title: MCP server
+description: Give coding agents the live shape of the APIs they call, and what changed.
+lastModified: "2026-10-28"
+---
+
+`@apidiffguard/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server. It lets a coding agent such as Claude Code, Cursor, or Windsurf see what an API actually returns before it writes code against it, and check whether that is still true later.
+
+An agent writing an integration usually works from the vendor's docs, or from its training data, which is older. Both drift from production. With this server, it calls the endpoint, reads the real response shape, and codes against that.
+
+## Install
+
+The server runs over stdio with `npx`, so there is nothing to install globally.
+
+**Claude Code**
+
+```bash
+claude mcp add apidiffguard -- npx -y @apidiffguard/mcp
+```
+
+**Cursor, Windsurf, Claude Desktop, and other clients** — add it to the client's MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "apidiffguard": {
+      "command": "npx",
+      "args": ["-y", "@apidiffguard/mcp"],
+      "env": { "APIDIFFGUARD_TOKEN": "adg_live_…" }
+    }
+  }
+}
+```
+
+Leave out `env` to use only the local tools. Requires Node.js 18 or later.
+
+## Local tools — no account
+
+These run on your machine. Requests go straight from your machine to the API you name; nothing passes through APIDiffGuard.
+
+| Tool | What it does |
+| --- | --- |
+| `snapshot_api` | Calls a URL and returns the response's shape as JSON Schema: field names, types, which fields are always present, and string formats such as `date-time` and `email`. Values are left out unless you ask for a sample. |
+| `diff_json` | Compares two JSON documents and classifies every change as breaking, warning, or info, with the same engine as the [CLI](/docs/cli). |
+| `check_url` | Calls a URL and diffs the response against a saved baseline, inline or from a file. Returns `passed: false` at or above a severity threshold. |
+
+Because `snapshot_api` runs where the agent runs, it can reach `localhost` and private networks. That is what makes it useful for your own services too.
+
+## Workspace tools — with a token
+
+Set `APIDIFFGUARD_TOKEN` to a workspace token from **Settings → API tokens**, and the server adds tools for the endpoints your workspace monitors. They call the [REST API](/docs/api), so a token's scopes decide what the agent can do.
+
+| Tool | Scope | What it does |
+| --- | --- | --- |
+| `list_endpoints` | `endpoints:read` | Monitored endpoints with health, filterable by `breaking` |
+| `get_endpoint` | `endpoints:read` | One endpoint and its latest diff |
+| `get_endpoint_schema` | `endpoints:read` | The current baseline's shape, as JSON Schema |
+| `list_diffs` | `endpoints:read` | Recent changes, each with a one-line overview |
+| `get_diff` | `endpoints:read` | Every change in one diff |
+| `run_check` | `checks:run` | Check an endpoint now; uses quota and can fire alerts |
+| `add_endpoint` | `endpoints:write` | Start monitoring an endpoint, with credentials and a schedule |
+| `accept_diff` | `baselines:write` | Make the new response the baseline, so the change stops being reported |
+
+Tools are registered only when a token is set, so an agent without one is not offered tools that can only fail.
+
+The default token scopes, `endpoints:read` and `checks:run`, are enough for an agent to find a break, read it, and fix the calling code. Grant `baselines:write` only if you want the agent to accept changes itself. The server marks `accept_diff` as destructive, so clients that ask before destructive actions will ask you first.
+
+### Self-hosted instances
+
+Point the server at your own deployment with `APIDIFFGUARD_URL`:
+
+```json
+"env": {
+  "APIDIFFGUARD_TOKEN": "adg_live_…",
+  "APIDIFFGUARD_URL": "https://apidiffguard.internal.example.com"
+}
+```
+
+## What to ask your agent
+
+- "Snapshot `https://api.vendor.com/v2/orders` with my API key and write TypeScript types for it."
+- "Which monitored endpoints are breaking? Read the diff and fix the code that calls the broken one."
+- "Save today's response from the billing API to `fixtures/billing.json`, then check it again before each release."
+- "Start monitoring every third-party URL this service calls, daily."

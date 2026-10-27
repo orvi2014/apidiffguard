@@ -24,7 +24,7 @@ const SCOPE_OPTIONS: Array<{ value: ApiScope; label: string; hint: string }> = [
   {
     value: "endpoints:read",
     label: "Read endpoints",
-    hint: "List and inspect endpoint configuration.",
+    hint: "List endpoints, their response schemas, and diffs.",
   },
   {
     value: "endpoints:write",
@@ -39,7 +39,7 @@ const SCOPE_OPTIONS: Array<{ value: ApiScope; label: string; hint: string }> = [
   {
     value: "baselines:write",
     label: "Write baselines",
-    hint: "Promote a response to the active baseline.",
+    hint: "Accept a diff as the new baseline, so that change stops being reported.",
   },
 ];
 
