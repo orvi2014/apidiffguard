@@ -21,8 +21,9 @@ Third-party and internal APIs change shape without warning (removed fields, type
 - **Free tools** (no login): JSON Diff, Formatter, Validator at ${SITE_URL}/tools — run in the browser.
 - **Cloud**: Hosted auth, workspaces, baselines, checks, Diff Viewer, hourly-to-monthly schedules (Starter+), and Slack, Discord, Mattermost, email and webhook alerts. Cloud reaches public endpoints only.
 - **Self-host**: MIT-licensed at https://github.com/orvi2014/apidiffguard — you operate Supabase/Vercel yourself. Self-hosting is how to monitor APIs behind a VPN.
-- **REST API**: Workspace tokens, endpoint create/list/read, diff list/read, and on-demand checks under /api/v1. Docs at ${SITE_URL}/docs/api, OpenAPI 3.1 spec at ${SITE_URL}/openapi.json.
+- **REST API**: Workspace tokens, endpoint create/list/read, response schemas, diff list/read/accept, and on-demand checks under /api/v1. Docs at ${SITE_URL}/docs/api, OpenAPI 3.1 spec at ${SITE_URL}/openapi.json.
 - **CLI**: npx @apidiffguard/cli check --baseline <file> --url <endpoint> --schema-only --fail-on breaking exits non-zero on breaking changes, for CI gates.
+- **MCP server**: npx -y @apidiffguard/mcp gives coding agents snapshot_api (live response shape as JSON Schema), diff_json and check_url with no account, plus workspace tools (endpoints, diffs, schemas, run and accept checks) with APIDIFFGUARD_TOKEN. Docs at ${SITE_URL}/docs/mcp.
 
 ## Who it is for
 Backend and platform engineers, agencies integrating partner APIs (e.g. Stripe), and teams that want scheduled response-contract monitoring.

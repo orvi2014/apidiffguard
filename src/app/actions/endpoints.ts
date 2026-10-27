@@ -18,8 +18,8 @@ import {
   requestBodyFromEndpoint,
 } from "@/lib/endpoint-auth";
 import { runHttpCheck } from "@/lib/http-check";
-import { hydrateResponseBody } from "@/lib/response-body-store";
 import { runEndpointCheck } from "@/lib/run-endpoint-check";
+import { acceptDiff } from "@/lib/accept-diff";
 import { activateBaseline, promoteBaseline } from "@/lib/baselines";
 import { parseAndAssertPublicUrl } from "@/lib/safe-url";
 import {
@@ -69,73 +69,14 @@ export async function acceptDiffAsBaseline(diffId: string) {
   }
 
   const supabase = await createClient();
-  const { data: diff } = await supabase
-    .from("diffs")
-    .select("id, endpoint_id, check_id, endpoints!inner(workspace_id)")
-    .eq("id", diffId)
-    .single();
-
-  if (!diff) return { error: "Diff not found." };
-  const endpoint = Array.isArray(diff.endpoints)
-    ? diff.endpoints[0]
-    : diff.endpoints;
-  if (!endpoint || endpoint.workspace_id !== ctx.workspaceId) {
-    return { error: "Diff not found." };
-  }
-  if (!diff.check_id) return { error: "Check for this diff was not found." };
-
-  const { data: check } = await supabase
-    .from("checks")
-    .select("body, body_ref, status_code, headers, response_time, content_size")
-    .eq("id", diff.check_id)
-    .single();
-
-  if (!check) return { error: "Check for this diff was not found." };
-
-  // A large body lives in object storage, so accepting a diff has to fetch the
-  // real content before promoting it to a baseline.
-  const checkBody = await hydrateResponseBody(check);
-
-  const promoted = await promoteBaseline(supabase, {
-    endpointId: diff.endpoint_id,
-    body: checkBody,
-    statusCode: check.status_code,
-    headers: check.headers ?? {},
-    responseTime: check.response_time ?? 0,
-    contentSize: check.content_size ?? 0,
-    notes: "Accepted from diff",
-    approved: true,
+  const result = await acceptDiff(supabase, {
+    diffId,
+    workspaceId: ctx.workspaceId,
   });
-
-  if ("error" in promoted) return { error: promoted.error };
-  const version = promoted.version;
-
-  await supabase
-    .from("diffs")
-    .update({ accepted: true })
-    .eq("id", diffId);
-
-  await supabase
-    .from("endpoints")
-    .update({
-      health: "HEALTHY",
-      baseline_version: version,
-      last_checked_at: new Date().toISOString(),
-      breaking_count: 0,
-      warning_count: 0,
-    })
-    .eq("id", diff.endpoint_id);
-
-  await supabase.from("activities").insert({
-    type: "baseline_accepted",
-    title: "Baseline accepted",
-    description: "Diff response promoted to active baseline",
-    workspace_id: ctx.workspaceId,
-    endpoint_id: diff.endpoint_id,
-  });
+  if ("error" in result) return { error: result.error };
 
   revalidatePath(`/diff/${diffId}`);
-  revalidatePath(`/endpoints/${diff.endpoint_id}`);
+  revalidatePath(`/endpoints/${result.endpointId}`);
   revalidatePath("/dashboard");
   revalidatePath("/diffs");
   return { ok: true as const };

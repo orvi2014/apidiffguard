@@ -1,0 +1,71 @@
+# Lint, typecheck, and test every pull request and push to main.
+# The production build is not repeated here: Vercel builds every PR as a
+# preview deployment, with the real environment, and reports it as a check.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit -p .
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+
+  packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: packages/*/package-lock.json
+      - name: Build the diff engine
+        run: |
+          npm ci --prefix packages/diff-engine
+          npm run build --prefix packages/diff-engine
+      # dist/ is committed so the CLI and MCP server can install the engine
+      # from git; a stale build would ship code that does not match src/.
+      - name: Check the committed diff engine build is current
+        run: git diff --exit-code -- packages/diff-engine/dist
+      # Install the engine from this checkout rather than npm, so a change to
+      # both packages is tested together before either is published.
+      - name: MCP server tests
+        working-directory: packages/mcp
+        run: |
+          npm install --no-save --no-package-lock --install-links ../diff-engine
+          npm test
+      - name: CLI smoke test
+        working-directory: packages/cli
+        run: |
+          npm install --no-save --no-package-lock --install-links ../diff-engine
+          echo '{"id":1,"name":"a"}' > /tmp/base.json
+          echo '{"id":"1"}' > /tmp/cur.json
+          node bin/apidiff.js check --baseline /tmp/base.json --current /tmp/base.json
+          if node bin/apidiff.js check --baseline /tmp/base.json --current /tmp/cur.json; then
+            echo "expected a breaking change to fail the check" >&2
+            exit 1
+          fi

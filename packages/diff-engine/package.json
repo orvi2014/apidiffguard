@@ -1,6 +1,6 @@
 {
   "name": "@apidiffguard/diff",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "JSON / API response diff engine used by APIDiffGuard — detect added, removed, and breaking field changes.",
   "type": "module",
   "main": "./dist/index.js",

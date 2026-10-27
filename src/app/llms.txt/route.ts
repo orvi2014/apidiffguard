@@ -34,6 +34,7 @@ export function GET() {
 
 - Full fact sheet: ${SITE_URL}/llms-full.txt
 - REST API reference: ${SITE_URL}/docs/api
+- MCP server for coding agents: ${SITE_URL}/docs/mcp
 - OpenAPI 3.1 spec: ${SITE_URL}/openapi.json
 - Open source: https://github.com/orvi2014/apidiffguard
 - Sitemap: ${SITE_URL}/sitemap.xml

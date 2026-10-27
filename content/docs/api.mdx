@@ -1,7 +1,7 @@
 ---
 title: REST API
 description: Read your endpoints and diffs, and run checks, with a workspace API token.
-lastModified: "2026-08-29"
+lastModified: "2026-10-28"
 ---
 
 The REST API exposes what the console shows: which endpoints you monitor, how healthy they are, and what changed when a response drifted from its baseline.
@@ -22,14 +22,14 @@ Tokens are shown once at creation and stored as SHA-256 hashes. Every request is
 
 | Scope | Grants |
 | --- | --- |
-| `endpoints:read` | `GET /endpoints`, `GET /endpoints/:id`, `GET /diffs`, `GET /diffs/:id` |
+| `endpoints:read` | `GET /endpoints`, `GET /endpoints/:id`, `GET /endpoints/:id/schema`, `GET /diffs`, `GET /diffs/:id` |
 | `endpoints:write` | `POST /endpoints` |
 | `checks:run` | `POST /endpoints/:id/check` |
-| `baselines:write` | Reserved — no route consumes it yet |
+| `baselines:write` | `POST /diffs/:id/accept` |
 
 A token without the required scope gets `403` with the scope named in the error, so a caller can tell a permission problem from a missing resource.
 
-`endpoints:write` is off by default. It is the only scope that can store credentials, so grant it deliberately.
+`endpoints:write` is off by default. It is the only scope that can store credentials, so grant it deliberately. `baselines:write` is off by default too: accepting a diff silences that change for good.
 
 ### Conventions
 
@@ -120,6 +120,48 @@ curl "https://apidiffguard.com/api/v1/endpoints/$ENDPOINT_ID" \
 
 Returns the endpoint plus a `latestDiff` summary — `null` if it has never produced one — so "is this endpoint drifting, and what was the last damage" is a single call.
 
+## Get an endpoint's response schema
+
+```bash
+curl "https://apidiffguard.com/api/v1/endpoints/$ENDPOINT_ID/schema" \
+  -H "Authorization: Bearer adg_live_…"
+```
+
+```json
+{
+  "endpointId": "…",
+  "name": "List Users",
+  "method": "GET",
+  "url": "https://api.example.com/v1/users",
+  "baselineVersion": 3,
+  "capturedAt": "2026-10-20T08:00:11.402Z",
+  "statusCode": 200,
+  "contentType": "application/json",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "integer" },
+            "email": { "type": "string", "format": "email" },
+            "nickname": { "type": ["string", "null"] }
+          },
+          "required": ["id", "email"]
+        }
+      }
+    },
+    "required": ["data"]
+  }
+}
+```
+
+The shape of the active baseline as JSON Schema: what the API returns today, for writing code or types against, rather than what its docs say. Array items are merged, so a field missing from some rows is optional and a field that is sometimes `null` says so. Strings that look like a `date-time`, `date`, `uuid`, `email`, or `uri` carry that `format`.
+
+Values are never included, only types and field names. `404` means the endpoint does not exist or has no baseline yet.
+
 ## List diffs
 
 ```bash
@@ -148,6 +190,7 @@ curl "https://apidiffguard.com/api/v1/diffs/$DIFF_ID" \
     "warningCount": 0,
     "infoCount": 0,
     "changeCount": 1,
+    "overview": "1 breaking. data.users[id=1].email removed [breaking].",
     "changes": [
       {
         "id": "…",
@@ -164,6 +207,21 @@ curl "https://apidiffguard.com/api/v1/diffs/$DIFF_ID" \
 Object arrays are keyed by identity where the items carry a stable key, so `data.users[id=1]` survives reordering instead of reporting every row as changed.
 
 Response bodies are not included. They can be large and are the part most likely to carry customer data; the change list carries the meaning.
+
+Every diff, in the list and here, has an `overview`: the counts, then the most severe changes, in one line. It is written for a notification or an agent deciding whether to read `changes` at all.
+
+## Accept a diff as the new baseline
+
+```bash
+curl -X POST "https://apidiffguard.com/api/v1/diffs/$DIFF_ID/accept" \
+  -H "Authorization: Bearer adg_live_…"
+```
+
+```json
+{ "accepted": true, "diffId": "…", "endpointId": "…", "baselineVersion": 4 }
+```
+
+The response behind the diff becomes the endpoint's baseline, and the endpoint goes back to healthy. This is the API form of **Accept as baseline** in the Diff Viewer: use it once a vendor change is understood and your code handles it, because the same change will not be reported again. Requires `baselines:write` and an editor role; rate-limited to 30 requests per minute.
 
 ## Run a check
 
@@ -196,6 +254,7 @@ Every failure returns `{ "error": "…" }` with a status:
 | `401` | No valid token or session |
 | `403` | Token lacks the scope, or the role cannot run checks |
 | `404` | No such resource **in this workspace** |
+| `409` | The check behind a diff no longer exists, so it cannot be accepted |
 | `429` | Rate limited — see `Retry-After` |
 
 ## Other surfaces
@@ -203,5 +262,6 @@ Every failure returns `{ "error": "…" }` with a status:
 | Surface | Notes |
 | --- | --- |
 | CLI | Offline / CI JSON gates — see [CLI](/docs/cli) |
+| MCP server | This API as tools for coding agents — see [MCP server](/docs/mcp) |
 | `POST /api/check` | Signed-in one-off URL probe (session cookie) |
 | `POST /api/openapi/parse` | OpenAPI parse for import |

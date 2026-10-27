@@ -346,7 +346,7 @@
             }
           },
           "400": {
-            "description": "The check could not run \u2014 no baseline captured yet, or the monthly quota is exhausted.",
+            "description": "The check could not run — no baseline captured yet, or the monthly quota is exhausted.",
             "content": {
               "application/json": {
                 "schema": {
@@ -512,6 +512,131 @@
           }
         }
       }
+    },
+    "/api/v1/endpoints/{id}/schema": {
+      "get": {
+        "operationId": "getEndpointSchema",
+        "summary": "Get the response schema of an endpoint",
+        "description": "Returns the shape of the endpoint's active baseline as JSON Schema — the response as it actually is, for writing code against. Requires the `endpoints:read` scope.\n\nThe baseline body itself is never returned. A `404` means the endpoint does not exist or has no baseline yet.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Endpoint id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The inferred schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndpointSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/diffs/{id}/accept": {
+      "post": {
+        "operationId": "acceptDiff",
+        "summary": "Accept a diff as the new baseline",
+        "description": "Promotes the response behind this diff to the endpoint's active baseline, so the same change is not reported again. Use it once a change is understood and the calling code handles it. Requires the `baselines:write` scope, which is off by default, and an editor role.",
+        "tags": [
+          "Diffs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Diff id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The diff was accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "accepted",
+                    "diffId",
+                    "endpointId",
+                    "baselineVersion"
+                  ],
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "diffId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "endpointId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "baselineVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "409": {
+            "description": "The check behind this diff no longer exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -519,7 +644,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "A workspace API token from Settings \u2192 Tokens, in the form `adg_live_\u2026`. Tokens are shown once at creation and stored as SHA-256 hashes. Each token carries scopes: `endpoints:read`, `endpoints:write`, `checks:run`, `baselines:write`."
+        "description": "A workspace API token from Settings → Tokens, in the form `adg_live_…`. Tokens are shown once at creation and stored as SHA-256 hashes. Each token carries scopes: `endpoints:read`, `endpoints:write`, `checks:run`, `baselines:write`."
       }
     },
     "parameters": {
@@ -848,7 +973,8 @@
           "breakingCount",
           "warningCount",
           "infoCount",
-          "changeCount"
+          "changeCount",
+          "overview"
         ],
         "properties": {
           "id": {
@@ -890,6 +1016,10 @@
           },
           "changeCount": {
             "type": "integer"
+          },
+          "overview": {
+            "type": "string",
+            "description": "A plain-text account of the diff: counts, then the most severe changes. Values are left out. Example: `2 breaking, 1 info. data.name removed [breaking]; data.id changed type number → string [breaking]; data.full_name added [info].`"
           }
         }
       },
@@ -1100,6 +1230,55 @@
                 ]
               }
             }
+          }
+        }
+      },
+      "EndpointSchema": {
+        "type": "object",
+        "required": [
+          "endpointId",
+          "name",
+          "method",
+          "url",
+          "baselineVersion",
+          "capturedAt",
+          "statusCode",
+          "schema"
+        ],
+        "properties": {
+          "endpointId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "baselineVersion": {
+            "type": "integer"
+          },
+          "capturedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusCode": {
+            "type": "integer"
+          },
+          "contentType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema inferred from the active baseline's body. Types, field names, required fields and string formats (date-time, date, uuid, email, uri) — never values. Fields absent from some array items are optional."
           }
         }
       }

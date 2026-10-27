@@ -247,3 +247,5 @@ export function summarizeChanges(changes) {
             c.type === "contract_violation").length,
     };
 }
+export { inferSchema, mergeSchemas } from "./schema.js";
+export { describeChanges } from "./describe.js";
