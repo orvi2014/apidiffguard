@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generated output — fumadocs-mdx writes .source/, tsc writes packages/*/dist.
     ".source/**",
+    // Agent worktrees are full checkouts, each with its own generated .source/.
+    ".claude/**",
     "packages/*/dist/**",
     "test-results/**",
     "packages/*/test-results/**",

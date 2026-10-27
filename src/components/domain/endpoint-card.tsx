@@ -63,7 +63,7 @@ export function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
   return (
     <Link
       href={`/endpoints/${endpoint.id}`}
-      className="block border-b border-border-subtle px-4 py-4 transition-colors hover:bg-surface cursor-pointer"
+      className="block border-b border-border-subtle px-4 py-4 transition-colors hover:bg-surface cursor-pointer sm:px-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">

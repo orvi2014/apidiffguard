@@ -55,7 +55,7 @@ export default function ToolsIndexPage() {
             <Link
               key={tool.href}
               href={tool.href}
-              className="rounded-lg border border-border bg-surface p-6 transition-colors hover:border-[#3f3f46]"
+              className="rounded-lg border border-border bg-surface p-6 transition-colors hover:border-border-strong"
             >
               <tool.icon className="size-5 text-accent" strokeWidth={1.5} />
               <h2 className="mt-4 text-base font-medium">{tool.title}</h2>

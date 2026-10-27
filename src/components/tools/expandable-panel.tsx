@@ -8,24 +8,19 @@ import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { useHydrated } from "@/lib/use-hydrated";
 
-/** Hook: Esc to collapse + lock body scroll while expanded. */
-export function useExpandOverlay(expanded: boolean, onCollapse: () => void) {
+/**
+ * Lock body scroll while an overlay is expanded. Escape is handled by
+ * `useFocusTrap`, which every overlay here also runs.
+ */
+export function useExpandOverlay(expanded: boolean) {
   React.useEffect(() => {
     if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onCollapse();
-      }
-    };
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKey);
     };
-  }, [expanded, onCollapse]);
+  }, [expanded]);
 }
 
 export function ExpandToggleButton({
@@ -42,7 +37,7 @@ export function ExpandToggleButton({
       type="button"
       size="sm"
       variant="ghost"
-      className="h-7 px-2 text-xs"
+      className="h-8 px-2 text-xs"
       onClick={onToggle}
       aria-expanded={expanded}
       aria-label={expanded ? "Exit expanded view" : `${label} to full screen`}
@@ -79,7 +74,7 @@ export function ExpandablePanel({
   const mounted = useHydrated();
   const collapse = React.useCallback(() => setExpanded(false), []);
   const overlayRef = React.useRef<HTMLDivElement>(null);
-  useExpandOverlay(expanded, collapse);
+  useExpandOverlay(expanded);
   useFocusTrap(overlayRef, mounted && expanded, collapse);
 
   const header = (
@@ -154,7 +149,7 @@ export function ExpandOverlayShell({
 }) {
   const mounted = useHydrated();
   const overlayRef = React.useRef<HTMLDivElement>(null);
-  useExpandOverlay(true, onClose);
+  useExpandOverlay(true);
   // Declaring aria-modal without containing Tab strands keyboard users behind
   // the overlay, in the page they cannot see.
   useFocusTrap(overlayRef, mounted, onClose);

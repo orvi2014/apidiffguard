@@ -47,6 +47,9 @@
   --surface: #111113;
   --surface-elevated: #18181b;
   --border-subtle: #1f1f23;
+  /* The hover step for a hairline: one tone up from --border. It was written
+     as a literal #3f3f46 in half a dozen hover states. */
+  --border-strong: #3f3f46;
   --accent-muted: rgba(79, 127, 255, 0.12);
   --success: #22c55e;
   --success-muted: rgba(34, 197, 94, 0.12);
@@ -92,6 +95,7 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -145,7 +149,6 @@
   --color-card: var(--card);
   --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
   --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
-  --animate-shine: shine var(--duration) infinite linear;
   --animate-shiny-text: shiny-text 8s infinite;
 
   @keyframes shimmer-slide {
@@ -167,17 +170,6 @@
     }
     100% {
       transform: translateZ(0) rotate(360deg);
-    }
-  }
-  @keyframes shine {
-    0% {
-      background-position: 0% 0%;
-    }
-    50% {
-      background-position: 100% 100%;
-    }
-    to {
-      background-position: 0% 0%;
     }
   }
   @keyframes shiny-text {
@@ -235,7 +227,7 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3f3f46 transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -244,7 +236,7 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: var(--border-strong);
   border-radius: 4px;
 }
 

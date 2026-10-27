@@ -27,7 +27,7 @@ async function signIn(page: Page) {
 test.describe("console surfaces", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("dashboard overview controls and quick actions", async ({ page }) => {
+  test("dashboard overview controls", async ({ page }) => {
     const creds = await signIn(page);
     await page.goto("/dashboard");
 
@@ -42,7 +42,6 @@ test.describe("console surfaces", () => {
     await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Endpoints" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Quick actions" })).toBeVisible();
 
     await expect(page.getByRole("link", { name: /^Endpoint$/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Import OpenAPI/i }).first()).toBeVisible();

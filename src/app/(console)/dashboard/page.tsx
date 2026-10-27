@@ -1,21 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  FileJson,
-  GitCompare,
-  Play,
-  Plus,
-  Shield,
-  Webhook,
-} from "lucide-react";
+import { FileJson, Plus, Webhook } from "lucide-react";
 import {
   ActivityFeed,
   EmptyState,
-  MetricStrip,
+  MetricReadout,
 } from "@/components/domain/activity";
 import { PageHeader } from "@/components/layout/page-header";
 import { EndpointCard } from "@/components/domain/endpoint-card";
-import { DriftAttentionCard } from "@/components/domain/drift-attention-card";
 import { Button } from "@/components/ui/button";
 import { canEditWorkspace } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
@@ -50,9 +42,7 @@ export default async function DashboardPage() {
         .limit(12),
       supabase
         .from("diffs")
-        .select(
-          "id, breaking_count, warning_count, created_at, endpoint_id, endpoints!inner(name, baseline_version, workspace_id)"
-        )
+        .select("id, endpoints!inner(workspace_id)")
         .eq("endpoints.workspace_id", ctx.workspaceId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -71,7 +61,15 @@ export default async function DashboardPage() {
   const healthy = endpoints.filter((e) => e.health === "healthy").length;
   const breaking = endpoints.filter((e) => e.health === "breaking").length;
   const warnings = endpoints.filter((e) => e.health === "warning").length;
-  const lastChecked = endpoints.find((e) => e.lastCheckedAt)?.lastCheckedAt;
+  // Endpoints arrive ordered by last edit, not last check, so the first one
+  // with a timestamp was not necessarily the most recent check.
+  const lastChecked = endpoints.reduce<string | undefined>(
+    (latest, e) =>
+      e.lastCheckedAt && (!latest || e.lastCheckedAt > latest)
+        ? e.lastCheckedAt
+        : latest,
+    undefined
+  );
 
   const activities: ActivityItem[] =
     activityRows?.map((a) => ({
@@ -89,22 +87,6 @@ export default async function DashboardPage() {
           : undefined,
     })) ?? [];
 
-  const endpointRel = latestDiff?.endpoints;
-  const endpointName = Array.isArray(endpointRel)
-    ? endpointRel[0]?.name
-    : endpointRel && typeof endpointRel === "object" && "name" in endpointRel
-      ? String((endpointRel as { name: string }).name)
-      : "Endpoint";
-  const baselineVersion = Array.isArray(endpointRel)
-    ? endpointRel[0]?.baseline_version
-    : endpointRel &&
-        typeof endpointRel === "object" &&
-        "baseline_version" in endpointRel
-      ? (endpointRel as { baseline_version: number | null }).baseline_version
-      : null;
-
-  const primaryEndpoint = endpoints[0];
-
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <div className="min-w-0 flex-1">
@@ -121,55 +103,64 @@ export default async function DashboardPage() {
           actions={
             /* On a first-run workspace the empty state below states the same
                two actions. Offering them twice in one viewport is the same
-               defect this page already had between its two list sections. */
-            endpoints.length === 0 ? undefined : (
+               defect this page already had between its two list sections.
+               "Open endpoint" used to sit here too, pointing at whichever
+               endpoint was edited last — a primary action with no subject. */
+            endpoints.length === 0 || !canEdit ? undefined : (
               <>
-                {canEdit ? (
-                  <>
-                    <Link href="/endpoints/new">
-                      <Button size="sm" variant="secondary" className="gap-1.5">
-                        <Plus className="size-3.5" />
-                        Endpoint
-                      </Button>
-                    </Link>
-                    <Link href="/endpoints/import">
-                      <Button size="sm" variant="secondary" className="gap-1.5">
-                        <FileJson className="size-3.5" />
-                        Import OpenAPI
-                      </Button>
-                    </Link>
-                  </>
-                ) : null}
-                {primaryEndpoint ? (
-                  <Link href={`/endpoints/${primaryEndpoint.id}`}>
-                    <Button size="sm" className="gap-1.5">
-                      <Play className="size-3.5" />
-                      Open endpoint
-                    </Button>
+                <Button asChild size="sm" variant="secondary" className="gap-1.5">
+                  <Link href="/endpoints/new">
+                    <Plus className="size-3.5" aria-hidden />
+                    Endpoint
                   </Link>
-                ) : null}
+                </Button>
+                <Button asChild size="sm" variant="secondary" className="gap-1.5">
+                  <Link href="/endpoints/import">
+                    <FileJson className="size-3.5" aria-hidden />
+                    Import OpenAPI
+                  </Link>
+                </Button>
               </>
             )
           }
-        />
+        >
+          {/* Counts of nothing are not a measurement: before the first endpoint
+              exists the readout would say 0 · 0 · 0 · 0.
 
-        {/* Counts of nothing are not a measurement. Before the first endpoint
-            exists the strip would read 0 · 0 · 0 · 0 across the widest band on
-            the page. */}
-        {endpoints.length > 0 ? (
-          <MetricStrip
-            items={[
-              { label: "Healthy", value: healthy, tone: "text-success" },
-              { label: "Breaking", value: breaking, tone: "text-danger" },
-              { label: "Warnings", value: warnings, tone: "text-warning" },
-              {
-                label: "Checks today",
-                value: checksToday ?? 0,
-                tone: "text-foreground",
-              },
-            ]}
-          />
-        ) : null}
+              These four numbers used to be a band of large tiles — the loudest
+              thing on the page and ~340px of a phone screen before the first
+              endpoint that needs attention. State is one line of the header;
+              the list below is where the work is. */}
+          {endpoints.length > 0 ? (
+            <MetricReadout
+              items={[
+                /* A status colour is a reading. "0" in red announces a break
+                   that does not exist, so a count only takes its colour when
+                   there is something to count. */
+                {
+                  label: "Healthy",
+                  value: healthy,
+                  tone: healthy > 0 ? "text-success" : "text-muted",
+                },
+                {
+                  label: "Breaking",
+                  value: breaking,
+                  tone: breaking > 0 ? "text-danger" : "text-muted",
+                },
+                {
+                  label: "Warnings",
+                  value: warnings,
+                  tone: warnings > 0 ? "text-warning" : "text-muted",
+                },
+                {
+                  label: "Checks today",
+                  value: checksToday ?? 0,
+                  tone: "text-foreground",
+                },
+              ]}
+            />
+          ) : null}
+        </PageHeader>
 
         {endpoints.length === 0 ? (
           /* A first-run workspace used to get three grey sentences spread over
@@ -197,8 +188,13 @@ export default async function DashboardPage() {
           />
         ) : (
           <>
-            <section className="border-b border-border px-5 py-6">
-              <div className="flex items-center justify-between">
+            {/* Every block shares the page header's edge (16px, 20px from sm).
+                Lists run full-bleed like the header rules; each row owns its
+                bottom hairline, so the wrapper only draws the top one — and the
+                last row's hairline closes the section. A section rule after
+                24px of padding drew two lines around an empty band. */}
+            <section className="pt-6">
+              <div className="flex items-center justify-between px-4 sm:px-5">
                 <h2 className="text-sm font-medium">Needs attention</h2>
                 {latestDiff ? (
                   <Link
@@ -210,21 +206,11 @@ export default async function DashboardPage() {
                 ) : null}
               </div>
 
-              {latestDiff &&
-              (latestDiff.breaking_count > 0 ||
-                latestDiff.warning_count > 0) ? (
-                <DriftAttentionCard
-                  href={`/diff/${latestDiff.id}`}
-                  endpointName={endpointName}
-                  breakingCount={latestDiff.breaking_count}
-                  warningCount={latestDiff.warning_count}
-                  baselineVersion={baselineVersion}
-                  createdAt={latestDiff.created_at}
-                />
-              ) : null}
-
+              {/* The latest diff used to get its own animated card here, naming
+                  an endpoint that the list below repeated with the same counts.
+                  The list carries the counts; the link above opens the diff. */}
               {drifting.length > 0 ? (
-                <div className="mt-3 divide-y divide-border-subtle border-y border-border-subtle">
+                <div className="mt-3 border-t border-border-subtle">
                   {drifting.map((e) => (
                     <EndpointCard key={e.id} endpoint={e} />
                   ))}
@@ -232,7 +218,7 @@ export default async function DashboardPage() {
               ) : (
                 /* Matching the baseline is a result, not an absence. It gets
                    the success voice rather than the same grey as "no data". */
-                <p className="mt-4 flex items-center gap-2 text-sm text-muted">
+                <p className="mt-3 flex items-center gap-2 border-b border-border-subtle px-4 pb-6 text-sm text-muted sm:px-5">
                   <span className="size-1.5 shrink-0 rounded-full bg-success" />
                   {lastChecked
                     ? `All ${pluralize(endpoints.length, "endpoint")} match their baselines.`
@@ -242,8 +228,8 @@ export default async function DashboardPage() {
             </section>
 
             {steady.length > 0 ? (
-              <section className="px-5 py-6">
-                <div className="flex items-center justify-between">
+              <section className="pt-6">
+                <div className="flex items-center justify-between px-4 sm:px-5">
                   <h2 className="text-sm font-medium">
                     {drifting.length > 0 ? "Everything else" : "Monitored"}
                   </h2>
@@ -254,7 +240,7 @@ export default async function DashboardPage() {
                     View all
                   </Link>
                 </div>
-                <div className="mt-3 divide-y divide-border-subtle border-y border-border-subtle">
+                <div className="mt-3 border-t border-border-subtle">
                   {steady.slice(0, 5).map((e) => (
                     <EndpointCard key={e.id} endpoint={e} />
                   ))}
@@ -266,11 +252,10 @@ export default async function DashboardPage() {
       </div>
 
       <aside className="w-full shrink-0 border-t border-border lg:w-80 lg:border-l lg:border-t-0">
-        <div className="border-b border-border px-4 py-3">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted">
-            Activity
-          </h2>
-        </div>
+        {/* The column's heading used to sit on its own hairline ~40px above
+            the page header's, two rules side by side at different heights.
+            It now matches the main column's section headings. */}
+        <h2 className="px-4 pb-3 pt-6 text-sm font-medium">Activity</h2>
         <div className="px-3">
           {activities.length === 0 ? (
             <p className="px-1 py-4 text-sm text-muted">No activity yet.</p>
@@ -278,53 +263,8 @@ export default async function DashboardPage() {
             <ActivityFeed items={activities} />
           )}
         </div>
-        <div className="border-t border-border px-4 py-4">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted">
-            Quick actions
-          </h2>
-          <div className="mt-3 space-y-1">
-            {[
-              /* "Open endpoint to capture" and "Open endpoint to check" were
-                 two rows pointing at the identical href — one destination
-                 wearing two labels. Every row here now goes somewhere else. */
-              primaryEndpoint
-                ? {
-                    href: `/endpoints/${primaryEndpoint.id}`,
-                    label: `Open ${primaryEndpoint.name}`,
-                    icon: Play,
-                  }
-                : {
-                    href: canEdit ? "/endpoints/new" : "/endpoints",
-                    label: canEdit ? "Add an endpoint" : "Browse endpoints",
-                    icon: Plus,
-                  },
-              { href: "/diffs", label: "Review recent diffs", icon: GitCompare },
-              {
-                href: "/alerts/channels",
-                label: "Configure alert channels",
-                icon: Shield,
-              },
-              ...(canEdit
-                ? [
-                    {
-                      href: "/endpoints/import",
-                      label: "Import OpenAPI",
-                      icon: FileJson,
-                    },
-                  ]
-                : []),
-            ].map((a) => (
-              <Link
-                key={a.label}
-                href={a.href}
-                className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted transition-colors hover:bg-surface hover:text-foreground cursor-pointer"
-              >
-                <a.icon className="size-3.5" />
-                {a.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+        {/* "Quick actions" repeated the header buttons and the console nav —
+            Diffs, Alerts, Import — as a third copy of the same destinations. */}
       </aside>
     </div>
   );

@@ -23,6 +23,15 @@ export function useFocusTrap(
   active: boolean,
   onClose: () => void
 ) {
+  // Callers pass inline closures, so `onClose` has a new identity on every
+  // render. As an effect dependency it tore the trap down on each keystroke —
+  // focus went back to the opener, then to the overlay's first button, and
+  // the expanded editor could not be typed in. Read it through a ref instead.
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   React.useEffect(() => {
     if (!active) return;
     const node = ref.current;
@@ -36,12 +45,16 @@ export function useFocusTrap(
       );
 
     // Move focus in so the first Tab lands inside, not after, the overlay.
-    focusables()[0]?.focus();
+    // An element marked `data-autofocus` wins — React's `autoFocus` fires
+    // before this effect and would be overridden by the first button.
+    (
+      node.querySelector<HTMLElement>("[data-autofocus]") ?? focusables()[0]
+    )?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -68,5 +81,5 @@ export function useFocusTrap(
       // Return focus to whatever opened the overlay.
       previouslyFocused?.focus?.();
     };
-  }, [active, onClose, ref]);
+  }, [active, ref]);
 }

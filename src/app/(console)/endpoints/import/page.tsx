@@ -337,7 +337,7 @@ function OpenAPIImportWizard() {
                     void fetchUrl(preset.url, preset.name);
                   }}
                   className={cn(
-                    "flex w-full flex-col items-start rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors cursor-pointer hover:border-[#3f3f46] hover:bg-surface-elevated disabled:opacity-50",
+                    "flex w-full flex-col items-start rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors cursor-pointer hover:border-border-strong hover:bg-surface-elevated disabled:opacity-50",
                     sourceLabel === preset.name && "border-accent/50 bg-accent-muted"
                   )}
                 >
@@ -415,7 +415,7 @@ function OpenAPIImportWizard() {
                   const file = e.dataTransfer.files?.[0];
                   if (file) void onFile(file);
                 }}
-                className="flex w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-surface px-4 py-10 text-center transition-colors cursor-pointer hover:border-[#3f3f46] hover:bg-surface-elevated disabled:opacity-50"
+                className="flex w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-surface px-4 py-10 text-center transition-colors cursor-pointer hover:border-border-strong hover:bg-surface-elevated disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="size-5 animate-spin text-muted" />
